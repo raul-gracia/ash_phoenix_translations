@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(mix test:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
