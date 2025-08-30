@@ -85,7 +85,7 @@ defmodule AshPhoenixTranslations.TranslatableAttribute do
         doc: "Additional constraints for the attribute"
       ],
       description: [
-        type: :string,
+        type: {:or, [:string, nil]},
         default: nil,
         doc: "Description of the translatable attribute"
       ]
