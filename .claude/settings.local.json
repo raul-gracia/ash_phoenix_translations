@@ -4,7 +4,8 @@
       "Bash(mix test:*)",
       "Bash(git init:*)",
       "Bash(git commit:*)",
-      "Bash(iex:*)"
+      "Bash(iex:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []
