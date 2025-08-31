@@ -18,6 +18,10 @@ Policy-aware translation extension for [Ash Framework](https://ash-hq.org/) with
 - 📦 **Import/Export** - CSV, JSON, and XLIFF format support
 - ✅ **Validation** - Built-in translation completeness and quality checks
 - 🎨 **Phoenix Helpers** - Template helpers for easy translation rendering
+- 📊 **GraphQL Support** - Automatic GraphQL field generation with resolvers
+- 🔗 **JSON:API Support** - Full JSON:API integration with locale handling
+- 🏗️ **Embedded Schemas** - Translation support for nested and embedded resources
+- 🔍 **Gettext Extraction** - Extract translatable strings to POT files
 
 ## Installation
 
@@ -231,6 +235,159 @@ config :ash_phoenix_translations, :redis,
   host: "localhost",
   port: 6379,
   database: 0
+```
+
+## GraphQL Integration
+
+Automatically expose translations through GraphQL:
+
+```elixir
+defmodule MyApp.Product do
+  use Ash.Resource,
+    extensions: [AshPhoenixTranslations, AshGraphql.Resource]
+  
+  graphql do
+    type :product
+    
+    queries do
+      get :get_product, :read
+      list :list_products, :read
+    end
+  end
+  
+  translations do
+    translatable_attribute :name, :string, locales: [:en, :es, :fr]
+    graphql_translations true
+  end
+end
+```
+
+Query with locale:
+
+```graphql
+query {
+  listProducts(locale: "es") {
+    id
+    name  # Automatically translated to Spanish
+    nameTranslations {  # All translations
+      locale
+      value
+    }
+  }
+}
+```
+
+## JSON:API Integration
+
+Full JSON:API support with locale handling:
+
+```elixir
+defmodule MyApp.Product do
+  use Ash.Resource,
+    extensions: [AshPhoenixTranslations, AshJsonApi.Resource]
+  
+  json_api do
+    type "product"
+    
+    routes do
+      base "/products"
+      get :read
+      index :read
+    end
+  end
+  
+  translations do
+    translatable_attribute :name, :string, locales: [:en, :es, :fr]
+    json_api_translations true
+  end
+end
+```
+
+Add the locale plug to your router:
+
+```elixir
+pipeline :api do
+  plug :accepts, ["json"]
+  plug AshPhoenixTranslations.JsonApi.LocalePlug
+end
+```
+
+Request with locale:
+
+```bash
+# Via query parameter
+GET /api/products?locale=es
+
+# Via Accept-Language header
+GET /api/products
+Accept-Language: es-ES,es;q=0.9
+```
+
+## Embedded Schema Support
+
+Translate nested and embedded resources:
+
+```elixir
+defmodule MyApp.Address do
+  use Ash.Resource,
+    data_layer: :embedded,
+    extensions: [AshPhoenixTranslations]
+  
+  translations do
+    translatable_attribute :street, :string, locales: [:en, :es, :fr]
+    translatable_attribute :city, :string, locales: [:en, :es, :fr]
+  end
+end
+
+defmodule MyApp.User do
+  use Ash.Resource,
+    extensions: [AshPhoenixTranslations]
+  
+  attributes do
+    attribute :address, MyApp.Address
+  end
+  
+  translations do
+    translatable_attribute :bio, :text, locales: [:en, :es, :fr]
+    enable_embedded_translations true
+  end
+end
+```
+
+Translate embedded fields:
+
+```elixir
+user = MyApp.User |> Ash.get!(id)
+translated = AshPhoenixTranslations.Embedded.translate_embedded(user, :es)
+translated.address.street  # => Spanish street name
+```
+
+## Gettext Extraction
+
+Extract translatable strings to POT files:
+
+```bash
+# Extract all translatable strings
+mix ash_phoenix_translations.extract
+
+# Extract for specific domain
+mix ash_phoenix_translations.extract --domain MyApp.Shop
+
+# Generate PO files for locales
+mix ash_phoenix_translations.extract --locales en,es,fr
+
+# Extract to custom directory
+mix ash_phoenix_translations.extract --output priv/gettext
+```
+
+After extraction, use standard Gettext tools:
+
+```bash
+# Merge new strings
+mix gettext.merge priv/gettext
+
+# Compile translations
+mix compile.gettext
 ```
 
 ## Import/Export
