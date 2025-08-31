@@ -18,6 +18,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculations do
   @impl true
   def transform(dsl_state) do
     backend = Transformer.get_option(dsl_state, [:translations], :backend) || :database
+    gettext_module = Transformer.get_option(dsl_state, [:translations], :gettext_module)
     
     translatable_attrs = get_translatable_attributes(dsl_state)
     
@@ -29,7 +30,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculations do
     translatable_attrs
     |> Enum.reduce({:ok, dsl_state}, fn attr, {:ok, dsl_state} ->
       dsl_state
-      |> add_translation_calculation(attr, backend)
+      |> add_translation_calculation(attr, backend, gettext_module)
       |> add_all_translations_calculation(attr, backend)
     end)
   end
@@ -39,7 +40,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculations do
     |> Enum.filter(&is_struct(&1, AshPhoenixTranslations.TranslatableAttribute))
   end
 
-  defp add_translation_calculation(dsl_state, attr, backend) do
+  defp add_translation_calculation(dsl_state, attr, backend, gettext_module) do
     calculation_module = 
       case backend do
         :database -> AshPhoenixTranslations.Calculations.DatabaseTranslation
@@ -47,16 +48,38 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculations do
         :redis -> AshPhoenixTranslations.Calculations.RedisTranslation
       end
     
+    # Get the resource name for Gettext message IDs
+    resource_name = 
+      dsl_state
+      |> Transformer.get_persisted(:module)
+      |> Module.split()
+      |> List.last()
+      |> Macro.underscore()
+    
+    calculation_opts = 
+      [
+        attribute_name: attr.name,
+        fallback: attr.fallback,
+        locales: attr.locales,
+        backend: backend
+      ]
+      |> then(fn opts ->
+        if backend == :gettext do
+          opts
+          |> Keyword.put(:gettext_module, gettext_module)
+          |> Keyword.put(:resource_name, resource_name)
+          |> Keyword.put(:attribute, attr.name)
+        else
+          opts
+        end
+      end)
+    
     {:ok, dsl_state} =
       Ash.Resource.Builder.add_new_calculation(
         dsl_state,
         attr.name,
         :string,  # The return type of the calculation
-        {calculation_module, 
-         attribute_name: attr.name,
-         fallback: attr.fallback,
-         locales: attr.locales,
-         backend: backend},
+        {calculation_module, calculation_opts},
         public?: true,
         description: "Current locale translation for #{attr.name}"
       )

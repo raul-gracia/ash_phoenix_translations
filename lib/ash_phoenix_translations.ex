@@ -56,6 +56,10 @@ defmodule AshPhoenixTranslations do
             default: :database,
             doc: "The backend to use for storing translations"
           ],
+          gettext_module: [
+            type: :atom,
+            doc: "The Gettext module to use (e.g., MyAppWeb.Gettext). Required when backend is :gettext"
+          ],
           cache_ttl: [
             type: :pos_integer,
             default: 3600,
