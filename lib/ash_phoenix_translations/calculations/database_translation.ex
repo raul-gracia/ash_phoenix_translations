@@ -55,7 +55,7 @@ defmodule AshPhoenixTranslations.Calculations.DatabaseTranslation do
       require Ash.Expr
       
       Ash.Expr.expr(
-        fragment("COALESCE((?)->?, (?)-> ?)",
+        fragment("COALESCE((?)::jsonb->>?, (?)::jsonb->>?)",
           ^ref(storage_field),
           ^to_string(locale),
           ^ref(storage_field),
@@ -67,15 +67,21 @@ defmodule AshPhoenixTranslations.Calculations.DatabaseTranslation do
       require Ash.Expr
       
       Ash.Expr.expr(
-        fragment("(?)->?", ^ref(storage_field), ^to_string(locale))
+        fragment("(?)::jsonb->>?", ^ref(storage_field), ^to_string(locale))
       )
     end
   end
 
-  defp get_locale(context) do
-    # Try multiple sources for locale
-    context[:locale] ||
-      context[:query][:locale] ||
+  defp get_locale(context) when is_map(context) do
+    # Handle different context types
+    locale = 
+      case context do
+        %{locale: locale} -> locale
+        %{source_context: %{locale: locale}} -> locale
+        _ -> nil
+      end
+    
+    locale ||
       Process.get(:locale) ||
       Application.get_env(:ash_phoenix_translations, :default_locale, :en)
   end

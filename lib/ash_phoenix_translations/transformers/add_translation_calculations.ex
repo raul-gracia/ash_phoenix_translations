@@ -19,8 +19,14 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculations do
   def transform(dsl_state) do
     backend = Transformer.get_option(dsl_state, [:translations], :backend) || :database
     
-    dsl_state
-    |> get_translatable_attributes()
+    translatable_attrs = get_translatable_attributes(dsl_state)
+    
+    # Persist the translatable attributes for Info module
+    dsl_state = 
+      dsl_state
+      |> Transformer.persist(:translatable_attributes, translatable_attrs)
+    
+    translatable_attrs
     |> Enum.reduce({:ok, dsl_state}, fn attr, {:ok, dsl_state} ->
       dsl_state
       |> add_translation_calculation(attr, backend)

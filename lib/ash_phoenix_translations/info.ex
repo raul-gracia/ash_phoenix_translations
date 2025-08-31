@@ -14,7 +14,13 @@ defmodule AshPhoenixTranslations.Info do
   @spec translatable_attributes(Ash.Resource.t() | Spark.Dsl.t()) ::
           [AshPhoenixTranslations.TranslatableAttribute.t()]
   def translatable_attributes(resource) do
-    Spark.Dsl.Extension.get_entities(resource, [:translations, :translatable_attribute])
+    # Try to get from persisted data first
+    case Spark.Dsl.Extension.get_persisted(resource, :translatable_attributes) do
+      {:ok, attrs} when is_list(attrs) -> attrs
+      _ ->
+        # Fallback to entities if not persisted
+        Spark.Dsl.Extension.get_entities(resource, [:translations, :translatable_attribute])
+    end
   end
 
   @doc """
