@@ -1,0 +1,82 @@
+defmodule AshPhoenixTranslations.Calculations.DatabaseTranslation do
+  @moduledoc """
+  Calculation for fetching translations from database storage.
+  
+  Returns the translation for the current locale, with fallback support.
+  """
+
+  use Ash.Resource.Calculation
+
+  @impl true
+  def init(opts) do
+    {:ok, opts}
+  end
+
+  @impl true
+  def calculate(records, opts, context) do
+    attribute_name = Keyword.fetch!(opts, :attribute_name)
+    fallback = Keyword.get(opts, :fallback)
+    
+    # Get the current locale from context
+    locale = get_locale(context)
+    
+    # Get translations for each record
+    Enum.map(records, fn record ->
+      storage_field = :"#{attribute_name}_translations"
+      translations = Map.get(record, storage_field, %{})
+      
+      # Try to get translation for current locale
+      translation = Map.get(translations, locale)
+      
+      # If no translation and fallback is configured, try fallback locale
+      translation = 
+        if is_nil(translation) && fallback do
+          Map.get(translations, fallback)
+        else
+          translation
+        end
+      
+      # Return the translation or nil
+      translation
+    end)
+  end
+
+  @impl true
+  def expression(opts, context) do
+    attribute_name = Keyword.fetch!(opts, :attribute_name)
+    fallback = Keyword.get(opts, :fallback)
+    locale = get_locale(context)
+    
+    storage_field = :"#{attribute_name}_translations"
+    
+    # Build the expression to get the translation
+    if fallback do
+      # With fallback: translations[locale] || translations[fallback]
+      require Ash.Expr
+      
+      Ash.Expr.expr(
+        fragment("COALESCE((?)->?, (?)-> ?)",
+          ^ref(storage_field),
+          ^to_string(locale),
+          ^ref(storage_field),
+          ^to_string(fallback)
+        )
+      )
+    else
+      # Without fallback: translations[locale]
+      require Ash.Expr
+      
+      Ash.Expr.expr(
+        fragment("(?)->?", ^ref(storage_field), ^to_string(locale))
+      )
+    end
+  end
+
+  defp get_locale(context) do
+    # Try multiple sources for locale
+    context[:locale] ||
+      context[:query][:locale] ||
+      Process.get(:locale) ||
+      Application.get_env(:ash_phoenix_translations, :default_locale, :en)
+  end
+end
