@@ -20,7 +20,7 @@ defmodule AshPhoenixTranslations.LiveView do
   """
 
   import Phoenix.LiveView
-  import Phoenix.Component
+  use Phoenix.Component
 
   @doc false
   defmacro __using__(_opts) do
@@ -352,7 +352,7 @@ defmodule AshPhoenixTranslations.LiveView do
     end)
   end
 
-  defp put_locale_in_session(socket, locale) do
+  defp put_locale_in_session(socket, _locale) do
     # This would need to be implemented based on your session handling
     # For now, we'll store it in socket assigns
     socket

@@ -194,8 +194,12 @@ defmodule AshPhoenixTranslations.Plugs.LoadTranslations do
   
   defp get_from_cache(key) do
     case Process.get({:translation_cache, key}) do
-      {value, expiry} when expiry > System.system_time(:second) ->
-        value
+      {value, expiry} ->
+        if expiry > System.system_time(:second) do
+          value
+        else
+          nil
+        end
       _ ->
         nil
     end
