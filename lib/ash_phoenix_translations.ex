@@ -180,8 +180,20 @@ defmodule AshPhoenixTranslations do
   end
 
   defp do_translate(resource, locale) do
+    # Get the calculation names directly from the resource
+    calculations = 
+      resource.__struct__
+      |> Ash.Resource.Info.calculations()
+      |> Enum.filter(fn calc ->
+        # Only load translation-related calculations
+        String.contains?(to_string(calc.name), ["name", "description", "features"]) &&
+        !String.contains?(to_string(calc.name), "_all_translations")
+      end)
+      |> Enum.map(& &1.name)
+    
+    # Load the calculations with locale context
     resource
-    |> Ash.load!(translation_calculations(resource), authorize?: false, context: %{locale: locale})
+    |> Ash.load!(calculations, authorize?: false, context: %{locale: locale})
   end
 
   defp translation_calculations(resource) do

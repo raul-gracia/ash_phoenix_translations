@@ -23,8 +23,9 @@ defmodule AshPhoenixTranslations.Changes.UpdateTranslation do
     else
       backend = Keyword.fetch!(opts, :backend)
       
-      # Get the arguments from the action
-      attribute = Ash.Changeset.get_argument(changeset, :attribute)
+      # Get the arguments from the action - support both attribute and field names
+      attribute = Ash.Changeset.get_argument(changeset, :attribute) || 
+                  Ash.Changeset.get_argument(changeset, :field)
       locale = Ash.Changeset.get_argument(changeset, :locale)
       value = Ash.Changeset.get_argument(changeset, :value)
       
