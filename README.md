@@ -12,7 +12,7 @@ Policy-aware translation extension for [Ash Framework](https://ash-hq.org/) with
 
 - 🌍 **Multi-locale Support** - Manage translations for unlimited locales per field
 - 🔐 **Policy-aware** - Leverage Ash policies for translation access control
-- 💾 **Multiple Storage Backends** - Database (JSONB), Gettext, Redis
+- 💾 **Multiple Storage Backends** - Database (JSONB ✅), Gettext (✅), Redis (🚧)
 - ⚡ **Performance Optimized** - Built-in caching with TTL and invalidation
 - 🔄 **LiveView Integration** - Real-time locale switching and updates
 - 📦 **Import/Export** - CSV, JSON, and XLIFF format support
@@ -211,14 +211,24 @@ end
 
 ### Gettext Backend
 
-Integrates with Phoenix's built-in Gettext:
+Integrates with Phoenix's built-in Gettext for translation management via .po files:
 
 ```elixir
 translations do
   backend :gettext
-  gettext_domain "products"
+  gettext_module MyAppWeb.Gettext  # Required for Gettext backend
+  
+  translatable_attribute :name, :string do
+    locales [:en, :es, :fr]
+  end
 end
 ```
+
+When using Gettext backend:
+- Translations are stored in `.po` files under `priv/gettext/`
+- Use the "resources" domain for Ash resource translations
+- Message IDs are formatted as `"resource_name.attribute_name"`
+- Editing is managed through .po files, not the UI
 
 ### Redis Backend
 
