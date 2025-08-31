@@ -151,9 +151,9 @@ defmodule AshPhoenixTranslations.LocaleResolver do
     put_resp_cookie(conn, "locale", locale, max_age: 365 * 24 * 60 * 60)
   end
 
-  def persist(conn, locale, :user) do
+  def persist(conn, _locale, :user) do
     case conn.assigns[:current_user] do
-      %{__struct__: module} = user ->
+      %{__struct__: _module} = _user ->
         # This would need to be implemented based on your user system
         # For example:
         # Ash.update!(user, %{locale: locale})
