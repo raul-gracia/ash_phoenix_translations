@@ -1,0 +1,54 @@
+version: 2
+updates:
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "10:00"
+    reviewers:
+      - "raul-gracia"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    
+  # Maintain dependencies for Hex packages
+  - package-ecosystem: "mix"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "10:00"
+    reviewers:
+      - "raul-gracia"
+    labels:
+      - "dependencies"
+      - "elixir"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    ignore:
+      # Only update Ash for major versions
+      - dependency-name: "ash"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+      # Only update Spark for major versions
+      - dependency-name: "spark"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+    groups:
+      # Group all test dependencies together
+      test-dependencies:
+        patterns:
+          - "ex_*"
+          - "credo"
+          - "dialyxir"
+          - "excoveralls"
+          - "mix_test_watch"
+      # Group Phoenix dependencies
+      phoenix-dependencies:
+        patterns:
+          - "phoenix*"
+          - "plug"

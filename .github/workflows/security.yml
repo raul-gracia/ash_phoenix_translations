@@ -1,0 +1,66 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run security check every Monday at 10:00 UTC
+    - cron: '0 10 * * 1'
+
+env:
+  ELIXIR_VERSION: "1.17.3"
+  OTP_VERSION: "27.0"
+
+jobs:
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+      
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-security-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-security-
+            ${{ runner.os }}-mix-
+      
+      - name: Install dependencies
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      
+      - name: Check for retired dependencies
+        run: mix hex.audit
+        continue-on-error: false
+      
+      - name: Check for security vulnerabilities
+        run: |
+          mix archive.install hex sobelow --force
+          mix sobelow --config || true
+        continue-on-error: true
+      
+      - name: Check dependencies for known vulnerabilities
+        run: mix deps.audit
+        continue-on-error: true
+      
+      - name: License compliance check
+        run: |
+          mix archive.install hex licensir --force
+          mix licensir || true
+        continue-on-error: true

@@ -5,7 +5,10 @@
       "Bash(git init:*)",
       "Bash(git commit:*)",
       "Bash(iex:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
