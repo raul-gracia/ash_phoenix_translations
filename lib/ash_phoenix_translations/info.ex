@@ -107,4 +107,45 @@ defmodule AshPhoenixTranslations.Info do
   def all_translations_field(attribute_name) do
     :"#{attribute_name}_all_translations"
   end
+
+  @doc """
+  Get the translation policy configuration for a resource.
+  """
+  @spec translation_policies(Ash.Resource.t() | Spark.Dsl.t()) :: keyword() | nil
+  def translation_policies(resource) do
+    Spark.Dsl.Extension.get_opt(resource, [:translations], :policy, nil)
+  end
+
+  @doc """
+  Get the view policy for a resource.
+  """
+  @spec view_policy(Ash.Resource.t() | Spark.Dsl.t()) :: atom() | tuple() | nil
+  def view_policy(resource) do
+    case translation_policies(resource) do
+      nil -> :public  # Default to public view
+      policies -> Keyword.get(policies, :view, :public)
+    end
+  end
+
+  @doc """
+  Get the edit policy for a resource.
+  """
+  @spec edit_policy(Ash.Resource.t() | Spark.Dsl.t()) :: atom() | tuple() | nil
+  def edit_policy(resource) do
+    case translation_policies(resource) do
+      nil -> :admin  # Default to admin edit
+      policies -> Keyword.get(policies, :edit, :admin)
+    end
+  end
+
+  @doc """
+  Get the approval policy for a resource.
+  """
+  @spec approval_policy(Ash.Resource.t() | Spark.Dsl.t()) :: keyword() | nil
+  def approval_policy(resource) do
+    case translation_policies(resource) do
+      nil -> nil
+      policies -> Keyword.get(policies, :approval)
+    end
+  end
 end
