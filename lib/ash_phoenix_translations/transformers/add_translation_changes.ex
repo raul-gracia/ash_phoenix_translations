@@ -1,9 +1,15 @@
 defmodule AshPhoenixTranslations.Transformers.AddTranslationChanges do
   @moduledoc """
   Adds automatic translation validation changes.
+  
+  Adds changes to actions that:
+  - Validate required translations
+  - Update translation storage on changes
+  - Handle import/export operations
   """
 
   use Spark.Dsl.Transformer
+  alias Spark.Dsl.Transformer
 
   @impl true
   def after?(AshPhoenixTranslations.Transformers.AddTranslationCalculations), do: true
@@ -11,7 +17,137 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChanges do
 
   @impl true
   def transform(dsl_state) do
-    # TODO: Implement changes logic
-    {:ok, dsl_state}
+    backend = Transformer.get_option(dsl_state, [:translations], :backend) || :database
+    auto_validate = Transformer.get_option(dsl_state, [:translations], :auto_validate) !== false
+    
+    with {:ok, dsl_state} <- (if auto_validate do
+                                add_validation_changes(dsl_state, backend)
+                              else
+                                {:ok, dsl_state}
+                              end),
+         {:ok, dsl_state} <- add_update_changes(dsl_state, backend),
+         {:ok, dsl_state} <- add_import_changes(dsl_state, backend) do
+      {:ok, dsl_state}
+    end
+  end
+
+  defp add_validation_changes(dsl_state, backend) do
+    translatable_attrs = get_translatable_attributes(dsl_state)
+    
+    # Add validation change to create and update actions
+    actions = Transformer.get_entities(dsl_state, [:actions])
+    
+    Enum.reduce(actions, {:ok, dsl_state}, fn action, {:ok, dsl_state} ->
+      if action.type in [:create, :update] do
+        add_validation_to_action(dsl_state, action, translatable_attrs, backend)
+      else
+        {:ok, dsl_state}
+      end
+    end)
+  end
+
+  defp add_validation_to_action(dsl_state, action, translatable_attrs, backend) do
+    # For each translatable attribute with required locales, add validation
+    Enum.reduce(translatable_attrs, {:ok, dsl_state}, fn attr, {:ok, dsl_state} ->
+      if Enum.any?(attr.required || []) do
+        # Build a change entity
+        {:ok, change} = 
+          Ash.Resource.Builder.build_action_change(
+            {AshPhoenixTranslations.Changes.ValidateRequiredTranslations,
+             attribute_name: attr.name,
+             required_locales: attr.required,
+             backend: backend,
+             action_name: action.name},
+            only_when_valid?: true
+          )
+        
+        # Add it to the action's changes
+        updated_action = %{action | changes: action.changes ++ [change]}
+        
+        # Replace the action in the DSL state
+        dsl_state = 
+          Transformer.replace_entity(
+            dsl_state,
+            [:actions],
+            updated_action,
+            &(&1.name == action.name)
+          )
+        
+        {:ok, dsl_state}
+      else
+        {:ok, dsl_state}
+      end
+    end)
+  end
+
+  defp add_update_changes(dsl_state, backend) do
+    # Add change to update_translation action if it exists
+    actions = Transformer.get_entities(dsl_state, [:actions])
+    
+    update_translation_action = Enum.find(actions, &(&1.name == :update_translation))
+    
+    if update_translation_action do
+      # Build a change entity for UpdateTranslation
+      {:ok, change} = 
+        Ash.Resource.Builder.build_action_change(
+          {AshPhoenixTranslations.Changes.UpdateTranslation,
+           backend: backend,
+           action_name: :update_translation}
+        )
+      
+      # Add it to the action's changes
+      updated_action = %{update_translation_action | changes: update_translation_action.changes ++ [change]}
+      
+      # Replace the action in the DSL state
+      dsl_state = 
+        Transformer.replace_entity(
+          dsl_state,
+          [:actions],
+          updated_action,
+          &(&1.name == :update_translation)
+        )
+      
+      {:ok, dsl_state}
+    else
+      {:ok, dsl_state}
+    end
+  end
+
+  defp add_import_changes(dsl_state, backend) do
+    # Add change to import_translations action if it exists
+    actions = Transformer.get_entities(dsl_state, [:actions])
+    
+    import_action = Enum.find(actions, &(&1.name == :import_translations))
+    
+    if import_action do
+      # Build a change entity for ImportTranslations
+      {:ok, change} = 
+        Ash.Resource.Builder.build_action_change(
+          {AshPhoenixTranslations.Changes.ImportTranslations,
+           backend: backend,
+           action_name: :import_translations}
+        )
+      
+      # Add it to the action's changes
+      updated_action = %{import_action | changes: import_action.changes ++ [change]}
+      
+      # Replace the action in the DSL state
+      dsl_state = 
+        Transformer.replace_entity(
+          dsl_state,
+          [:actions],
+          updated_action,
+          &(&1.name == :import_translations)
+        )
+      
+      {:ok, dsl_state}
+    else
+      {:ok, dsl_state}
+    end
+  end
+
+  defp get_translatable_attributes(dsl_state) do
+    Transformer.get_entities(dsl_state, [:translations])
+    |> Enum.filter(&is_struct(&1, AshPhoenixTranslations.TranslatableAttribute))
   end
 end
