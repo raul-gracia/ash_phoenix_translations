@@ -1,8 +1,10 @@
 # AshPhoenixTranslations
 
+[![CI](https://github.com/raul-gracia/ash_phoenix_translations/actions/workflows/ci.yml/badge.svg)](https://github.com/raul-gracia/ash_phoenix_translations/actions/workflows/ci.yml)
+[![Security Audit](https://github.com/raul-gracia/ash_phoenix_translations/actions/workflows/security.yml/badge.svg)](https://github.com/raul-gracia/ash_phoenix_translations/actions/workflows/security.yml)
 [![Hex.pm](https://img.shields.io/hexpm/v/ash_phoenix_translations.svg)](https://hex.pm/packages/ash_phoenix_translations)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-purple.svg)](https://hexdocs.pm/ash_phoenix_translations)
-[![License](https://img.shields.io/hexpm/l/ash_phoenix_translations.svg)](https://github.com/yourusername/ash_phoenix_translations/blob/main/LICENSE)
+[![License](https://img.shields.io/hexpm/l/ash_phoenix_translations.svg)](https://github.com/raul-gracia/ash_phoenix_translations/blob/main/LICENSE)
 
 Policy-aware translation extension for [Ash Framework](https://ash-hq.org/) with multi-backend support, optimized for Phoenix applications.
 
@@ -456,5 +458,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 - [Documentation](https://hexdocs.pm/ash_phoenix_translations)
-- [GitHub Issues](https://github.com/yourusername/ash_phoenix_translations/issues)
+- [GitHub Issues](https://github.com/raul-gracia/ash_phoenix_translations/issues)
 - [Ash Discord](https://discord.gg/ash-hq)
