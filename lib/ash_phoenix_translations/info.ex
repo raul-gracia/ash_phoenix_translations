@@ -14,9 +14,7 @@ defmodule AshPhoenixTranslations.Info do
   @spec translatable_attributes(Ash.Resource.t() | Spark.Dsl.t()) ::
           [AshPhoenixTranslations.TranslatableAttribute.t()]
   def translatable_attributes(resource) do
-    resource
-    |> translations()
-    |> Map.get(:translatable_attributes, [])
+    Spark.Dsl.Extension.get_entities(resource, [:translations, :translatable_attribute])
   end
 
   @doc """
@@ -24,9 +22,7 @@ defmodule AshPhoenixTranslations.Info do
   """
   @spec backend(Ash.Resource.t() | Spark.Dsl.t()) :: :database | :gettext | :redis
   def backend(resource) do
-    resource
-    |> translations()
-    |> Map.get(:backend, :database)
+    Spark.Dsl.Extension.get_opt(resource, [:translations], :backend, :database)
   end
 
   @doc """
@@ -34,9 +30,7 @@ defmodule AshPhoenixTranslations.Info do
   """
   @spec cache_ttl(Ash.Resource.t() | Spark.Dsl.t()) :: pos_integer()
   def cache_ttl(resource) do
-    resource
-    |> translations()
-    |> Map.get(:cache_ttl, 3600)
+    Spark.Dsl.Extension.get_opt(resource, [:translations], :cache_ttl, 3600)
   end
 
   @doc """
@@ -44,9 +38,7 @@ defmodule AshPhoenixTranslations.Info do
   """
   @spec audit_changes?(Ash.Resource.t() | Spark.Dsl.t()) :: boolean()
   def audit_changes?(resource) do
-    resource
-    |> translations()
-    |> Map.get(:audit_changes, false)
+    Spark.Dsl.Extension.get_opt(resource, [:translations], :audit_changes, false)
   end
 
   @doc """
@@ -54,9 +46,7 @@ defmodule AshPhoenixTranslations.Info do
   """
   @spec auto_validate?(Ash.Resource.t() | Spark.Dsl.t()) :: boolean()
   def auto_validate?(resource) do
-    resource
-    |> translations()
-    |> Map.get(:auto_validate, true)
+    Spark.Dsl.Extension.get_opt(resource, [:translations], :auto_validate, true)
   end
 
   @doc """
