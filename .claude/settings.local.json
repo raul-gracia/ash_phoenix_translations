@@ -3,7 +3,8 @@
     "allow": [
       "Bash(mix test:*)",
       "Bash(git init:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(iex:*)"
     ],
     "deny": [],
     "ask": []
