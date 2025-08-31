@@ -1,0 +1,14 @@
+# Sobelow configuration for security scanning
+
+[
+  verbose: false,
+  private: false,
+  skip: false,
+  router: "",
+  exit: "false",
+  format: "txt",
+  out: "",
+  threshold: "low",
+  ignore: ["Config.CSP"],
+  ignore_files: ["lib/mix/tasks/"]
+]
