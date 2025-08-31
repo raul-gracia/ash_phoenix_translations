@@ -15,8 +15,8 @@ defmodule AshPhoenixTranslations.MixProject do
       package: package(),
       description: @description,
       docs: docs(),
-      source_url: "https://github.com/yourusername/ash_phoenix_translations",
-      homepage_url: "https://github.com/yourusername/ash_phoenix_translations",
+      source_url: "https://github.com/raul-gracia/ash_phoenix_translations",
+      homepage_url: "https://github.com/raul-gracia/ash_phoenix_translations",
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
         coveralls: :test,
@@ -69,8 +69,8 @@ defmodule AshPhoenixTranslations.MixProject do
       name: "ash_phoenix_translations",
       licenses: ["MIT"],
       links: %{
-        "GitHub" => "https://github.com/yourusername/ash_phoenix_translations",
-        "Changelog" => "https://github.com/yourusername/ash_phoenix_translations/blob/main/CHANGELOG.md"
+        "GitHub" => "https://github.com/raul-gracia/ash_phoenix_translations",
+        "Changelog" => "https://github.com/raul-gracia/ash_phoenix_translations/blob/main/CHANGELOG.md"
       },
       files: ~w(lib mix.exs README.md LICENSE CHANGELOG.md)
     ]
