@@ -70,6 +70,42 @@ defmodule AshPhoenixTranslations do
             type: :boolean,
             default: true,
             doc: "Whether to automatically validate required translations"
+          ],
+          policy: [
+            type: :keyword_list,
+            doc: "Policy configuration for translation access control",
+            keys: [
+              view: [
+                type: {:or, [
+                  {:in, [:public, :authenticated, :admin, :translator]},
+                  {:tuple, [:atom, :keyword_list]},
+                  :atom
+                ]},
+                doc: "Policy for viewing translations"
+              ],
+              edit: [
+                type: {:or, [
+                  {:in, [:admin, :translator]},
+                  {:tuple, [:atom, {:list, :atom}]},
+                  :atom
+                ]},
+                doc: "Policy for editing translations"
+              ],
+              approval: [
+                type: :keyword_list,
+                doc: "Approval workflow configuration",
+                keys: [
+                  approvers: [
+                    type: {:list, :atom},
+                    doc: "List of roles that can approve translations"
+                  ],
+                  required_for: [
+                    type: {:list, :atom},
+                    doc: "Environments where approval is required"
+                  ]
+                ]
+              ]
+            ]
           ]
         ],
         entities: [
