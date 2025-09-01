@@ -1,9 +1,9 @@
 defmodule AshPhoenixTranslations.Controller do
   @moduledoc """
   Controller helpers for AshPhoenixTranslations.
-  
+
   Import this module in your controllers to get translation helpers:
-  
+
       defmodule MyAppWeb.ProductController do
         use MyAppWeb, :controller
         import AshPhoenixTranslations.Controller
@@ -21,9 +21,9 @@ defmodule AshPhoenixTranslations.Controller do
 
   @doc """
   Sets the locale in the connection.
-  
+
   Can be used as a plug or called directly:
-  
+
       # As a plug in router
       plug :set_locale
       
@@ -37,7 +37,7 @@ defmodule AshPhoenixTranslations.Controller do
 
   def set_locale(conn, locale) when is_binary(locale) or is_atom(locale) do
     locale = to_string(locale)
-    
+
     conn
     |> put_session(:locale, locale)
     |> assign(:locale, locale)
@@ -46,9 +46,9 @@ defmodule AshPhoenixTranslations.Controller do
   def set_locale(conn, opts) when is_list(opts) do
     resolver = Keyword.get(opts, :resolver, :auto)
     fallback = Keyword.get(opts, :fallback, "en")
-    
+
     locale = LocaleResolver.resolve(conn, resolver) || fallback
-    
+
     conn
     |> put_session(:locale, locale)
     |> assign(:locale, locale)
@@ -56,7 +56,7 @@ defmodule AshPhoenixTranslations.Controller do
 
   @doc """
   Translates a resource or list of resources based on the connection's locale.
-  
+
       product = with_locale(conn, product)
       products = with_locale(conn, products)
   """
@@ -67,19 +67,19 @@ defmodule AshPhoenixTranslations.Controller do
 
   @doc """
   Gets the current locale from the connection.
-  
+
       locale = get_locale(conn)
   """
   def get_locale(conn) do
-    conn.assigns[:locale] || 
-      get_session(conn, :locale) || 
+    conn.assigns[:locale] ||
+      get_session(conn, :locale) ||
       LocaleResolver.resolve(conn, :auto) ||
       "en"
   end
 
   @doc """
   Temporarily switches locale for a block of code.
-  
+
       with_locale conn, "es" do
         # Code here runs with Spanish locale
         product = Ash.get!(Product, id)
@@ -88,7 +88,7 @@ defmodule AshPhoenixTranslations.Controller do
   defmacro with_locale(conn, locale, do: block) do
     quote do
       original_locale = unquote(__MODULE__).get_locale(unquote(conn))
-      
+
       try do
         conn = unquote(__MODULE__).set_locale(unquote(conn), unquote(locale))
         var!(conn) = conn
@@ -101,7 +101,7 @@ defmodule AshPhoenixTranslations.Controller do
 
   @doc """
   Returns available locales for a resource.
-  
+
       locales = available_locales(Product)
       # => [:en, :es, :fr]
   """
@@ -111,7 +111,7 @@ defmodule AshPhoenixTranslations.Controller do
 
   @doc """
   Checks if a locale is supported for a resource.
-  
+
       if locale_supported?(Product, "es") do
         # Spanish is supported
       end
@@ -123,7 +123,7 @@ defmodule AshPhoenixTranslations.Controller do
 
   @doc """
   Gets translation errors from a changeset.
-  
+
       case Ash.create(Product, params) do
         {:error, changeset} ->
           errors = translation_errors(changeset)
@@ -134,22 +134,28 @@ defmodule AshPhoenixTranslations.Controller do
     changeset.errors
     |> Enum.filter(fn error ->
       String.contains?(to_string(error.field), "_translations") ||
-      String.contains?(error.message || "", "translation")
+        String.contains?(error.message || "", "translation")
     end)
     |> Enum.map(fn error ->
-      field = 
+      field_string =
         error.field
         |> to_string()
         |> String.replace("_translations", "")
-        |> String.to_atom()
-      
+
+      field =
+        try do
+          String.to_existing_atom(field_string)
+        rescue
+          ArgumentError -> String.to_atom(field_string)
+        end
+
       {field, error.message}
     end)
   end
 
   @doc """
   Builds a locale switcher data structure.
-  
+
       switcher_data = locale_switcher(conn, Product)
       # => [
       #   %{code: "en", name: "English", active: true, url: "?locale=en"},
@@ -158,7 +164,7 @@ defmodule AshPhoenixTranslations.Controller do
   """
   def locale_switcher(conn, resource) do
     current_locale = get_locale(conn)
-    
+
     available_locales(resource)
     |> Enum.map(fn locale ->
       %{
@@ -172,7 +178,7 @@ defmodule AshPhoenixTranslations.Controller do
 
   @doc """
   Sets translation context for Ash operations.
-  
+
       conn
       |> set_translation_context()
       |> Ash.create!(Product, params)
@@ -180,7 +186,7 @@ defmodule AshPhoenixTranslations.Controller do
   def set_translation_context(conn) do
     locale = get_locale(conn)
     actor = conn.assigns[:current_user]
-    
+
     %{
       locale: locale,
       actor: actor,
@@ -196,23 +202,54 @@ defmodule AshPhoenixTranslations.Controller do
   # Private helpers
 
   defp to_atom(value) when is_atom(value), do: value
-  defp to_atom(value) when is_binary(value), do: String.to_atom(value)
+
+  defp to_atom(value) when is_binary(value) do
+    try do
+      String.to_existing_atom(value)
+    rescue
+      ArgumentError ->
+        raise ArgumentError,
+              "Invalid locale atom: #{inspect(value)}. Only predefined locales are allowed."
+    end
+  end
 
   defp locale_name(locale) do
     # This could be enhanced with a proper locale names mapping
     case locale do
-      :en -> "English"
-      :es -> "Español"
-      :fr -> "Français"
-      :de -> "Deutsch"
-      :it -> "Italiano"
-      :pt -> "Português"
-      :ja -> "日本語"
-      :zh -> "中文"
-      :ko -> "한국어"
-      :ar -> "العربية"
-      :ru -> "Русский"
-      other -> 
+      :en ->
+        "English"
+
+      :es ->
+        "Español"
+
+      :fr ->
+        "Français"
+
+      :de ->
+        "Deutsch"
+
+      :it ->
+        "Italiano"
+
+      :pt ->
+        "Português"
+
+      :ja ->
+        "日本語"
+
+      :zh ->
+        "中文"
+
+      :ko ->
+        "한국어"
+
+      :ar ->
+        "العربية"
+
+      :ru ->
+        "Русский"
+
+      other ->
         other
         |> to_string()
         |> String.upcase()
@@ -220,11 +257,11 @@ defmodule AshPhoenixTranslations.Controller do
   end
 
   defp build_locale_url(conn, locale) do
-    query_params = 
+    query_params =
       conn.query_params
       |> Map.put("locale", to_string(locale))
       |> URI.encode_query()
-    
+
     "#{conn.request_path}?#{query_params}"
   end
 end

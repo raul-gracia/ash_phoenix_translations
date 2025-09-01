@@ -18,7 +18,7 @@ defmodule AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest do
         end
 
         backend :database
-        policy [view: :public]
+        policy view: :public
       end
 
       actions do
@@ -57,7 +57,7 @@ defmodule AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest do
         end
 
         backend :database
-        policy [view: :authenticated]
+        policy view: :authenticated
       end
 
       actions do
@@ -95,7 +95,7 @@ defmodule AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest do
         end
 
         backend :database
-        policy [edit: :admin]
+        policy edit: :admin
       end
 
       actions do
@@ -133,7 +133,7 @@ defmodule AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest do
         end
 
         backend :database
-        policy [edit: :translator]
+        policy edit: :translator
       end
 
       actions do
@@ -171,10 +171,9 @@ defmodule AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest do
         end
 
         backend :database
-        policy [
-          view: {:locale, [en: [:viewer, :editor], es: [:spanish_viewer]]},
-          edit: {:role, [:editor, :admin]}
-        ]
+
+        policy view: {:locale, [en: [:viewer, :editor], es: [:spanish_viewer]]},
+               edit: {:role, [:editor, :admin]}
       end
 
       actions do
@@ -191,10 +190,11 @@ defmodule AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest do
     end
 
     test "sets role-based policies" do
-      assert AshPhoenixTranslations.Info.view_policy(RoleBasedProduct) == 
-        {:locale, [en: [:viewer, :editor], es: [:spanish_viewer]]}
-      
-      assert AshPhoenixTranslations.Info.edit_policy(RoleBasedProduct) == {:role, [:editor, :admin]}
+      assert AshPhoenixTranslations.Info.view_policy(RoleBasedProduct) ==
+               {:locale, [en: [:viewer, :editor], es: [:spanish_viewer]]}
+
+      assert AshPhoenixTranslations.Info.edit_policy(RoleBasedProduct) ==
+               {:role, [:editor, :admin]}
     end
   end
 
@@ -215,13 +215,12 @@ defmodule AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest do
         end
 
         backend :database
-        policy [
-          edit: :translator,
-          approval: [
-            approvers: [:admin, :senior_translator],
-            required_for: [:production]
-          ]
-        ]
+
+        policy edit: :translator,
+               approval: [
+                 approvers: [:admin, :senior_translator],
+                 required_for: [:production]
+               ]
       end
 
       actions do
@@ -239,9 +238,9 @@ defmodule AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest do
 
     test "sets approval workflow policy" do
       assert AshPhoenixTranslations.Info.approval_policy(ApprovalWorkflowProduct) == [
-        approvers: [:admin, :senior_translator],
-        required_for: [:production]
-      ]
+               approvers: [:admin, :senior_translator],
+               required_for: [:production]
+             ]
     end
   end
 
@@ -290,65 +289,115 @@ defmodule AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest do
     test "authenticated check works correctly" do
       # Test with nil actor
       refute AshPhoenixTranslations.PolicyCheck.match?(
-        nil,
-        %{action: %{name: :read, resource: AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AuthenticatedViewProduct}},
-        []
-      )
-      
+               nil,
+               %{
+                 action: %{
+                   name: :read,
+                   resource:
+                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AuthenticatedViewProduct
+                 }
+               },
+               []
+             )
+
       # Test with authenticated actor
       assert AshPhoenixTranslations.PolicyCheck.match?(
-        %{id: "user-123"},
-        %{action: %{name: :read, resource: AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AuthenticatedViewProduct}},
-        []
-      )
+               %{id: "user-123"},
+               %{
+                 action: %{
+                   name: :read,
+                   resource:
+                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AuthenticatedViewProduct
+                 }
+               },
+               []
+             )
     end
 
     test "admin edit check works correctly" do
       # Test with non-admin actor
       refute AshPhoenixTranslations.PolicyCheck.match?(
-        %{role: :translator},
-        %{action: %{name: :update_translation, resource: AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AdminEditProduct}},
-        []
-      )
-      
+               %{role: :translator},
+               %{
+                 action: %{
+                   name: :update_translation,
+                   resource:
+                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AdminEditProduct
+                 }
+               },
+               []
+             )
+
       # Test with admin actor
       assert AshPhoenixTranslations.PolicyCheck.match?(
-        %{role: :admin},
-        %{action: %{name: :update_translation, resource: AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AdminEditProduct}},
-        []
-      )
+               %{role: :admin},
+               %{
+                 action: %{
+                   name: :update_translation,
+                   resource:
+                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AdminEditProduct
+                 }
+               },
+               []
+             )
     end
 
     test "translator edit check works correctly" do
       # Test translator with assigned locale
       assert AshPhoenixTranslations.PolicyCheck.match?(
-        %{role: :translator, assigned_locales: [:en, :es]},
-        %{action: %{name: :update_translation, arguments: %{locale: :en}, resource: AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.TranslatorEditProduct}},
-        []
-      )
-      
+               %{role: :translator, assigned_locales: [:en, :es]},
+               %{
+                 action: %{
+                   name: :update_translation,
+                   arguments: %{locale: :en},
+                   resource:
+                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.TranslatorEditProduct
+                 }
+               },
+               []
+             )
+
       # Test translator without assigned locale
       refute AshPhoenixTranslations.PolicyCheck.match?(
-        %{role: :translator, assigned_locales: [:es]},
-        %{action: %{name: :update_translation, arguments: %{locale: :en}, resource: AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.TranslatorEditProduct}},
-        []
-      )
+               %{role: :translator, assigned_locales: [:es]},
+               %{
+                 action: %{
+                   name: :update_translation,
+                   arguments: %{locale: :en},
+                   resource:
+                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.TranslatorEditProduct
+                 }
+               },
+               []
+             )
     end
 
     test "role-based check works correctly" do
       # Test with allowed role
       assert AshPhoenixTranslations.PolicyCheck.match?(
-        %{role: :editor},
-        %{action: %{name: :update_translation, resource: AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.RoleBasedProduct}},
-        []
-      )
-      
+               %{role: :editor},
+               %{
+                 action: %{
+                   name: :update_translation,
+                   resource:
+                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.RoleBasedProduct
+                 }
+               },
+               []
+             )
+
       # Test with disallowed role
       refute AshPhoenixTranslations.PolicyCheck.match?(
-        %{role: :viewer},
-        %{action: %{name: :update_translation, resource: AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.RoleBasedProduct}},
-        []
-      )
+               %{role: :viewer},
+               %{
+                 action: %{
+                   name: :update_translation,
+                   resource:
+                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.RoleBasedProduct
+                 }
+               },
+               []
+             )
     end
   end
 
@@ -358,11 +407,17 @@ defmodule AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest do
 
     resources do
       resource AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.PublicViewProduct
+
       resource AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AuthenticatedViewProduct
+
       resource AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AdminEditProduct
+
       resource AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.TranslatorEditProduct
+
       resource AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.RoleBasedProduct
+
       resource AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.ApprovalWorkflowProduct
+
       resource AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.NoPolicyProduct
     end
   end

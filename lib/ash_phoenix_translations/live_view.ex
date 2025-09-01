@@ -1,9 +1,9 @@
 defmodule AshPhoenixTranslations.LiveView do
   @moduledoc """
   LiveView integration for AshPhoenixTranslations.
-  
+
   Use this module in your LiveViews to add translation support:
-  
+
       defmodule MyAppWeb.ProductLive do
         use MyAppWeb, :live_view
         use AshPhoenixTranslations.LiveView
@@ -27,34 +27,34 @@ defmodule AshPhoenixTranslations.LiveView do
     quote do
       import AshPhoenixTranslations.LiveView
       import AshPhoenixTranslations.Helpers
-      
+
       on_mount {AshPhoenixTranslations.LiveView, :assign_locale}
     end
   end
 
   @doc """
   LiveView on_mount callback to assign locale from session.
-  
+
   Can be used in router:
-  
+
       live_session :default, on_mount: {AshPhoenixTranslations.LiveView, :assign_locale} do
         # your live routes
       end
   """
   def on_mount(:assign_locale, _params, session, socket) do
     locale = session["locale"] || "en"
-    
+
     socket =
       socket
       |> assign(:locale, locale)
       |> attach_locale_hook()
-    
+
     {:cont, socket}
   end
 
   @doc """
   Assigns locale to the socket from session or params.
-  
+
       def mount(params, session, socket) do
         socket = assign_locale(socket, session, params)
         {:ok, socket}
@@ -62,7 +62,7 @@ defmodule AshPhoenixTranslations.LiveView do
   """
   def assign_locale(socket, session, params \\ %{}) do
     locale = params["locale"] || session["locale"] || "en"
-    
+
     socket
     |> assign(:locale, locale)
     |> attach_locale_hook()
@@ -70,7 +70,7 @@ defmodule AshPhoenixTranslations.LiveView do
 
   @doc """
   Updates the locale in the socket and broadcasts the change.
-  
+
       def handle_event("change_locale", %{"locale" => locale}, socket) do
         {:noreply, update_locale(socket, locale)}
       end
@@ -84,7 +84,7 @@ defmodule AshPhoenixTranslations.LiveView do
 
   @doc """
   Assigns translated resources to the socket.
-  
+
       def mount(_params, session, socket) do
         socket = 
           socket
@@ -108,7 +108,7 @@ defmodule AshPhoenixTranslations.LiveView do
 
   @doc """
   Handles locale change from a form or select component.
-  
+
       def handle_event("locale_form_change", %{"locale" => locale}, socket) do
         {:noreply, handle_locale_change(socket, locale)}
       end
@@ -121,12 +121,12 @@ defmodule AshPhoenixTranslations.LiveView do
 
   @doc """
   Reloads all translated assigns in the socket.
-  
+
       socket = reload_translations(socket)
   """
   def reload_translations(socket) do
     locale = socket.assigns[:locale] || "en"
-    
+
     Enum.reduce(socket.assigns, socket, fn
       {key, %{__struct__: _} = resource}, socket ->
         if translatable?(resource) do
@@ -134,7 +134,7 @@ defmodule AshPhoenixTranslations.LiveView do
         else
           socket
         end
-      
+
       {key, resources}, socket when is_list(resources) ->
         if Enum.any?(resources, &translatable?/1) do
           translated = Enum.map(resources, &translate_resource(&1, locale))
@@ -142,7 +142,7 @@ defmodule AshPhoenixTranslations.LiveView do
         else
           socket
         end
-      
+
       _, socket ->
         socket
     end)
@@ -150,9 +150,9 @@ defmodule AshPhoenixTranslations.LiveView do
 
   @doc """
   Creates a locale switcher component for LiveView.
-  
+
   ## Examples
-  
+
       # Basic usage
       <.locale_switcher socket={@socket} />
       
@@ -163,9 +163,9 @@ defmodule AshPhoenixTranslations.LiveView do
       <.locale_switcher socket={@socket} locales={["en", "es", "fr"]} />
       
   ## Handling Changes
-  
+
   You need to handle the "change_locale" event in your LiveView:
-  
+
       def handle_event("change_locale", %{"locale" => locale}, socket) do
         socket = update_locale(socket, locale)
         {:noreply, socket}
@@ -176,7 +176,7 @@ defmodule AshPhoenixTranslations.LiveView do
   attr :locales, :list, default: nil
 
   def locale_switcher(assigns) do
-    assigns = 
+    assigns =
       assigns
       |> assign_new(:locales, fn -> default_locales() end)
       |> assign_new(:current_locale, fn -> assigns.socket.assigns[:locale] || "en" end)
@@ -196,9 +196,9 @@ defmodule AshPhoenixTranslations.LiveView do
 
   @doc """
   Translation input component for LiveView forms.
-  
+
   ## Examples
-  
+
       # Basic text inputs for name field
       <.translation_field form={@form} field={:name} locales={[:en, :es, :fr]} />
       
@@ -227,9 +227,10 @@ defmodule AshPhoenixTranslations.LiveView do
   attr :class, :string, default: "translation-field"
 
   def translation_field(assigns) do
-    assigns = assign_new(assigns, :label, fn -> 
-      humanize(assigns.field) 
-    end)
+    assigns =
+      assign_new(assigns, :label, fn ->
+        humanize(assigns.field)
+      end)
 
     ~H"""
     <div class={@class}>
@@ -262,7 +263,7 @@ defmodule AshPhoenixTranslations.LiveView do
 
   @doc """
   Shows translation completeness progress bar.
-  
+
       <.translation_progress resource={@product} />
   """
   attr :resource, :map, required: true
@@ -271,9 +272,12 @@ defmodule AshPhoenixTranslations.LiveView do
   attr :class, :string, default: "translation-progress"
 
   def translation_progress(assigns) do
-    assigns = 
+    assigns =
       assigns
-      |> assign(:percentage, calculate_completeness(assigns.resource, assigns.fields, assigns.locales))
+      |> assign(
+        :percentage,
+        calculate_completeness(assigns.resource, assigns.fields, assigns.locales)
+      )
 
     ~H"""
     <div class={@class}>
@@ -288,7 +292,7 @@ defmodule AshPhoenixTranslations.LiveView do
 
   @doc """
   Live translation preview component.
-  
+
       <.translation_preview resource={@product} field={:description} />
   """
   attr :resource, :map, required: true
@@ -319,7 +323,7 @@ defmodule AshPhoenixTranslations.LiveView do
 
   @doc """
   Subscribes to translation updates for real-time synchronization.
-  
+
       def mount(_params, _session, socket) do
         if connected?(socket) do
           subscribe_to_translations(Product)
@@ -336,7 +340,7 @@ defmodule AshPhoenixTranslations.LiveView do
 
   @doc """
   Broadcasts translation updates to subscribed LiveViews.
-  
+
       broadcast_translation_update(product, :name, :es, "Producto")
   """
   def broadcast_translation_update(resource, field, locale, value) do
@@ -349,7 +353,7 @@ defmodule AshPhoenixTranslations.LiveView do
 
   @doc """
   Handles translation update broadcasts.
-  
+
       def handle_info({:translation_updated, id, field, locale, value}, socket) do
         socket = handle_translation_update(socket, id, field, locale, value)
         {:noreply, socket}
@@ -361,16 +365,19 @@ defmodule AshPhoenixTranslations.LiveView do
       {key, %{id: ^resource_id} = resource}, socket ->
         updated = update_translation_in_resource(resource, field, locale, value)
         assign(socket, key, updated)
-      
+
       {key, resources}, socket when is_list(resources) ->
-        updated = Enum.map(resources, fn
-          %{id: ^resource_id} = resource ->
-            update_translation_in_resource(resource, field, locale, value)
-          other ->
-            other
-        end)
+        updated =
+          Enum.map(resources, fn
+            %{id: ^resource_id} = resource ->
+              update_translation_in_resource(resource, field, locale, value)
+
+            other ->
+              other
+          end)
+
         assign(socket, key, updated)
-      
+
       _, socket ->
         socket
     end)
@@ -404,6 +411,7 @@ defmodule AshPhoenixTranslations.LiveView do
   rescue
     _ -> false
   end
+
   defp translatable?(_), do: false
 
   defp default_locales do
@@ -423,10 +431,11 @@ defmodule AshPhoenixTranslations.LiveView do
 
   defp get_translation_value(form, field, locale) do
     storage_field = :"#{field}_translations"
-    
+
     case form.data do
       %{^storage_field => translations} when is_map(translations) ->
         Map.get(translations, locale) || Map.get(translations, to_string(locale))
+
       _ ->
         nil
     end
@@ -434,23 +443,23 @@ defmodule AshPhoenixTranslations.LiveView do
 
   defp calculate_completeness(resource, fields, locales) do
     fields = fields || translatable_fields(resource)
-    
+
     total = length(fields) * length(locales)
-    
-    completed = 
+
+    completed =
       Enum.reduce(fields, 0, fn field, acc ->
         storage_field = :"#{field}_translations"
         translations = Map.get(resource, storage_field, %{})
-        
-        count = 
+
+        count =
           Enum.count(locales, fn locale ->
             translation = Map.get(translations, locale)
             translation && translation != ""
           end)
-        
+
         acc + count
       end)
-    
+
     if total > 0 do
       round(completed / total * 100)
     else

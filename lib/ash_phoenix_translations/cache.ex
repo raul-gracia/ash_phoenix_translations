@@ -1,7 +1,7 @@
 defmodule AshPhoenixTranslations.Cache do
   @moduledoc """
   Caching layer for translations with ETS backend.
-  
+
   Provides:
   - In-memory caching using ETS
   - TTL support
@@ -13,7 +13,8 @@ defmodule AshPhoenixTranslations.Cache do
   require Logger
 
   @table_name :ash_translations_cache
-  @default_ttl 3600  # 1 hour in seconds
+  # 1 hour in seconds
+  @default_ttl 3600
 
   # Client API
 
@@ -26,11 +27,11 @@ defmodule AshPhoenixTranslations.Cache do
 
   @doc """
   Gets a translation from cache.
-  
+
   Returns `{:ok, value}` if found, `:miss` if not cached or expired.
-  
+
   ## Examples
-  
+
       key = AshPhoenixTranslations.Cache.key(MyApp.Product, :name, :es, "123")
       case AshPhoenixTranslations.Cache.get(key) do
         {:ok, translation} -> translation
@@ -47,6 +48,7 @@ defmodule AshPhoenixTranslations.Cache do
           :ets.delete(@table_name, key)
           :miss
         end
+
       [] ->
         :miss
     end
@@ -58,9 +60,9 @@ defmodule AshPhoenixTranslations.Cache do
 
   @doc """
   Puts a translation in cache with TTL.
-  
+
   ## Examples
-  
+
       key = AshPhoenixTranslations.Cache.key(MyApp.Product, :name, :es, "123")
       AshPhoenixTranslations.Cache.put(key, "Producto", 7200)  # Cache for 2 hours
       
@@ -70,7 +72,7 @@ defmodule AshPhoenixTranslations.Cache do
   def put(key, value, ttl \\ nil) do
     ttl = ttl || @default_ttl
     expiry = DateTime.add(DateTime.utc_now(), ttl, :second)
-    
+
     :ets.insert(@table_name, {key, value, expiry})
     :ok
   rescue
@@ -81,15 +83,16 @@ defmodule AshPhoenixTranslations.Cache do
 
   @doc """
   Gets a value from cache or computes it if missing.
-  
+
   ## Examples
-  
+
       Cache.get_or_compute(key, fn -> expensive_operation() end)
   """
   def get_or_compute(key, compute_fn, ttl \\ nil) do
     case get(key) do
       {:ok, value} ->
         value
+
       :miss ->
         value = compute_fn.()
         put(key, value, ttl)
@@ -99,9 +102,9 @@ defmodule AshPhoenixTranslations.Cache do
 
   @doc """
   Invalidates cache entries matching a pattern.
-  
+
   ## Examples
-  
+
       # Invalidate all translations for a resource
       Cache.invalidate({:resource, Product, :*, :*})
       
@@ -121,9 +124,9 @@ defmodule AshPhoenixTranslations.Cache do
 
   @doc """
   Warms up the cache with frequently accessed translations.
-  
+
   ## Examples
-  
+
       # Warm cache for all products' name and description in English and Spanish
       products = MyApp.Product.list!()
       AshPhoenixTranslations.Cache.warmup(products, [:en, :es])
@@ -137,9 +140,9 @@ defmodule AshPhoenixTranslations.Cache do
 
   @doc """
   Gets cache statistics.
-  
+
   ## Examples
-  
+
       stats = AshPhoenixTranslations.Cache.stats()
       # => %{
       #   size: 1234,
@@ -162,17 +165,17 @@ defmodule AshPhoenixTranslations.Cache do
   def init(opts) do
     # Create ETS table
     :ets.new(@table_name, [:set, :public, :named_table, read_concurrency: true])
-    
+
     # Schedule periodic cleanup
     schedule_cleanup()
-    
+
     state = %{
       ttl: Keyword.get(opts, :ttl, @default_ttl),
       hits: 0,
       misses: 0,
       evictions: 0
     }
-    
+
     {:ok, state}
   end
 
@@ -206,6 +209,7 @@ defmodule AshPhoenixTranslations.Cache do
       evictions: state.evictions,
       hit_rate: calculate_hit_rate(state)
     }
+
     {:reply, stats, state}
   end
 
@@ -213,7 +217,7 @@ defmodule AshPhoenixTranslations.Cache do
   def handle_info(:cleanup, state) do
     expired_count = cleanup_expired()
     Logger.debug("Cleaned up #{expired_count} expired cache entries")
-    
+
     schedule_cleanup()
     {:noreply, %{state | evictions: state.evictions + expired_count}}
   end
@@ -227,15 +231,16 @@ defmodule AshPhoenixTranslations.Cache do
 
   defp cleanup_expired do
     now = DateTime.utc_now()
-    
-    expired = :ets.select(@table_name, [
-      {
-        {:"$1", :"$2", :"$3"},
-        [{:<, :"$3", now}],
-        [:"$1"]
-      }
-    ])
-    
+
+    expired =
+      :ets.select(@table_name, [
+        {
+          {:"$1", :"$2", :"$3"},
+          [{:<, :"$3", now}],
+          [:"$1"]
+        }
+      ])
+
     Enum.each(expired, &:ets.delete(@table_name, &1))
     length(expired)
   end
@@ -261,16 +266,19 @@ defmodule AshPhoenixTranslations.Cache do
   end
 
   defp perform_warmup(resources, locales) do
-    Logger.info("Starting cache warmup for #{length(resources)} resources and #{length(locales)} locales")
-    
+    Logger.info(
+      "Starting cache warmup for #{length(resources)} resources and #{length(locales)} locales"
+    )
+
     # This would load translations for the specified resources and locales
     # Implementation depends on specific requirements
-    
+
     Logger.info("Cache warmup completed")
   end
 
   defp calculate_hit_rate(%{hits: hits, misses: misses}) do
     total = hits + misses
+
     if total > 0 do
       Float.round(hits / total * 100, 2)
     else
@@ -280,9 +288,9 @@ defmodule AshPhoenixTranslations.Cache do
 
   @doc """
   Builds a cache key for a translation.
-  
+
   ## Examples
-  
+
       Cache.key(Product, :name, :fr, record_id)
       # => {:translation, Product, :name, :fr, "123"}
   """

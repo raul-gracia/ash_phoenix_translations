@@ -37,7 +37,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest do
 
     test "adds translation_history relationship" do
       relationships = Ash.Resource.Info.relationships(AuditProduct)
-      
+
       # Should have the translation_history relationship
       history_rel = Enum.find(relationships, &(&1.name == :translation_history))
       assert history_rel != nil
@@ -59,11 +59,11 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest do
     # end
 
     test "relationship is public" do
-      history_rel = 
+      history_rel =
         AuditProduct
         |> Ash.Resource.Info.relationships()
         |> Enum.find(&(&1.name == :translation_history))
-      
+
       assert history_rel.public? == true
     end
   end
@@ -100,7 +100,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest do
 
     test "does not add translation_history relationship" do
       relationships = Ash.Resource.Info.relationships(NoAuditProduct)
-      
+
       # Should NOT have the translation_history relationship
       history_rel = Enum.find(relationships, &(&1.name == :translation_history))
       assert history_rel == nil
@@ -134,7 +134,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest do
         end
 
         backend :database
-        audit_changes false  # Explicitly disabled
+        # Explicitly disabled
+        audit_changes false
       end
 
       actions do
@@ -149,7 +150,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest do
 
     test "respects explicit audit_changes false" do
       relationships = Ash.Resource.Info.relationships(ExplicitNoAuditProduct)
-      
+
       # Should NOT have the translation_history relationship
       history_rel = Enum.find(relationships, &(&1.name == :translation_history))
       assert history_rel == nil
@@ -163,7 +164,9 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest do
     resources do
       resource AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest.AuditProduct
       resource AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest.NoAuditProduct
+
       resource AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest.ExplicitNoAuditProduct
+
       resource AshPhoenixTranslations.TranslationHistory
     end
   end
