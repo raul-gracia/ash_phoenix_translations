@@ -1,23 +1,135 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       version:
         description: 'Version to release (e.g., 1.0.0)'
         required: true
+        type: string
+      prerelease:
+        description: 'Is this a pre-release?'
+        required: false
+        type: boolean
+        default: false
 
 env:
   ELIXIR_VERSION: "1.17.3"
   OTP_VERSION: "27.0"
 
 jobs:
-  publish:
-    name: Publish to Hex.pm
+  validate:
+    name: Validate Release
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' || github.event.inputs.version
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Extract version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+      
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      
+      - name: Verify version match
+        run: |
+          MIX_VERSION=$(grep 'version:' mix.exs | head -1 | sed 's/.*version: "\(.*\)".*/\1/')
+          if [ "$MIX_VERSION" != "${{ steps.version.outputs.version }}" ]; then
+            echo "Version mismatch!"
+            echo "Tag/Input version: ${{ steps.version.outputs.version }}"
+            echo "mix.exs version: $MIX_VERSION"
+            exit 1
+          fi
+      
+      - name: Run version check
+        run: mix ash_phoenix_translations.version check
+      
+      - name: Verify changelog entry
+        run: |
+          if ! grep -q "## \[${{ steps.version.outputs.version }}\]" CHANGELOG.md; then
+            echo "No changelog entry found for version ${{ steps.version.outputs.version }}"
+            echo "Please add a changelog entry before releasing"
+            exit 1
+          fi
+
+  test:
+    name: Test Suite
+    needs: validate
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+      
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-release-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-release-
+      
+      - name: Install dependencies
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      
+      - name: Compile
+        run: mix compile --warnings-as-errors
+      
+      - name: Run tests
+        run: mix test
+      
+      - name: Check format
+        run: mix format --check-formatted
+      
+      - name: Run Credo
+        run: mix credo --strict
+      
+      - name: Run Sobelow
+        run: mix sobelow --config
+      
+      - name: Check dependencies
+        run: mix deps.audit
+
+  build-docs:
+    name: Build Documentation
+    needs: validate
+    runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
@@ -35,34 +147,183 @@ jobs:
           mix local.hex --force
           mix deps.get
       
-      - name: Run tests
-        run: mix test
-      
-      - name: Check formatting
-        run: mix format --check-formatted
-      
       - name: Build docs
         run: mix docs
       
-      - name: Publish to Hex.pm
+      - name: Upload docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: doc/
+
+  github-release:
+    name: Create GitHub Release
+    needs: [validate, test, build-docs]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Download documentation
+        uses: actions/download-artifact@v4
+        with:
+          name: documentation
+          path: doc/
+      
+      - name: Extract changelog
+        id: changelog
+        run: |
+          # Extract the section for this version from CHANGELOG.md
+          awk "/## \[${{ needs.validate.outputs.version }}\]/,/## \[/" CHANGELOG.md | head -n -1 > release_notes.md
+          
+          # If it's empty, use a default message
+          if [ ! -s release_notes.md ]; then
+            echo "Release ${{ needs.validate.outputs.version }}" > release_notes.md
+          fi
+      
+      - name: Create release archive
+        run: |
+          tar czf ash_phoenix_translations-${{ needs.validate.outputs.version }}.tar.gz \
+            --exclude=.git \
+            --exclude=_build \
+            --exclude=deps \
+            --exclude=.github \
+            .
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.validate.outputs.version }}
+          name: v${{ needs.validate.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          files: |
+            ash_phoenix_translations-${{ needs.validate.outputs.version }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-hex:
+    name: Publish to Hex
+    needs: [validate, test, github-release]
+    runs-on: ubuntu-latest
+    environment: hex
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      
+      - name: Publish to Hex
         env:
           HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
         run: |
           mix hex.publish --yes
+
+  publish-docs:
+    name: Publish Documentation to HexDocs
+    needs: [validate, test, publish-hex]
+    runs-on: ubuntu-latest
+    environment: hex
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       
-      - name: Create GitHub Release Assets
-        if: github.event_name == 'release'
-        run: |
-          mix hex.build
-          mv ash_phoenix_translations-*.tar ash_phoenix_translations-${{ github.event.release.tag_name }}.tar
-      
-      - name: Upload Release Assets
-        if: github.event_name == 'release'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./ash_phoenix_translations-${{ github.event.release.tag_name }}.tar
-          asset_name: ash_phoenix_translations-${{ github.event.release.tag_name }}.tar
-          asset_content_type: application/x-tar
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      
+      - name: Publish docs to HexDocs
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
+        run: |
+          mix hex.publish docs --yes
+
+  post-release:
+    name: Post-Release Tasks
+    needs: [validate, publish-hex, publish-docs]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      
+      - name: Setup Git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+      
+      - name: Update main branch
+        run: |
+          # Ensure we're on main
+          git checkout main
+          git pull origin main
+          
+          # Merge the tag changes if needed
+          git merge v${{ needs.validate.outputs.version }} --no-ff -m "Merge release v${{ needs.validate.outputs.version }}"
+          
+          # Push changes
+          git push origin main
+      
+      - name: Prepare next development version
+        run: |
+          # Bump to next patch version for development
+          CURRENT_VERSION="${{ needs.validate.outputs.version }}"
+          IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+          NEXT_VERSION="$major.$minor.$((patch + 1))-dev"
+          
+          # Update mix.exs with development version
+          sed -i "s/version: \"$CURRENT_VERSION\"/version: \"$NEXT_VERSION\"/" mix.exs
+          
+          # Commit the change
+          git add mix.exs
+          git commit -m "Start development of v$NEXT_VERSION"
+          git push origin main
+
+  notify:
+    name: Send Notifications
+    needs: [validate, publish-hex, publish-docs, post-release]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Notify on success
+        if: needs.publish-hex.result == 'success'
+        run: |
+          echo "✅ Successfully released ash_phoenix_translations v${{ needs.validate.outputs.version }}"
+          echo "📦 Package: https://hex.pm/packages/ash_phoenix_translations"
+          echo "📚 Docs: https://hexdocs.pm/ash_phoenix_translations"
+          echo "🏷️ Release: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.validate.outputs.version }}"
+      
+      - name: Notify on failure
+        if: needs.publish-hex.result != 'success' || needs.publish-docs.result != 'success'
+        run: |
+          echo "❌ Release failed for v${{ needs.validate.outputs.version }}"
+          echo "Please check the workflow logs for details"
+          exit 1
