@@ -41,12 +41,12 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActionsTest do
     test "adds update_translation action" do
       actions = Ash.Resource.Info.actions(DatabaseProduct)
       action_names = Enum.map(actions, & &1.name)
-      
+
       assert :update_translation in action_names
-      
+
       update_action = Enum.find(actions, &(&1.name == :update_translation))
       assert update_action.type == :update
-      
+
       # Arguments will be added via DSL configuration
       # For now just check that it accepts translation fields
       assert :name_translations in update_action.accept
@@ -55,7 +55,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActionsTest do
 
     test "adds import_translations action" do
       actions = Ash.Resource.Info.actions(DatabaseProduct)
-      
+
       import_action = Enum.find(actions, &(&1.name == :import_translations))
       assert import_action != nil
       assert import_action.type == :update
@@ -63,7 +63,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActionsTest do
 
     test "adds export_translations action" do
       actions = Ash.Resource.Info.actions(DatabaseProduct)
-      
+
       export_action = Enum.find(actions, &(&1.name == :export_translations))
       assert export_action != nil
       assert export_action.type == :read
@@ -71,11 +71,11 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActionsTest do
 
     test "adds clear_translations action" do
       actions = Ash.Resource.Info.actions(DatabaseProduct)
-      
+
       clear_action = Enum.find(actions, &(&1.name == :clear_translations))
       assert clear_action != nil
       assert clear_action.type == :update
-      
+
       # Check that it accepts translation fields
       assert :name_translations in clear_action.accept
       assert :description_translations in clear_action.accept
@@ -118,13 +118,13 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActionsTest do
     test "adds translation actions for gettext backend" do
       actions = Ash.Resource.Info.actions(GettextProduct)
       action_names = Enum.map(actions, & &1.name)
-      
+
       # Should still have the actions, but with different behavior
       assert :update_translation in action_names
       assert :import_translations in action_names
       assert :export_translations in action_names
       assert :clear_translations in action_names
-      
+
       # For gettext, update_translation shouldn't accept database fields
       update_action = Enum.find(actions, &(&1.name == :update_translation))
       assert update_action.accept == []
@@ -167,13 +167,13 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActionsTest do
     test "adds translation actions for redis backend" do
       actions = Ash.Resource.Info.actions(RedisProduct)
       action_names = Enum.map(actions, & &1.name)
-      
+
       # Should have all translation actions
       assert :update_translation in action_names
       assert :import_translations in action_names
       assert :export_translations in action_names
       assert :clear_translations in action_names
-      
+
       # For redis, update_translation shouldn't accept database fields
       update_action = Enum.find(actions, &(&1.name == :update_translation))
       assert update_action.accept == []

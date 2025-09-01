@@ -15,16 +15,19 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
       translations do
         translatable_attribute :name, :string do
           locales [:en, :es, :fr]
-          required [:en]  # English is required
+          # English is required
+          required [:en]
         end
 
         translatable_attribute :description, :text do
           locales [:en, :es]
-          required [:en, :es]  # Both English and Spanish are required
+          # Both English and Spanish are required
+          required [:en, :es]
         end
 
         backend :database
-        auto_validate true  # Enable automatic validation
+        # Enable automatic validation
+        auto_validate true
       end
 
       actions do
@@ -45,19 +48,25 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
       actions = Ash.Resource.Info.actions(ValidatedProduct)
       create_action = Enum.find(actions, &(&1.name == :create))
       update_action = Enum.find(actions, &(&1.name == :update))
-      
+
       # Check that validation changes are added to create and update actions
       assert Enum.any?(create_action.changes, fn change ->
-        match?(%Ash.Resource.Change{
-          change: {AshPhoenixTranslations.Changes.ValidateRequiredTranslations, _}
-        }, change)
-      end)
-      
+               match?(
+                 %Ash.Resource.Change{
+                   change: {AshPhoenixTranslations.Changes.ValidateRequiredTranslations, _}
+                 },
+                 change
+               )
+             end)
+
       assert Enum.any?(update_action.changes, fn change ->
-        match?(%Ash.Resource.Change{
-          change: {AshPhoenixTranslations.Changes.ValidateRequiredTranslations, _}
-        }, change)
-      end)
+               match?(
+                 %Ash.Resource.Change{
+                   change: {AshPhoenixTranslations.Changes.ValidateRequiredTranslations, _}
+                 },
+                 change
+               )
+             end)
     end
   end
 
@@ -79,7 +88,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
         end
 
         backend :database
-        auto_validate false  # Disable automatic validation
+        # Disable automatic validation
+        auto_validate false
       end
 
       actions do
@@ -98,13 +108,16 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
     test "does not add validation changes when auto_validate is false" do
       actions = Ash.Resource.Info.actions(NoAutoValidateProduct)
       create_action = Enum.find(actions, &(&1.name == :create))
-      
+
       # Should not have validation changes
       refute Enum.any?(create_action.changes, fn change ->
-        match?(%Ash.Resource.Change{
-          change: {AshPhoenixTranslations.Changes.ValidateRequiredTranslations, _}
-        }, change)
-      end)
+               match?(
+                 %Ash.Resource.Change{
+                   change: {AshPhoenixTranslations.Changes.ValidateRequiredTranslations, _}
+                 },
+                 change
+               )
+             end)
     end
   end
 
@@ -145,13 +158,16 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
     test "adds UpdateTranslation change to update_translation action" do
       actions = Ash.Resource.Info.actions(UpdateActionProduct)
       update_translation_action = Enum.find(actions, &(&1.name == :update_translation))
-      
+
       # Should have the UpdateTranslation change
       assert Enum.any?(update_translation_action.changes, fn change ->
-        match?(%Ash.Resource.Change{
-          change: {AshPhoenixTranslations.Changes.UpdateTranslation, _}
-        }, change)
-      end)
+               match?(
+                 %Ash.Resource.Change{
+                   change: {AshPhoenixTranslations.Changes.UpdateTranslation, _}
+                 },
+                 change
+               )
+             end)
     end
   end
 
@@ -192,13 +208,16 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
     test "adds ImportTranslations change to import_translations action" do
       actions = Ash.Resource.Info.actions(ImportActionProduct)
       import_action = Enum.find(actions, &(&1.name == :import_translations))
-      
+
       # Should have the ImportTranslations change
       assert Enum.any?(import_action.changes, fn change ->
-        match?(%Ash.Resource.Change{
-          change: {AshPhoenixTranslations.Changes.ImportTranslations, _}
-        }, change)
-      end)
+               match?(
+                 %Ash.Resource.Change{
+                   change: {AshPhoenixTranslations.Changes.ImportTranslations, _}
+                 },
+                 change
+               )
+             end)
     end
   end
 
@@ -239,14 +258,18 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
     test "changes receive correct backend option" do
       actions = Ash.Resource.Info.actions(RedisProduct)
       create_action = Enum.find(actions, &(&1.name == :create))
-      
+
       # Find validation change
-      validation_change = Enum.find(create_action.changes, fn change ->
-        match?(%Ash.Resource.Change{
-          change: {AshPhoenixTranslations.Changes.ValidateRequiredTranslations, _}
-        }, change)
-      end)
-      
+      validation_change =
+        Enum.find(create_action.changes, fn change ->
+          match?(
+            %Ash.Resource.Change{
+              change: {AshPhoenixTranslations.Changes.ValidateRequiredTranslations, _}
+            },
+            change
+          )
+        end)
+
       assert validation_change
       {_module, opts} = validation_change.change
       assert opts[:backend] == :redis

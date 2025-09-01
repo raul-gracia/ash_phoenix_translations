@@ -21,8 +21,8 @@ defmodule AshPhoenixTranslationsTest do
 
       translatable_attribute :description, :text do
         locales [:en, :es, :fr]
-        fallback :en
-        markdown true
+        fallback(:en)
+        markdown(true)
       end
 
       backend :database
@@ -70,12 +70,12 @@ defmodule AshPhoenixTranslationsTest do
     test "translatable attributes are configured" do
       attrs = AshPhoenixTranslations.Info.translatable_attributes(Product)
       assert length(attrs) == 2
-      
+
       name_attr = Enum.find(attrs, &(&1.name == :name))
       assert name_attr.type == :string
       assert name_attr.locales == [:en, :es, :fr]
       assert name_attr.required == [:en]
-      
+
       desc_attr = Enum.find(attrs, &(&1.name == :description))
       assert desc_attr.type == :text
       assert desc_attr.fallback == :en
@@ -120,7 +120,7 @@ defmodule AshPhoenixTranslationsTest do
       # This would require the transformers to be implemented
       # For now, we just test that the function exists and handles different inputs
       product = %Product{id: Ash.UUID.generate()}
-      
+
       # Test with atom locale
       result = AshPhoenixTranslations.translate(product, :en)
       assert result
@@ -128,12 +128,12 @@ defmodule AshPhoenixTranslationsTest do
 
     test "translate/2 with Plug.Conn" do
       product = %Product{id: Ash.UUID.generate()}
-      
+
       # Mock a Plug.Conn
       conn = %Plug.Conn{
         assigns: %{locale: :es}
       }
-      
+
       result = AshPhoenixTranslations.translate(product, conn)
       assert result
     end
@@ -143,7 +143,7 @@ defmodule AshPhoenixTranslationsTest do
         %Product{id: Ash.UUID.generate()},
         %Product{id: Ash.UUID.generate()}
       ]
-      
+
       results = AshPhoenixTranslations.translate_all(products, :en)
       assert length(results) == 2
     end
@@ -161,7 +161,8 @@ defmodule AshPhoenixTranslationsTest do
           translations do
             translatable_attribute :name, :string do
               locales [:en, :es]
-              required [:fr]  # fr is not in locales
+              # fr is not in locales
+              required [:fr]
             end
           end
         end
@@ -179,7 +180,8 @@ defmodule AshPhoenixTranslationsTest do
           translations do
             translatable_attribute :name, :string do
               locales [:en, :es]
-              fallback :fr  # fr is not in locales
+              # fr is not in locales
+              fallback(:fr)
             end
           end
         end

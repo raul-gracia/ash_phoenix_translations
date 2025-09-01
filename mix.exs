@@ -57,13 +57,14 @@ defmodule AshPhoenixTranslations.MixProject do
       {:phoenix_html, "~> 3.0 or ~> 4.0", optional: true},
       {:absinthe, "~> 1.7", optional: true},
       {:dataloader, "~> 2.0", optional: true},
-      
+
       # Required for import/export functionality
       {:csv, "~> 3.0"},
 
       # Development and test dependencies
       {:ex_doc, "~> 0.29", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:sobelow, "~> 0.14", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.16", only: :test},
       {:mix_test_watch, "~> 1.1", only: :dev, runtime: false},
@@ -127,8 +128,8 @@ defmodule AshPhoenixTranslations.MixProject do
       setup: ["deps.get", "compile"],
       test: ["test --trace"],
       "test.watch": ["test.watch --trace"],
-      quality: ["format", "credo --strict", "dialyzer"],
-      "quality.ci": ["format --check-formatted", "credo --strict", "dialyzer"]
+      quality: ["format", "credo --strict", "sobelow", "dialyzer"],
+      "quality.ci": ["format --check-formatted", "credo --strict", "sobelow --exit", "dialyzer"]
     ]
   end
 end

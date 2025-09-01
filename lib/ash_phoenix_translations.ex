@@ -79,7 +79,8 @@ defmodule AshPhoenixTranslations do
           ],
           gettext_module: [
             type: :atom,
-            doc: "The Gettext module to use (e.g., MyAppWeb.Gettext). Required when backend is :gettext"
+            doc:
+              "The Gettext module to use (e.g., MyAppWeb.Gettext). Required when backend is :gettext"
           ],
           cache_ttl: [
             type: :pos_integer,
@@ -101,19 +102,23 @@ defmodule AshPhoenixTranslations do
             doc: "Policy configuration for translation access control",
             keys: [
               view: [
-                type: {:or, [
-                  {:in, [:public, :authenticated, :admin, :translator]},
-                  {:tuple, [:atom, :keyword_list]},
-                  :atom
-                ]},
+                type:
+                  {:or,
+                   [
+                     {:in, [:public, :authenticated, :admin, :translator]},
+                     {:tuple, [:atom, :keyword_list]},
+                     :atom
+                   ]},
                 doc: "Policy for viewing translations"
               ],
               edit: [
-                type: {:or, [
-                  {:in, [:admin, :translator]},
-                  {:tuple, [:atom, {:list, :atom}]},
-                  :atom
-                ]},
+                type:
+                  {:or,
+                   [
+                     {:in, [:admin, :translator]},
+                     {:tuple, [:atom, {:list, :atom}]},
+                     :atom
+                   ]},
                 doc: "Policy for editing translations"
               ],
               approval: [
@@ -148,12 +153,12 @@ defmodule AshPhoenixTranslations do
 
   @doc """
   Translate a single resource based on the connection's locale.
-  
+
   This function loads calculated translation fields based on the current locale
   and returns a copy of the resource with the translated values.
-  
+
   ## Examples
-  
+
       # Translate based on conn locale
       product = MyApp.Product |> MyApp.Product.get!(id)
       translated = AshPhoenixTranslations.translate(product, conn)
@@ -184,9 +189,9 @@ defmodule AshPhoenixTranslations do
 
   @doc """
   Translate multiple resources based on the connection's locale.
-  
+
   ## Examples
-  
+
       products = MyApp.Product.list!()
       translated_products = AshPhoenixTranslations.translate_all(products, conn)
       
@@ -208,12 +213,12 @@ defmodule AshPhoenixTranslations do
 
   @doc """
   Live translate a resource for LiveView with reactive updates.
-  
+
   This function translates a resource and stores it in socket assigns
   for reactive LiveView updates when the locale changes.
-  
+
   ## Examples
-  
+
       def mount(_params, _session, socket) do
         product = MyApp.Product.get!(id)
         {translated_product, socket} = AshPhoenixTranslations.live_translate(product, socket)
@@ -237,9 +242,9 @@ defmodule AshPhoenixTranslations do
 
   @doc """
   Update the locale for a LiveView socket and retranslate resources.
-  
+
   ## Examples
-  
+
       def handle_event("change_locale", %{"locale" => locale}, socket) do
         socket = AshPhoenixTranslations.update_locale(socket, String.to_atom(locale))
         {:noreply, socket}
@@ -253,21 +258,20 @@ defmodule AshPhoenixTranslations do
 
   defp do_translate(resource, locale) do
     # Get the calculation names directly from the resource
-    calculations = 
+    calculations =
       resource.__struct__
       |> Ash.Resource.Info.calculations()
       |> Enum.filter(fn calc ->
         # Only load translation-related calculations
         String.contains?(to_string(calc.name), ["name", "description", "features"]) &&
-        !String.contains?(to_string(calc.name), "_all_translations")
+          !String.contains?(to_string(calc.name), "_all_translations")
       end)
       |> Enum.map(& &1.name)
-    
+
     # Load the calculations with locale context
     resource
     |> Ash.load!(calculations, authorize?: false, context: %{locale: locale})
   end
-
 
   defp get_locale(%Plug.Conn{} = conn) do
     Plug.Conn.get_session(conn, :locale) ||

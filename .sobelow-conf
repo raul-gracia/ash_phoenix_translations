@@ -1,14 +1,70 @@
-# Sobelow configuration for security scanning
+# Sobelow configuration for ash_phoenix_translations library
+# Tailored for Ash Framework extension with Phoenix integration
 
 [
-  verbose: false,
+  # Verbose output for detailed security analysis
+  verbose: true,
+  
+  # Private security findings (exclude from public reports)  
   private: false,
+  
+  # Don't skip any checks by default
   skip: false,
+  
+  # No specific router (library code)
   router: "",
-  exit: "false",
+  
+  # Exit with non-zero status if vulnerabilities found
+  exit: "low", 
+  
+  # Output format
   format: "txt",
+  
+  # Output to stdout
   out: "",
+  
+  # Low threshold to catch all potential issues
   threshold: "low",
-  ignore: ["Config.CSP"],
-  ignore_files: ["lib/mix/tasks/"]
+  
+  # Security rules to ignore for library code
+  ignore: [
+    # Content Security Policy - handled by host application
+    "Config.CSP",
+    
+    # HTTPS enforcement - handled by host application
+    "Config.HTTPS",
+    
+    # Session configuration - handled by host application
+    "Config.Session",
+    
+    # CSRF protection - handled by host application  
+    "Config.CSRF",
+    
+    # Headers security - handled by host application
+    "Config.Headers",
+    
+    # XSS.Raw - raw_t function is intentionally unsafe (documented)
+    "XSS.Raw",
+    
+    # DOS.BinToAtom - acceptable in controlled DSL contexts with attribute names
+    # These are compile-time known field names from resource definitions
+    "DOS.BinToAtom"
+  ],
+  
+  # Files to ignore during scanning
+  ignore_files: [
+    # Mix tasks that may contain development-only patterns
+    "lib/mix/tasks/",
+    
+    # Test support files that may have intentionally unsafe patterns
+    "test/support/",
+    
+    # Build and dependency directories
+    "_build/",
+    "deps/",
+    
+    # Generated files
+    "priv/static/",
+    "priv/gettext/"
+  ]
 ]
