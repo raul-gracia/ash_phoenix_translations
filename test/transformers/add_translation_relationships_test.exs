@@ -36,7 +36,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest do
     end
 
     test "adds translation_history relationship" do
-      relationships = Ash.Resource.Info.relationships(AuditProduct)
+      resource_info = Ash.Resource.Info
+      relationships = resource_info.relationships(AuditProduct)
 
       # Should have the translation_history relationship
       history_rel = Enum.find(relationships, &(&1.name == :translation_history))
@@ -59,9 +60,10 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest do
     # end
 
     test "relationship is public" do
+      resource_info = Ash.Resource.Info
       history_rel =
         AuditProduct
-        |> Ash.Resource.Info.relationships()
+        |> resource_info.relationships()
         |> Enum.find(&(&1.name == :translation_history))
 
       assert history_rel.public? == true
@@ -99,7 +101,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest do
     end
 
     test "does not add translation_history relationship" do
-      relationships = Ash.Resource.Info.relationships(NoAuditProduct)
+      resource_info = Ash.Resource.Info
+      relationships = resource_info.relationships(NoAuditProduct)
 
       # Should NOT have the translation_history relationship
       history_rel = Enum.find(relationships, &(&1.name == :translation_history))
@@ -149,7 +152,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest do
     end
 
     test "respects explicit audit_changes false" do
-      relationships = Ash.Resource.Info.relationships(ExplicitNoAuditProduct)
+      resource_info = Ash.Resource.Info
+      relationships = resource_info.relationships(ExplicitNoAuditProduct)
 
       # Should NOT have the translation_history relationship
       history_rel = Enum.find(relationships, &(&1.name == :translation_history))
