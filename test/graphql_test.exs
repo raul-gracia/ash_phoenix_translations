@@ -19,7 +19,7 @@ defmodule AshPhoenixTranslations.GraphqlTest do
         state: :name
       }
 
-      assert {:ok, "Producto"} = Graphql.resolve_translation(resolution)
+      assert {:ok, "Producto"} = Graphql.resolve_translation(resource, %{locale: :es}, resolution)
     end
 
     test "falls back to English when locale not found" do
@@ -35,7 +35,7 @@ defmodule AshPhoenixTranslations.GraphqlTest do
         state: :name
       }
 
-      assert {:ok, "Product"} = Graphql.resolve_translation(resolution)
+      assert {:ok, "Product"} = Graphql.resolve_translation(resource, %{locale: :de}, resolution)
     end
 
     test "handles missing translations gracefully" do
@@ -47,7 +47,7 @@ defmodule AshPhoenixTranslations.GraphqlTest do
         state: :name
       }
 
-      assert {:ok, nil} = Graphql.resolve_translation(resolution)
+      assert {:ok, nil} = Graphql.resolve_translation(resource, %{locale: :es}, resolution)
     end
   end
 
@@ -66,7 +66,7 @@ defmodule AshPhoenixTranslations.GraphqlTest do
         state: :description
       }
 
-      {:ok, translations} = Graphql.resolve_all_translations(resolution)
+      {:ok, translations} = Graphql.resolve_all_translations(resource, %{}, resolution)
 
       assert length(translations) == 3
       assert %{locale: "en", value: "A great product"} in translations
@@ -82,7 +82,7 @@ defmodule AshPhoenixTranslations.GraphqlTest do
         state: :description
       }
 
-      assert {:ok, []} = Graphql.resolve_all_translations(resolution)
+      assert {:ok, []} = Graphql.resolve_all_translations(resource, %{}, resolution)
     end
   end
 
@@ -184,6 +184,7 @@ defmodule AshPhoenixTranslations.GraphqlTest do
 
       updated = Graphql.add_locale_argument_to_query(query_config)
 
+      assert is_list(updated.args)
       assert Keyword.has_key?(updated.args, :locale)
     end
   end

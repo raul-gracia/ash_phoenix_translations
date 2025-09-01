@@ -10,6 +10,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculations do
 
   use Spark.Dsl.Transformer
   alias Spark.Dsl.Transformer
+  alias Ash.Resource.Builder
 
   @impl true
   def after?(AshPhoenixTranslations.Transformers.AddTranslationActions), do: true
@@ -74,7 +75,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculations do
       end)
 
     {:ok, dsl_state} =
-      Ash.Resource.Builder.add_new_calculation(
+      Builder.add_new_calculation(
         dsl_state,
         attr.name,
         # The return type of the calculation
@@ -91,7 +92,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculations do
     all_calc_name = :"#{attr.name}_all_translations"
 
     {:ok, dsl_state} =
-      Ash.Resource.Builder.add_new_calculation(
+      Builder.add_new_calculation(
         dsl_state,
         all_calc_name,
         # The return type - a map of translations
