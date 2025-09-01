@@ -58,11 +58,20 @@ defmodule AshPhoenixTranslations.Graphql do
 
   This resolver is automatically attached to translation fields.
   """
-  def resolve_translation(%{source: resource, arguments: %{locale: locale}, state: field}) do
+  def resolve_translation(resource, %{locale: locale} = _args, %{state: field} = _resolution) do
     storage_field = :"#{field}_translations"
     translations = Map.get(resource, storage_field, %{})
 
     value = Map.get(translations, locale) || Map.get(translations, :en)
+    {:ok, value}
+  end
+  
+  def resolve_translation(resource, _args, %{state: field} = _resolution) do
+    # Default to :en if no locale specified
+    storage_field = :"#{field}_translations"
+    translations = Map.get(resource, storage_field, %{})
+
+    value = Map.get(translations, :en)
     {:ok, value}
   end
 
@@ -71,7 +80,7 @@ defmodule AshPhoenixTranslations.Graphql do
 
   Returns all translations for a field as a GraphQL object.
   """
-  def resolve_all_translations(%{source: resource, state: field}) do
+  def resolve_all_translations(resource, _args, %{state: field} = _resolution) do
     storage_field = :"#{field}_translations"
     translations = Map.get(resource, storage_field, %{})
 
@@ -244,7 +253,7 @@ defmodule AshPhoenixTranslations.Graphql do
       name: attr.name,
       type: graphql_type_for_ash_type(attr.type),
       description: "Translated #{attr.name}",
-      resolver: &__MODULE__.resolve_translation/3,
+      resolver: &resolve_translation/3,
       middleware: [
         {__MODULE__.LocaleMiddleware, []}
       ]
@@ -255,7 +264,7 @@ defmodule AshPhoenixTranslations.Graphql do
       name: :"#{attr.name}_translations",
       type: {:list, :translation},
       description: "All translations for #{attr.name}",
-      resolver: &__MODULE__.resolve_all_translations/3
+      resolver: &resolve_all_translations/3
     }
 
     # Would need actual implementation to modify GraphQL schema

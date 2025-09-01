@@ -223,11 +223,20 @@ defmodule AshPhoenixTranslations.Helpers do
       options = build_locale_options(opts[:options] || default_locales())
       selected = opts[:selected] || Phoenix.HTML.Form.input_value(form, field)
 
-      Phoenix.HTML.Form.select(form, field, options,
-        selected: selected,
-        class: opts[:class],
-        id: opts[:id]
-      )
+      # Build the select HTML manually
+      field_id = opts[:id] || "#{Phoenix.HTML.Form.input_id(form, field)}"
+      field_name = Phoenix.HTML.Form.input_name(form, field)
+      
+      options_html = Enum.map(options, fn {label, value} ->
+        selected_attr = if value == selected, do: " selected=\"selected\"", else: ""
+        "<option value=\"#{Phoenix.HTML.html_escape(value)}\"#{selected_attr}>#{Phoenix.HTML.html_escape(label)}</option>"
+      end) |> Enum.join("")
+      
+      Phoenix.HTML.raw("""
+      <select id="#{field_id}" name="#{field_name}" class="#{opts[:class]}">
+        #{options_html}
+      </select>
+      """)
     else
       raise "Phoenix.HTML is required for locale_select/3"
     end
@@ -250,15 +259,15 @@ defmodule AshPhoenixTranslations.Helpers do
       if unquote(@phoenix_html_available) do
         locales = unquote(locales) || [:en, :es, :fr]
 
-        Phoenix.HTML.Tag.content_tag :div, class: "translation-inputs" do
-          for locale <- locales do
-            var!(locale) = locale
-            var!(field_name) = :"#{unquote(field)}_#{locale}"
-            var!(form) = unquote(form)
+        items = for locale <- locales do
+          var!(locale) = locale
+          var!(field_name) = :"#{unquote(field)}_#{locale}"
+          var!(form) = unquote(form)
 
-            unquote(block)
-          end
+          unquote(block)
         end
+        
+        Phoenix.HTML.raw("<div class=\"translation-inputs\">#{Enum.join(items, "")}</div>")
       else
         raise "Phoenix.HTML is required for translation_inputs/3"
       end
@@ -275,16 +284,18 @@ defmodule AshPhoenixTranslations.Helpers do
       field_name = :"#{field}_translations.#{locale}"
       label_text = opts[:label] || "#{humanize(field)} (#{locale_name(locale)})"
 
-      Phoenix.HTML.Tag.content_tag :div, class: "field" do
-        [
-          Phoenix.HTML.Tag.content_tag(:label, label_text, for: field_name),
-          Phoenix.HTML.Form.text_input(form, field_name,
-            class: opts[:class],
-            placeholder: opts[:placeholder],
-            value: get_translation_value(form, field, locale)
-          )
-        ]
-      end
+      field_id = Phoenix.HTML.Form.input_id(form, field_name)
+      field_html_name = Phoenix.HTML.Form.input_name(form, field_name)
+      value = get_translation_value(form, field, locale)
+      
+      Phoenix.HTML.raw("""
+      <div class="field">
+        <label for="#{field_id}">#{Phoenix.HTML.html_escape(label_text)}</label>
+        <input type="text" id="#{field_id}" name="#{field_html_name}" 
+               class="#{opts[:class]}" placeholder="#{Phoenix.HTML.html_escape(opts[:placeholder] || "")}"
+               value="#{Phoenix.HTML.html_escape(value || "")}">
+      </div>
+      """)
     else
       raise "Phoenix.HTML is required for translation_input/4"
     end
@@ -310,17 +321,15 @@ defmodule AshPhoenixTranslations.Helpers do
       translations = all_translations(resource, field)
       locales = opts[:locales] || Map.keys(translations) || [:en, :es, :fr]
 
-      Phoenix.HTML.Tag.content_tag :div, class: "translation-status" do
-        Enum.map(locales, fn locale ->
-          translated = Map.get(translations, locale)
-          status = if translated && translated != "", do: "complete", else: "missing"
-          icon = if status == "complete", do: "✓", else: "✗"
-
-          Phoenix.HTML.Tag.content_tag :span, class: "badge badge-#{status}" do
-            "#{String.upcase(to_string(locale))} #{icon}"
-          end
-        end)
-      end
+      badges = Enum.map(locales, fn locale ->
+        translated = Map.get(translations, locale)
+        status = if translated && translated != "", do: "complete", else: "missing"
+        icon = if status == "complete", do: "✓", else: "✗"
+        
+        "<span class=\"badge badge-#{status}\">#{String.upcase(to_string(locale))} #{icon}</span>"
+      end) |> Enum.join("")
+      
+      Phoenix.HTML.raw("<div class=\"translation-status\">#{badges}</div>")
     else
       # Return a simple text representation if Phoenix.HTML is not available
       translations = all_translations(resource, field)
@@ -345,20 +354,15 @@ defmodule AshPhoenixTranslations.Helpers do
       current = current_locale(conn)
       locales = AshPhoenixTranslations.Info.supported_locales(resource_module)
 
-      Phoenix.HTML.Tag.content_tag :ul, class: opts[:class] || "language-switcher" do
-        Enum.map(locales, fn locale ->
-          locale_str = to_string(locale)
-          active = locale_str == current
-
-          Phoenix.HTML.Tag.content_tag :li, class: if(active, do: "active", else: "") do
-            Phoenix.HTML.Tag.content_tag :a,
-              href: locale_url(conn, locale_str),
-              "data-locale": locale_str do
-              locale_name(locale)
-            end
-          end
-        end)
-      end
+      items = Enum.map(locales, fn locale ->
+        locale_str = to_string(locale)
+        active = locale_str == current
+        class = if active, do: "active", else: ""
+        
+        "<li class=\"#{class}\"><a href=\"#{locale_url(conn, locale_str)}\" data-locale=\"#{locale_str}\">#{Phoenix.HTML.html_escape(locale_name(locale))}</a></li>"
+      end) |> Enum.join("")
+      
+      Phoenix.HTML.raw("<ul class=\"#{opts[:class] || "language-switcher"}\">#{items}</ul>")
     else
       raise "Phoenix.HTML is required for language_switcher/3"
     end
