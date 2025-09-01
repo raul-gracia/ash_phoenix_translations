@@ -65,7 +65,7 @@ defmodule AshPhoenixTranslations.Graphql do
     value = Map.get(translations, locale) || Map.get(translations, :en)
     {:ok, value}
   end
-  
+
   def resolve_translation(resource, _args, %{state: field} = _resolution) do
     # Default to :en if no locale specified
     storage_field = :"#{field}_translations"
