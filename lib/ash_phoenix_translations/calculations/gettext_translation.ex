@@ -4,7 +4,7 @@ defmodule AshPhoenixTranslations.Calculations.GettextTranslation do
   """
 
   use Ash.Resource.Calculation
-  
+
   @impl true
   def init(opts) do
     {:ok, opts}
@@ -19,7 +19,7 @@ defmodule AshPhoenixTranslations.Calculations.GettextTranslation do
     unless gettext_module do
       raise ArgumentError, """
       Gettext module not configured. Please set the gettext_module option in your resource:
-      
+
       translations do
         backend :gettext
         gettext_module MyAppWeb.Gettext
@@ -34,29 +34,31 @@ defmodule AshPhoenixTranslations.Calculations.GettextTranslation do
 
   defp get_gettext_translation(record, field, locale, gettext_module) do
     # Build the msgid from resource name and field
-    resource_name = record.__struct__
-                    |> Module.split()
-                    |> List.last()
-                    |> Macro.underscore()
-    
+    resource_name =
+      record.__struct__
+      |> Module.split()
+      |> List.last()
+      |> Macro.underscore()
+
     # Get the record's unique identifier (could be id, slug, sku, etc.)
     identifier = get_record_identifier(record)
-    
+
     # Build msgid like "product.name.laptop-001"
     msgid = "#{resource_name}.#{field}.#{identifier}"
-    
+
     # Use Gettext with the specified module and locale
     old_locale = Gettext.get_locale(gettext_module)
-    
+
     try do
       Gettext.put_locale(gettext_module, to_string(locale))
-      
+
       # Try to get the translation, fall back to msgid if not found
       case apply(gettext_module, :dgettext, ["resources", msgid]) do
-        ^msgid -> 
+        ^msgid ->
           # Translation not found, try fallback or return nil
           get_fallback_value(record, field, locale)
-        translated -> 
+
+        translated ->
           translated
       end
     after
@@ -81,7 +83,7 @@ defmodule AshPhoenixTranslations.Calculations.GettextTranslation do
   defp get_fallback_value(record, field, locale) do
     # Try to get from database storage if available
     storage_field = :"#{field}_translations"
-    
+
     if Map.has_key?(record, storage_field) do
       translations = Map.get(record, storage_field) || %{}
       Map.get(translations, to_string(locale))

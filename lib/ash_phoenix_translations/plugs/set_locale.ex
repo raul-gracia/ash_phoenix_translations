@@ -1,26 +1,26 @@
 defmodule AshPhoenixTranslations.Plugs.SetLocale do
   @moduledoc """
   Plug for setting the locale in the connection.
-  
+
   This plug detects and sets the locale for the current request.
-  
+
   ## Usage
-  
+
   Add to your router pipeline:
-  
+
       pipeline :browser do
         # ... other plugs
         plug AshPhoenixTranslations.Plugs.SetLocale,
           strategies: [:param, :session, :header],
           fallback: "en"
       end
-  
+
   Or use with default settings:
-  
+
       plug AshPhoenixTranslations.Plugs.SetLocale
-  
+
   ## Options
-  
+
     * `:strategies` - List of strategies to try in order. Default: `[:auto]`
       Available strategies:
       - `:param` - From URL parameter (?locale=en)
@@ -64,14 +64,14 @@ defmodule AshPhoenixTranslations.Plugs.SetLocale do
       param_key: Keyword.get(opts, :param_key, "locale"),
       session_key: Keyword.get(opts, :session_key, :locale),
       cookie_key: Keyword.get(opts, :cookie_key, "locale"),
-      cookie_options: Keyword.get(opts, :cookie_options, [max_age: 365 * 24 * 60 * 60]),
+      cookie_options: Keyword.get(opts, :cookie_options, max_age: 365 * 24 * 60 * 60),
       custom_resolver: Keyword.get(opts, :custom_resolver)
     }
   end
 
   def call(conn, config) do
     locale = resolve_locale(conn, config)
-    
+
     conn
     |> set_locale(locale, config)
     |> persist_locale(locale, config)
@@ -86,26 +86,27 @@ defmodule AshPhoenixTranslations.Plugs.SetLocale do
       supported: config.supported,
       custom: config.custom_resolver
     }
-    
+
     LocaleResolver.resolve_with_config(conn, resolver_config)
   end
 
   # Set locale in connection assigns and Gettext if available
   defp set_locale(conn, locale, _config) do
-    conn = 
+    conn =
       conn
       |> assign(:locale, locale)
       |> assign(:raw_locale, locale)
-    
+
     # Set Gettext locale if Gettext is available
-    if Code.ensure_loaded?(Gettext) && function_exported?(conn.private[:phoenix_endpoint], :config, 1) do
+    if Code.ensure_loaded?(Gettext) &&
+         function_exported?(conn.private[:phoenix_endpoint], :config, 1) do
       gettext_module = conn.private[:phoenix_endpoint].config(:gettext)
-      
+
       if gettext_module && Code.ensure_loaded?(gettext_module) do
         Gettext.put_locale(gettext_module, locale)
       end
     end
-    
+
     conn
   end
 

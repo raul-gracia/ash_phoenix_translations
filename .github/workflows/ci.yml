@@ -116,6 +116,10 @@ jobs:
         run: mix credo --strict || true
         continue-on-error: true
       
+      - name: Run Sobelow security analysis
+        run: mix sobelow || true
+        continue-on-error: true
+      
       - name: Check for security vulnerabilities
         run: mix deps.audit
         continue-on-error: true

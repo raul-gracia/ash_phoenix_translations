@@ -1,14 +1,14 @@
 defmodule AshPhoenixTranslations.Info do
   @moduledoc """
   Introspection module for AshPhoenixTranslations extension.
-  
+
   Provides functions to retrieve translation configuration and metadata
   from resources that use the AshPhoenixTranslations extension.
-  
+
   ## Examples
-  
+
   Assuming you have a resource with translations configured:
-  
+
       defmodule MyApp.Product do
         use Ash.Resource,
           extensions: [AshPhoenixTranslations]
@@ -20,9 +20,9 @@ defmodule AshPhoenixTranslations.Info do
           cache_ttl 7200
         end
       end
-  
+
   You can introspect the configuration:
-  
+
       iex> AshPhoenixTranslations.Info.translatable?(MyApp.Product)
       true
       
@@ -46,7 +46,9 @@ defmodule AshPhoenixTranslations.Info do
   def translatable_attributes(resource) do
     # Try to get from persisted data first
     case Spark.Dsl.Extension.get_persisted(resource, :translatable_attributes) do
-      {:ok, attrs} when is_list(attrs) -> attrs
+      {:ok, attrs} when is_list(attrs) ->
+        attrs
+
       _ ->
         # Fallback to entities if not persisted
         case Spark.Dsl.Extension.get_entities(resource, [:translations]) do
@@ -151,7 +153,8 @@ defmodule AshPhoenixTranslations.Info do
   @spec view_policy(Ash.Resource.t() | Spark.Dsl.t()) :: atom() | tuple() | nil
   def view_policy(resource) do
     case translation_policies(resource) do
-      nil -> :public  # Default to public view
+      # Default to public view
+      nil -> :public
       policies -> Keyword.get(policies, :view, :public)
     end
   end
@@ -162,7 +165,8 @@ defmodule AshPhoenixTranslations.Info do
   @spec edit_policy(Ash.Resource.t() | Spark.Dsl.t()) :: atom() | tuple() | nil
   def edit_policy(resource) do
     case translation_policies(resource) do
-      nil -> :admin  # Default to admin edit
+      # Default to admin edit
+      nil -> :admin
       policies -> Keyword.get(policies, :edit, :admin)
     end
   end

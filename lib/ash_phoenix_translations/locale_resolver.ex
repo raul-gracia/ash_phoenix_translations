@@ -1,7 +1,7 @@
 defmodule AshPhoenixTranslations.LocaleResolver do
   @moduledoc """
   Strategies for resolving the current locale from various sources.
-  
+
   Supports multiple resolution strategies:
   - `:header` - From Accept-Language header
   - `:param` - From URL parameter
@@ -17,7 +17,7 @@ defmodule AshPhoenixTranslations.LocaleResolver do
 
   @doc """
   Resolves the locale using the specified strategy.
-  
+
       locale = LocaleResolver.resolve(conn, :header)
       locale = LocaleResolver.resolve(conn, :auto)
   """
@@ -57,6 +57,7 @@ defmodule AshPhoenixTranslations.LocaleResolver do
     case String.split(conn.host, ".") do
       [locale | _rest] when byte_size(locale) == 2 ->
         locale
+
       _ ->
         nil
     end
@@ -66,6 +67,7 @@ defmodule AshPhoenixTranslations.LocaleResolver do
     case conn.path_info do
       [locale | _rest] when byte_size(locale) == 2 ->
         locale
+
       _ ->
         nil
     end
@@ -75,8 +77,10 @@ defmodule AshPhoenixTranslations.LocaleResolver do
     case conn.assigns[:current_user] do
       %{locale: locale} when not is_nil(locale) ->
         to_string(locale)
+
       %{preferred_locale: locale} when not is_nil(locale) ->
         to_string(locale)
+
       _ ->
         nil
     end
@@ -90,7 +94,7 @@ defmodule AshPhoenixTranslations.LocaleResolver do
 
   @doc """
   Configures a resolver chain with fallbacks.
-  
+
       config = LocaleResolver.configure(
         strategies: [:param, :user, :header],
         fallback: "en",
@@ -114,8 +118,8 @@ defmodule AshPhoenixTranslations.LocaleResolver do
   def resolve_with_config(conn, config) do
     strategies = config[:strategies] || [:auto]
     fallback = config[:fallback] || "en"
-    
-    locale = 
+
+    locale =
       Enum.find_value(strategies, fn strategy ->
         if strategy == :custom && config[:custom] do
           resolve(conn, config[:custom])
@@ -123,7 +127,7 @@ defmodule AshPhoenixTranslations.LocaleResolver do
           resolve(conn, strategy)
         end
       end)
-    
+
     if locale && supported?(locale, config[:supported]) do
       locale
     else
@@ -133,7 +137,7 @@ defmodule AshPhoenixTranslations.LocaleResolver do
 
   @doc """
   Persists the locale to the specified storage.
-  
+
       LocaleResolver.persist(conn, "es", :session)
       LocaleResolver.persist(conn, "es", [:session, :cookie])
   """
@@ -158,6 +162,7 @@ defmodule AshPhoenixTranslations.LocaleResolver do
         # For example:
         # Ash.update!(user, %{locale: locale})
         conn
+
       _ ->
         conn
     end
@@ -168,6 +173,7 @@ defmodule AshPhoenixTranslations.LocaleResolver do
   # Private helpers
 
   defp parse_accept_language([]), do: []
+
   defp parse_accept_language([header | _]) do
     header
     |> String.split(",")
@@ -175,14 +181,16 @@ defmodule AshPhoenixTranslations.LocaleResolver do
     |> Enum.sort_by(fn {_lang, quality} -> quality end, :desc)
     |> Enum.map(fn {lang, _quality} -> lang end)
   end
+
   defp parse_accept_language(_), do: []
 
   defp parse_language_tag(tag) do
     case String.split(tag, ";") do
       [lang] ->
         {String.trim(lang) |> String.split("-") |> List.first() |> String.downcase(), 1.0}
+
       [lang, quality] ->
-        quality_value = 
+        quality_value =
           quality
           |> String.trim()
           |> String.replace("q=", "")
@@ -191,12 +199,14 @@ defmodule AshPhoenixTranslations.LocaleResolver do
             {q, _} -> q
             :error -> 0.0
           end
-        
-        {String.trim(lang) |> String.split("-") |> List.first() |> String.downcase(), quality_value}
+
+        {String.trim(lang) |> String.split("-") |> List.first() |> String.downcase(),
+         quality_value}
     end
   end
 
   defp find_supported_locale([]), do: nil
+
   defp find_supported_locale([locale | rest]) do
     # This could be enhanced to check against actually supported locales
     # For now, we'll accept common locale codes
@@ -208,11 +218,14 @@ defmodule AshPhoenixTranslations.LocaleResolver do
   end
 
   defp supported?(_locale, nil), do: true
+
   defp supported?(locale, supported) when is_list(supported) do
     locale in supported
   end
+
   defp supported?(locale, supported) when is_function(supported, 1) do
     supported.(locale)
   end
+
   defp supported?(_locale, _supported), do: true
 end

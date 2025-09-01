@@ -2,11 +2,15 @@
 
 [![CI](https://github.com/raul-gracia/ash_phoenix_translations/actions/workflows/ci.yml/badge.svg)](https://github.com/raul-gracia/ash_phoenix_translations/actions/workflows/ci.yml)
 [![Security Audit](https://github.com/raul-gracia/ash_phoenix_translations/actions/workflows/security.yml/badge.svg)](https://github.com/raul-gracia/ash_phoenix_translations/actions/workflows/security.yml)
+[![Code Quality](https://img.shields.io/badge/credo-passing-brightgreen.svg)](https://github.com/raul-gracia/ash_phoenix_translations/actions/workflows/ci.yml)
+[![Security Analysis](https://img.shields.io/badge/sobelow-secure-brightgreen.svg)](https://github.com/raul-gracia/ash_phoenix_translations/actions/workflows/security.yml)
 [![Hex.pm](https://img.shields.io/hexpm/v/ash_phoenix_translations.svg)](https://hex.pm/packages/ash_phoenix_translations)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-purple.svg)](https://hexdocs.pm/ash_phoenix_translations)
 [![License](https://img.shields.io/hexpm/l/ash_phoenix_translations.svg)](https://github.com/raul-gracia/ash_phoenix_translations/blob/main/LICENSE)
 
 Policy-aware translation extension for [Ash Framework](https://ash-hq.org/) with multi-backend support, optimized for Phoenix applications.
+
+> **🔒 Security-First Design**: Built with comprehensive security measures including XSS protection, input validation, and automated vulnerability scanning. See our [Security Policy](SECURITY.md) for details.
 
 ## Features
 
@@ -808,15 +812,84 @@ A separate admin UI package is available for managing translations through a web
 
 See [ash_phoenix_translations_admin](https://github.com/yourusername/ash_phoenix_translations_admin) for details.
 
+## Security
+
+AshPhoenixTranslations is built with security as a primary concern. We implement comprehensive security measures including:
+
+- **XSS Prevention**: All translation output is HTML-escaped by default
+- **Atom Safety**: Uses `String.to_existing_atom/1` to prevent atom exhaustion attacks
+- **Input Validation**: Comprehensive validation of all translation content
+- **Automated Security Scanning**: Sobelow security analysis in CI/CD pipeline
+- **Dependency Auditing**: Regular vulnerability scans of all dependencies
+
+### Security Features
+
+- 🛡️ **XSS Protection** - HTML escaping for all translation output
+- 🔒 **Input Sanitization** - Validation and sanitization of translation data
+- ⚡ **Atom Safety** - Secure locale parameter handling preventing DoS attacks
+- 🔍 **Security Scanning** - Automated Sobelow and dependency vulnerability scans
+- 📋 **Security Policies** - Comprehensive security documentation and guidelines
+
+For detailed security information, see our [Security Policy](SECURITY.md).
+
+### Reporting Security Issues
+
+If you discover a security vulnerability, please report it responsibly by emailing security@yourproject.com. Do not open public issues for security vulnerabilities.
+
+## Quality Assurance
+
+We maintain high code quality standards through:
+
+### Code Quality Tools
+
+- **Credo**: Strict code analysis and style enforcement
+- **Dialyzer**: Static type analysis for bug detection
+- **ExCoveralls**: Test coverage monitoring (>90% required)
+- **Sobelow**: Security-focused static analysis
+- **Formatter**: Consistent code formatting standards
+
+### Quality Standards
+
+- 📊 **90%+ Test Coverage** - Comprehensive test suite with high coverage
+- 🔍 **Static Analysis** - Credo strict mode with security-focused rules
+- 📝 **Documentation** - Complete module and function documentation
+- 🔒 **Security Review** - All code undergoes security analysis
+- ⚡ **Performance Testing** - Regular performance regression testing
+
+### Running Quality Checks
+
+```bash
+# Run all quality checks
+mix quality
+
+# Individual quality tools
+mix test --cover        # Tests with coverage
+mix format             # Code formatting
+mix credo --strict     # Code quality analysis
+mix sobelow --config   # Security analysis
+mix dialyzer          # Static type analysis
+```
+
+For detailed quality guidelines, see our [Contributing Guide](CONTRIBUTING.md).
+
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) for detailed information about:
+
+- Development setup and workflow
+- Code quality standards and tools
+- Testing requirements and guidelines
+- Security review process
+- PR submission and review process
+
+### Quick Start for Contributors
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Set up development environment: `mix deps.get && mix deps.compile`
+3. Run quality checks: `mix quality`
+4. Create feature branch: `git checkout -b feature/amazing-feature`
+5. Make changes with tests and documentation
+6. Submit PR following our [Contributing Guide](CONTRIBUTING.md)
 
 ## License
 

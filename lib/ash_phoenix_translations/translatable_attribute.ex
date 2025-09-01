@@ -1,7 +1,7 @@
 defmodule AshPhoenixTranslations.TranslatableAttribute do
   @moduledoc """
   Defines a translatable attribute in an Ash resource.
-  
+
   This module provides the DSL entity for defining translatable attributes
   with support for multiple locales, validation, and various configurations.
   """
@@ -134,14 +134,15 @@ defmodule AshPhoenixTranslations.TranslatableAttribute do
       entity
     else
       raise Spark.Error.DslError,
-        message: "Fallback locale #{inspect(fallback)} is not in the supported locales #{inspect(locales)}",
+        message:
+          "Fallback locale #{inspect(fallback)} is not in the supported locales #{inspect(locales)}",
         path: [:translations, :translatable_attribute]
     end
   end
 
   defp set_default_validation(%{type: type, validation: validation} = entity) do
     default_validation = default_validation_for_type(type)
-    
+
     %{entity | validation: Keyword.merge(default_validation, validation)}
   end
 
