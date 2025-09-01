@@ -61,6 +61,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
 
     test "translation calculations are public" do
       resource_info = Ash.Resource.Info
+
       name_calc =
         DatabaseProduct
         |> resource_info.calculations()
@@ -71,6 +72,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
 
     test "calculations use correct modules based on backend" do
       resource_info = Ash.Resource.Info
+
       name_calc =
         DatabaseProduct
         |> resource_info.calculations()
@@ -88,6 +90,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
 
     test "all_translations calculations use AllTranslations module" do
       resource_info = Ash.Resource.Info
+
       all_calc =
         DatabaseProduct
         |> resource_info.calculations()
@@ -144,6 +147,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
 
     test "gettext calculations use GettextTranslation module" do
       resource_info = Ash.Resource.Info
+
       name_calc =
         GettextProduct
         |> resource_info.calculations()
@@ -198,6 +202,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
 
     test "redis calculations use RedisTranslation module" do
       resource_info = Ash.Resource.Info
+
       name_calc =
         RedisProduct
         |> resource_info.calculations()
@@ -212,6 +217,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
   describe "Calculation Options" do
     test "calculations receive correct options" do
       resource_info = Ash.Resource.Info
+
       name_calc =
         AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest.DatabaseProduct
         |> resource_info.calculations()
@@ -226,6 +232,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
 
     test "calculations without fallback don't include fallback option" do
       resource_info = Ash.Resource.Info
+
       desc_calc =
         AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest.DatabaseProduct
         |> resource_info.calculations()

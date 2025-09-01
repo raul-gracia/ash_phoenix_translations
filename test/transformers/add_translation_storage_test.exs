@@ -59,6 +59,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorageTest do
 
     test "storage attributes are not public" do
       resource_info = Ash.Resource.Info
+
       public_attrs =
         DatabaseProduct
         |> resource_info.attributes()

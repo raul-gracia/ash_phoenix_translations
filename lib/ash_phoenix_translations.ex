@@ -259,6 +259,7 @@ defmodule AshPhoenixTranslations do
   defp do_translate(resource, locale) do
     # Get the calculation names directly from the resource
     resource_info = Ash.Resource.Info
+
     calculations =
       resource.__struct__
       |> resource_info.calculations()
