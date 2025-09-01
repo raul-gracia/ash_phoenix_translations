@@ -244,7 +244,7 @@ defmodule AshPhoenixTranslations.Embedded do
         end
       end)
 
-    Spark.Dsl.Extension.put_persisted(
+    Spark.Dsl.Transformer.persist(
       dsl_state,
       :embedded_translatable_attributes,
       embedded_attrs
