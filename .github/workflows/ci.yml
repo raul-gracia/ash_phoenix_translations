@@ -63,7 +63,6 @@ jobs:
       
       - name: Check unused dependencies
         run: mix deps.unlock --check-unused
-        continue-on-error: true
       
       - name: Compile dependencies
         run: mix deps.compile
@@ -76,7 +75,24 @@ jobs:
       
       - name: Run tests with coverage
         if: matrix.elixir == '1.17.3' && matrix.otp == '27.0'
-        run: mix test --cover
+        run: |
+          mix test --cover --export-coverage default
+          mix test.coverage
+          
+      - name: Check minimum coverage
+        if: matrix.elixir == '1.17.3' && matrix.otp == '27.0'
+        run: |
+          # Extract coverage percentage and ensure it's above 80%
+          coverage=$(mix test.coverage | grep "TOTAL" | awk '{print $2}' | sed 's/%//')
+          if [ -z "$coverage" ]; then
+            echo "Could not extract coverage percentage"
+            exit 1
+          fi
+          echo "Coverage: ${coverage}%"
+          if (( $(echo "$coverage < 80" | bc -l) )); then
+            echo "Coverage ${coverage}% is below minimum threshold of 80%"
+            exit 1
+          fi
 
   quality:
     name: Code Quality
@@ -113,20 +129,16 @@ jobs:
         run: mix format --check-formatted
       
       - name: Run Credo
-        run: mix credo --strict || true
-        continue-on-error: true
+        run: mix credo --strict
       
       - name: Run Sobelow security analysis
-        run: mix sobelow || true
-        continue-on-error: true
+        run: mix sobelow --config
       
       - name: Check for security vulnerabilities
         run: mix deps.audit
-        continue-on-error: true
       
       - name: Check documentation
         run: mix docs
-        continue-on-error: true
 
   dialyzer:
     name: Dialyzer
@@ -173,7 +185,6 @@ jobs:
       
       - name: Run dialyzer
         run: mix dialyzer
-        continue-on-error: true
 
   check-hex-publish:
     name: Check Hex Package
