@@ -57,7 +57,7 @@ defmodule AshPhoenixTranslations.JsonApiTest do
     end
 
     test "falls back to default locale" do
-      conn = 
+      conn =
         Plug.Test.conn(:get, "/")
         |> Plug.Conn.fetch_query_params()
 

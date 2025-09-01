@@ -37,7 +37,7 @@ defmodule AshPhoenixTranslations.Info do
   """
 
   use Spark.InfoGenerator, extension: AshPhoenixTranslations, sections: [:translations]
-  
+
   alias Spark.Dsl.Extension
 
   @doc """

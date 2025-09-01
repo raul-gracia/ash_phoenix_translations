@@ -1,6 +1,6 @@
 defmodule AshPhoenixTranslations.Helpers do
   require Logger
-  
+
   alias Phoenix.HTML
   alias Phoenix.HTML.Form
   alias Phoenix.Component
