@@ -66,17 +66,21 @@ jobs:
           # Remove any existing pre-release suffix
           BASE_VERSION=$(echo "$CURRENT_VERSION" | sed 's/-.*//')
           
+          # Get input values
+          PRERELEASE_TYPE="${{ github.event.inputs.prerelease_type }}"
+          INCREMENT_TYPE="${{ github.event.inputs.increment }}"
+          
           # Check if this is already a pre-release version
-          if [[ "$CURRENT_VERSION" == *"-${{ github.event.inputs.prerelease_type }}."* ]]; then
+          if [[ "$CURRENT_VERSION" == *"-${PRERELEASE_TYPE}."* ]]; then
             # Extract the pre-release number and increment it
-            PRERELEASE_NUM=$(echo "$CURRENT_VERSION" | sed -n 's/.*-${{ github.event.inputs.prerelease_type }}\.\([0-9]*\).*/\1/p')
+            PRERELEASE_NUM=$(echo "$CURRENT_VERSION" | sed -n "s/.*-${PRERELEASE_TYPE}\.\([0-9]*\).*/\1/p")
             PRERELEASE_NUM=$((PRERELEASE_NUM + 1))
-            NEW_VERSION="${BASE_VERSION}-${{ github.event.inputs.prerelease_type }}.${PRERELEASE_NUM}"
+            NEW_VERSION="${BASE_VERSION}-${PRERELEASE_TYPE}.${PRERELEASE_NUM}"
           else
             # First pre-release of this type, bump the base version if needed
-            if [ "${{ github.event.inputs.increment }}" != "none" ]; then
+            if [ "$INCREMENT_TYPE" != "none" ]; then
               IFS='.' read -r major minor patch <<< "$BASE_VERSION"
-              case "${{ github.event.inputs.increment }}" in
+              case "$INCREMENT_TYPE" in
                 major)
                   major=$((major + 1))
                   minor=0
@@ -92,7 +96,7 @@ jobs:
               esac
               BASE_VERSION="$major.$minor.$patch"
             fi
-            NEW_VERSION="${BASE_VERSION}-${{ github.event.inputs.prerelease_type }}.1"
+            NEW_VERSION="${BASE_VERSION}-${PRERELEASE_TYPE}.1"
           fi
           
           echo "New pre-release version: $NEW_VERSION"
@@ -282,13 +286,14 @@ EOF
     steps:
       - name: Send notification
         run: |
+          PRERELEASE_TYPE="${{ github.event.inputs.prerelease_type }}"
           if [ "${{ needs.publish-prerelease.result }}" = "success" ]; then
             echo "🚀 Pre-release v${{ needs.prepare.outputs.version }} published successfully!"
             echo ""
             echo "📦 Hex Package: https://hex.pm/packages/ash_phoenix_translations/${{ needs.prepare.outputs.version }}"
             echo "🏷️ GitHub Release: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.prepare.outputs.version }}"
             echo ""
-            echo "This is a ${{ github.event.inputs.prerelease_type }} pre-release for testing purposes."
+            echo "This is a ${PRERELEASE_TYPE} pre-release for testing purposes."
           else
             echo "❌ Pre-release v${{ needs.prepare.outputs.version }} failed"
             echo "Check the workflow logs for details"
