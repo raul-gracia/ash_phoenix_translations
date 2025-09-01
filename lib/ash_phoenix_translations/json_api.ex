@@ -247,7 +247,8 @@ defmodule AshPhoenixTranslations.JsonApi do
   # Private helpers
 
   defp has_json_api_extension?(dsl_state) do
-    AshJsonApi.Resource in Spark.Dsl.Extension.get_persisted(dsl_state, :extensions, [])
+    extensions = Spark.Dsl.Extension.get_persisted(dsl_state, :extensions, [])
+    AshJsonApi.Resource in extensions
   rescue
     _ -> false
   end

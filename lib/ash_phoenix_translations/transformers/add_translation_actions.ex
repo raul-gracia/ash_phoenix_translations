@@ -10,6 +10,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActions do
 
   use Spark.Dsl.Transformer
   alias Spark.Dsl.Transformer
+  alias Ash.Resource.Builder
 
   @impl true
   def after?(AshPhoenixTranslations.Transformers.AddTranslationRelationships), do: true
@@ -49,7 +50,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActions do
       end)
 
     {:ok, dsl_state} =
-      Ash.Resource.Builder.add_new_action(
+      Builder.add_new_action(
         dsl_state,
         :update,
         :update_translation,
@@ -66,7 +67,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActions do
 
   defp add_import_translations_action(dsl_state, _backend) do
     {:ok, dsl_state} =
-      Ash.Resource.Builder.add_new_action(
+      Builder.add_new_action(
         dsl_state,
         :update,
         :import_translations,
@@ -83,7 +84,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActions do
 
   defp add_export_translations_action(dsl_state, _backend) do
     {:ok, dsl_state} =
-      Ash.Resource.Builder.add_new_action(
+      Builder.add_new_action(
         dsl_state,
         :read,
         :export_translations,
@@ -111,7 +112,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActions do
       end
 
     {:ok, dsl_state} =
-      Ash.Resource.Builder.add_new_action(
+      Builder.add_new_action(
         dsl_state,
         :update,
         :clear_translations,

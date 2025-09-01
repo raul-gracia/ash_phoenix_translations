@@ -10,6 +10,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChanges do
 
   use Spark.Dsl.Transformer
   alias Spark.Dsl.Transformer
+  alias Ash.Resource.Builder
 
   @impl true
   def after?(AshPhoenixTranslations.Transformers.AddTranslationCalculations), do: true
@@ -55,7 +56,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChanges do
       if Enum.any?(attr.required || []) do
         # Build a change entity
         {:ok, change} =
-          Ash.Resource.Builder.build_action_change(
+          Builder.build_action_change(
             {AshPhoenixTranslations.Changes.ValidateRequiredTranslations,
              attribute_name: attr.name,
              required_locales: attr.required,
@@ -92,7 +93,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChanges do
     if update_translation_action do
       # Build a change entity for UpdateTranslation
       {:ok, change} =
-        Ash.Resource.Builder.build_action_change(
+        Builder.build_action_change(
           {AshPhoenixTranslations.Changes.UpdateTranslation,
            backend: backend, action_name: :update_translation}
         )
@@ -127,7 +128,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChanges do
     if import_action do
       # Build a change entity for ImportTranslations
       {:ok, change} =
-        Ash.Resource.Builder.build_action_change(
+        Builder.build_action_change(
           {AshPhoenixTranslations.Changes.ImportTranslations,
            backend: backend, action_name: :import_translations}
         )
