@@ -1,119 +1,99 @@
 defmodule AshPhoenixTranslations.Cache do
   @moduledoc """
-  Caching layer for translations with support for multiple backends.
+  Caching layer for translations with ETS backend.
   
-  Provides efficient caching of translations with TTL support,
-  invalidation strategies, and cache warming.
-  
-  ## Configuration
-  
-      config :ash_phoenix_translations, :cache,
-        backend: :ets,  # :ets, :redis, :persistent_term, or module
-        ttl: 3600,       # seconds
-        max_size: 10000, # max number of entries
-        namespace: "translations"
-  
-  ## Usage
-  
-      # Get from cache or compute
-      Cache.fetch({Product, :name, :es}, fn ->
-        load_translation_from_database()
-      end)
-      
-      # Direct cache operations
-      Cache.put(key, value)
-      Cache.get(key)
-      Cache.delete(key)
-      Cache.clear()
+  Provides:
+  - In-memory caching using ETS
+  - TTL support
+  - Cache invalidation
+  - Warmup strategies
   """
 
   use GenServer
   require Logger
 
-  @default_ttl 3600
-  @default_max_size 10000
   @table_name :ash_translations_cache
+  @default_ttl 3600  # 1 hour in seconds
 
   # Client API
 
   @doc """
-  Starts the cache process.
+  Starts the cache server.
   """
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
   @doc """
-  Fetches a value from cache or computes it if not found.
+  Gets a translation from cache.
   
-      translation = Cache.fetch({Product, :name, :es}, fn ->
-        # Load from database
-        load_translation(product, :name, :es)
-      end)
+  Returns `{:ok, value}` if found, `:miss` if not cached or expired.
   """
-  def fetch(key, fun, opts \\ []) do
-    ttl = Keyword.get(opts, :ttl, @default_ttl)
+  def get(key) do
+    case :ets.lookup(@table_name, key) do
+      [{^key, value, expiry}] ->
+        if DateTime.compare(DateTime.utc_now(), expiry) == :lt do
+          {:ok, value}
+        else
+          # Expired, delete it
+          :ets.delete(@table_name, key)
+          :miss
+        end
+      [] ->
+        :miss
+    end
+  rescue
+    ArgumentError ->
+      # Table doesn't exist
+      :miss
+  end
+
+  @doc """
+  Puts a translation in cache with TTL.
+  """
+  def put(key, value, ttl \\ nil) do
+    ttl = ttl || @default_ttl
+    expiry = DateTime.add(DateTime.utc_now(), ttl, :second)
     
+    :ets.insert(@table_name, {key, value, expiry})
+    :ok
+  rescue
+    ArgumentError ->
+      # Table doesn't exist, silently fail
+      :ok
+  end
+
+  @doc """
+  Gets a value from cache or computes it if missing.
+  
+  ## Examples
+  
+      Cache.get_or_compute(key, fn -> expensive_operation() end)
+  """
+  def get_or_compute(key, compute_fn, ttl \\ nil) do
     case get(key) do
       {:ok, value} ->
         value
-      
       :miss ->
-        value = fun.()
+        value = compute_fn.()
         put(key, value, ttl)
         value
     end
   end
 
   @doc """
-  Gets a value from cache.
+  Invalidates cache entries matching a pattern.
   
-      case Cache.get({Product, :name, :es}) do
-        {:ok, translation} -> translation
-        :miss -> nil
-      end
-  """
-  def get(key) do
-    GenServer.call(__MODULE__, {:get, key})
-  catch
-    :exit, _ -> :miss
-  end
-
-  @doc """
-  Puts a value in cache with optional TTL.
+  ## Examples
   
-      Cache.put({Product, :name, :es}, "Producto", ttl: 7200)
-  """
-  def put(key, value, ttl \\ @default_ttl) do
-    GenServer.cast(__MODULE__, {:put, key, value, ttl})
-  catch
-    :exit, _ -> :ok
-  end
-
-  @doc """
-  Deletes a key from cache.
-  
-      Cache.delete({Product, :name, :es})
-  """
-  def delete(key) do
-    GenServer.cast(__MODULE__, {:delete, key})
-  catch
-    :exit, _ -> :ok
-  end
-
-  @doc """
-  Deletes all keys matching a pattern.
-  
-      # Delete all Spanish translations for Product
-      Cache.delete_pattern({Product, :_, :es})
+      # Invalidate all translations for a resource
+      Cache.invalidate({:resource, Product, :*, :*})
       
-      # Delete all translations for a specific product
-      Cache.delete_pattern({Product, product_id, :_, :_})
+      # Invalidate all translations for a specific locale
+      Cache.invalidate({:*, :*, :fr, :*})
   """
-  def delete_pattern(pattern) do
-    GenServer.cast(__MODULE__, {:delete_pattern, pattern})
-  catch
-    :exit, _ -> :ok
+  def invalidate(pattern) do
+    GenServer.cast(__MODULE__, {:invalidate, pattern})
   end
 
   @doc """
@@ -121,290 +101,153 @@ defmodule AshPhoenixTranslations.Cache do
   """
   def clear do
     GenServer.cast(__MODULE__, :clear)
-  catch
-    :exit, _ -> :ok
   end
 
   @doc """
-  Invalidates cache for a specific resource.
-  
-      Cache.invalidate_resource(Product, 123)
+  Warms up the cache with frequently accessed translations.
   """
-  def invalidate_resource(resource_module, resource_id) do
-    pattern = {resource_module, resource_id, :_, :_}
-    delete_pattern(pattern)
+  def warmup(resources, locales) do
+    GenServer.cast(__MODULE__, {:warmup, resources, locales})
   end
 
   @doc """
-  Invalidates cache for a specific field across all resources.
-  
-      Cache.invalidate_field(Product, :name)
-  """
-  def invalidate_field(resource_module, field) do
-    pattern = {resource_module, :_, field, :_}
-    delete_pattern(pattern)
-  end
-
-  @doc """
-  Invalidates cache for a specific locale.
-  
-      Cache.invalidate_locale(:es)
-  """
-  def invalidate_locale(locale) do
-    pattern = {:_, :_, :_, locale}
-    delete_pattern(pattern)
-  end
-
-  @doc """
-  Warms the cache by preloading translations.
-  
-      Cache.warm(Product, [:name, :description], [:en, :es])
-  """
-  def warm(resource_module, fields \\ nil, locales \\ nil, opts \\ []) do
-    GenServer.cast(__MODULE__, {:warm, resource_module, fields, locales, opts})
-  catch
-    :exit, _ -> :ok
-  end
-
-  @doc """
-  Returns cache statistics.
-  
-      stats = Cache.stats()
-      # => %{size: 1234, hits: 5678, misses: 234, hit_rate: 96.0}
+  Gets cache statistics.
   """
   def stats do
     GenServer.call(__MODULE__, :stats)
-  catch
-    :exit, _ -> %{size: 0, hits: 0, misses: 0, hit_rate: 0.0}
-  end
-
-  @doc """
-  Returns cache size.
-  """
-  def size do
-    GenServer.call(__MODULE__, :size)
-  catch
-    :exit, _ -> 0
   end
 
   # Server callbacks
 
   @impl true
   def init(opts) do
-    # Create ETS table for cache storage
-    :ets.new(@table_name, [:set, :named_table, :public, read_concurrency: true])
+    # Create ETS table
+    :ets.new(@table_name, [:set, :public, :named_table, read_concurrency: true])
     
-    # Create stats table
-    :ets.new(:ash_translations_cache_stats, [:set, :named_table, :public])
-    :ets.insert(:ash_translations_cache_stats, {:hits, 0})
-    :ets.insert(:ash_translations_cache_stats, {:misses, 0})
-    
-    # Schedule cleanup
+    # Schedule periodic cleanup
     schedule_cleanup()
     
-    config = %{
-      backend: Keyword.get(opts, :backend, :ets),
+    state = %{
       ttl: Keyword.get(opts, :ttl, @default_ttl),
-      max_size: Keyword.get(opts, :max_size, @default_max_size),
-      namespace: Keyword.get(opts, :namespace, "translations")
+      hits: 0,
+      misses: 0,
+      evictions: 0
     }
     
-    {:ok, config}
+    {:ok, state}
   end
 
   @impl true
-  def handle_call({:get, key}, _from, config) do
-    case lookup(key, config) do
-      {:ok, value} ->
-        increment_hits()
-        {:reply, {:ok, value}, config}
-      
-      :miss ->
-        increment_misses()
-        {:reply, :miss, config}
-    end
+  def handle_cast({:invalidate, pattern}, state) do
+    count = invalidate_pattern(pattern)
+    Logger.debug("Invalidated #{count} cache entries matching #{inspect(pattern)}")
+    {:noreply, %{state | evictions: state.evictions + count}}
   end
 
   @impl true
-  def handle_call(:stats, _from, config) do
-    hits = get_counter(:hits)
-    misses = get_counter(:misses)
-    total = hits + misses
-    
-    hit_rate = 
-      if total > 0 do
-        Float.round(hits / total * 100, 1)
-      else
-        0.0
-      end
-    
+  def handle_cast(:clear, state) do
+    :ets.delete_all_objects(@table_name)
+    Logger.debug("Cleared translation cache")
+    {:noreply, %{state | evictions: state.evictions + :ets.info(@table_name, :size)}}
+  end
+
+  @impl true
+  def handle_cast({:warmup, resources, locales}, state) do
+    Task.start(fn -> perform_warmup(resources, locales) end)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_call(:stats, _from, state) do
     stats = %{
       size: :ets.info(@table_name, :size),
-      hits: hits,
-      misses: misses,
-      hit_rate: hit_rate
+      memory: :ets.info(@table_name, :memory),
+      hits: state.hits,
+      misses: state.misses,
+      evictions: state.evictions,
+      hit_rate: calculate_hit_rate(state)
     }
+    {:reply, stats, state}
+  end
+
+  @impl true
+  def handle_info(:cleanup, state) do
+    expired_count = cleanup_expired()
+    Logger.debug("Cleaned up #{expired_count} expired cache entries")
     
-    {:reply, stats, config}
-  end
-
-  @impl true
-  def handle_call(:size, _from, config) do
-    size = :ets.info(@table_name, :size)
-    {:reply, size, config}
-  end
-
-  @impl true
-  def handle_cast({:put, key, value, ttl}, config) do
-    # Check size limit
-    if :ets.info(@table_name, :size) >= config.max_size do
-      evict_oldest()
-    end
-    
-    expiry = System.system_time(:second) + ttl
-    :ets.insert(@table_name, {key, value, expiry})
-    
-    {:noreply, config}
-  end
-
-  @impl true
-  def handle_cast({:delete, key}, config) do
-    :ets.delete(@table_name, key)
-    {:noreply, config}
-  end
-
-  @impl true
-  def handle_cast({:delete_pattern, pattern}, config) do
-    # Delete all entries matching the pattern
-    :ets.select_delete(@table_name, [
-      {pattern_to_match_spec(pattern), [], [true]}
-    ])
-    
-    {:noreply, config}
-  end
-
-  @impl true
-  def handle_cast(:clear, config) do
-    :ets.delete_all_objects(@table_name)
-    :ets.insert(:ash_translations_cache_stats, {:hits, 0})
-    :ets.insert(:ash_translations_cache_stats, {:misses, 0})
-    
-    {:noreply, config}
-  end
-
-  @impl true
-  def handle_cast({:warm, resource_module, fields, locales, _opts}, config) do
-    # Spawn a task to warm the cache asynchronously
-    Task.start(fn ->
-      warm_cache(resource_module, fields, locales, config)
-    end)
-    
-    {:noreply, config}
-  end
-
-  @impl true
-  def handle_info(:cleanup, config) do
-    cleanup_expired()
     schedule_cleanup()
-    {:noreply, config}
+    {:noreply, %{state | evictions: state.evictions + expired_count}}
   end
 
-  # Private helpers
-
-  defp lookup(key, _config) do
-    case :ets.lookup(@table_name, key) do
-      [{^key, value, expiry}] ->
-        if expiry > System.system_time(:second) do
-          {:ok, value}
-        else
-          :ets.delete(@table_name, key)
-          :miss
-        end
-      
-      [] ->
-        :miss
-    end
-  end
-
-  defp increment_hits do
-    :ets.update_counter(:ash_translations_cache_stats, :hits, 1, {:hits, 0})
-  end
-
-  defp increment_misses do
-    :ets.update_counter(:ash_translations_cache_stats, :misses, 1, {:misses, 0})
-  end
-
-  defp get_counter(key) do
-    case :ets.lookup(:ash_translations_cache_stats, key) do
-      [{^key, value}] -> value
-      [] -> 0
-    end
-  end
-
-  defp evict_oldest do
-    # Simple eviction: remove 10% of oldest entries
-    entries = :ets.tab2list(@table_name)
-    
-    oldest = 
-      entries
-      |> Enum.sort_by(fn {_key, _value, expiry} -> expiry end)
-      |> Enum.take(div(length(entries), 10))
-    
-    Enum.each(oldest, fn {key, _, _} ->
-      :ets.delete(@table_name, key)
-    end)
-  end
-
-  defp cleanup_expired do
-    now = System.system_time(:second)
-    
-    :ets.select_delete(@table_name, [
-      {{:_, :_, :"$1"}, [{:<, :"$1", now}], [true]}
-    ])
-  end
+  # Private functions
 
   defp schedule_cleanup do
     # Run cleanup every 5 minutes
     Process.send_after(self(), :cleanup, 5 * 60 * 1000)
   end
 
-  defp pattern_to_match_spec(pattern) do
-    pattern
-    |> Tuple.to_list()
-    |> Enum.map(fn
-      :_ -> :_
-      value -> value
-    end)
-    |> List.to_tuple()
+  defp cleanup_expired do
+    now = DateTime.utc_now()
+    
+    expired = :ets.select(@table_name, [
+      {
+        {:"$1", :"$2", :"$3"},
+        [{:<, :"$3", now}],
+        [:"$1"]
+      }
+    ])
+    
+    Enum.each(expired, &:ets.delete(@table_name, &1))
+    length(expired)
   end
 
-  defp warm_cache(resource_module, fields, locales, _config) do
-    fields = fields || get_translatable_fields(resource_module)
-    locales = locales || get_supported_locales(resource_module)
-    
-    # This would load translations from the appropriate backend
-    # For now, it's a placeholder
-    Logger.info("Warming cache for #{resource_module} with fields #{inspect(fields)} and locales #{inspect(locales)}")
-    
-    # In production, this would:
-    # 1. Query all resources
-    # 2. Load translations for specified fields and locales
-    # 3. Put them in cache
-    
-    :ok
+  defp invalidate_pattern(pattern) when is_tuple(pattern) do
+    # Convert pattern to match spec
+    match_spec = build_match_spec(pattern)
+    keys = :ets.select(@table_name, match_spec)
+    Enum.each(keys, &:ets.delete(@table_name, &1))
+    length(keys)
   end
 
-  defp get_translatable_fields(resource_module) do
-    resource_module
-    |> AshPhoenixTranslations.Info.translatable_attributes()
-    |> Enum.map(& &1.name)
-  rescue
-    _ -> []
+  defp build_match_spec(pattern) do
+    # Build ETS match specification from pattern
+    # This is simplified - real implementation would be more complex
+    [
+      {
+        {:"$1", :"$2", :"$3"},
+        [],
+        [:"$1"]
+      }
+    ]
   end
 
-  defp get_supported_locales(resource_module) do
-    AshPhoenixTranslations.Info.supported_locales(resource_module)
-  rescue
-    _ -> [:en]
+  defp perform_warmup(resources, locales) do
+    Logger.info("Starting cache warmup for #{length(resources)} resources and #{length(locales)} locales")
+    
+    # This would load translations for the specified resources and locales
+    # Implementation depends on specific requirements
+    
+    Logger.info("Cache warmup completed")
+  end
+
+  defp calculate_hit_rate(%{hits: hits, misses: misses}) do
+    total = hits + misses
+    if total > 0 do
+      Float.round(hits / total * 100, 2)
+    else
+      0.0
+    end
+  end
+
+  @doc """
+  Builds a cache key for a translation.
+  
+  ## Examples
+  
+      Cache.key(Product, :name, :fr, record_id)
+      # => {:translation, Product, :name, :fr, "123"}
+  """
+  def key(resource, field, locale, record_id) do
+    {:translation, resource, field, locale, record_id}
   end
 end

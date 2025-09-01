@@ -111,11 +111,6 @@ defmodule AshPhoenixTranslations.Graphql do
     end
   end
   
-  @doc """
-  Parser for locale scalar type values.
-  
-  Validates and parses locale values from GraphQL input.
-  """
   def parse_locale(input) when is_map(input) do
     case input do
       %{value: value} when is_binary(value) ->
@@ -236,7 +231,7 @@ defmodule AshPhoenixTranslations.Graphql do
   
   defp add_field_to_graphql_type(dsl_state, attr) do
     # Add the translated field to the GraphQL type
-    field = %{
+    _field = %{
       name: attr.name,
       type: graphql_type_for_ash_type(attr.type),
       description: "Translated #{attr.name}",
@@ -247,7 +242,7 @@ defmodule AshPhoenixTranslations.Graphql do
     }
     
     # Also add a field for all translations
-    all_field = %{
+    _all_field = %{
       name: :"#{attr.name}_translations",
       type: {:list, :translation},
       description: "All translations for #{attr.name}",

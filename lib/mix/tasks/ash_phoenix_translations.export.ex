@@ -33,7 +33,6 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Export do
   """
   
   use Mix.Task
-  require Logger
   
   @shortdoc "Exports translations to CSV, JSON, or XLIFF files"
   

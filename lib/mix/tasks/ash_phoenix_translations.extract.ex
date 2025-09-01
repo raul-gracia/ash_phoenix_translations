@@ -335,8 +335,10 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Extract do
     lines = lines ++ Enum.map(entry.locations, &"#: #{&1}")
     
     # Add flags
-    if entry.flags != [] do
-      lines = lines ++ ["#, " <> Enum.join(entry.flags, ", ")]
+    lines = if entry.flags != [] do
+      lines ++ ["#, " <> Enum.join(entry.flags, ", ")]
+    else
+      lines
     end
     
     # Add msgid and msgstr
