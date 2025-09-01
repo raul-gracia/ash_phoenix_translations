@@ -197,39 +197,40 @@ jobs:
       
       - name: Create release notes
         run: |
-          cat > release_notes.md << EOF
-# Pre-Release v${{ needs.prepare.outputs.version }}
-
-This is a **${{ github.event.inputs.prerelease_type }}** pre-release version.
-
-## ⚠️ Warning
-This is a pre-release version and should not be used in production. It may contain:
-- Incomplete features
-- Breaking changes
-- Known issues
-
-## Installation
-
-Add to your \`mix.exs\`:
-
-\`\`\`elixir
-{:ash_phoenix_translations, "~> ${{ needs.prepare.outputs.version }}"}
-\`\`\`
-
-## Testing Instructions
-
-Please test the following areas:
-- [ ] Translation storage backends
-- [ ] LiveView integration
-- [ ] Policy-based access control
-- [ ] Mix tasks
-- [ ] Import/Export functionality
-
-## Feedback
-
-Please report any issues or feedback on the [GitHub Issues](https://github.com/${{ github.repository }}/issues) page.
-
-EOF
+          VERSION="${{ needs.prepare.outputs.version }}"
+          PRERELEASE_TYPE="${{ github.event.inputs.prerelease_type }}"
+          REPO="${{ github.repository }}"
+          
+          echo "# Pre-Release v${VERSION}" > release_notes.md
+          echo "" >> release_notes.md
+          echo "This is a **${PRERELEASE_TYPE}** pre-release version." >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## ⚠️ Warning" >> release_notes.md
+          echo "This is a pre-release version and should not be used in production. It may contain:" >> release_notes.md
+          echo "- Incomplete features" >> release_notes.md
+          echo "- Breaking changes" >> release_notes.md
+          echo "- Known issues" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Installation" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "Add to your \`mix.exs\`:" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "\`\`\`elixir" >> release_notes.md
+          echo "{:ash_phoenix_translations, \"~> ${VERSION}\"}" >> release_notes.md
+          echo "\`\`\`" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Testing Instructions" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "Please test the following areas:" >> release_notes.md
+          echo "- [ ] Translation storage backends" >> release_notes.md
+          echo "- [ ] LiveView integration" >> release_notes.md
+          echo "- [ ] Policy-based access control" >> release_notes.md
+          echo "- [ ] Mix tasks" >> release_notes.md
+          echo "- [ ] Import/Export functionality" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Feedback" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "Please report any issues or feedback on the [GitHub Issues](https://github.com/${REPO}/issues) page." >> release_notes.md
       
       - name: Create GitHub pre-release
         uses: softprops/action-gh-release@v1
