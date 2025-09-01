@@ -61,6 +61,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest do
 
     test "relationship is public" do
       resource_info = Ash.Resource.Info
+
       history_rel =
         AuditProduct
         |> resource_info.relationships()
