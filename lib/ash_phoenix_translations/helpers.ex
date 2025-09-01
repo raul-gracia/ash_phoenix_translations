@@ -3,7 +3,6 @@ defmodule AshPhoenixTranslations.Helpers do
 
   alias Phoenix.HTML
   alias Phoenix.HTML.Form
-  alias Phoenix.Component
 
   @moduledoc """
   View helpers for AshPhoenixTranslations.

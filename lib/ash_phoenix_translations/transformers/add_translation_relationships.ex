@@ -31,8 +31,9 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationRelationships do
     history_module = AshPhoenixTranslations.TranslationHistory
 
     # Add has_many relationship for translation history
+    resource_builder = Ash.Resource.Builder
     {:ok, dsl_state} =
-      Ash.Resource.Builder.add_new_relationship(
+      resource_builder.add_new_relationship(
         dsl_state,
         :has_many,
         :translation_history,

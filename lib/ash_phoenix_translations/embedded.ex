@@ -234,7 +234,8 @@ defmodule AshPhoenixTranslations.Embedded do
   # Private implementation functions
 
   defp detect_embedded_attributes(dsl_state) do
-    attributes = Spark.Dsl.Extension.get_entities(dsl_state, [:attributes])
+    spark_extension = Spark.Dsl.Extension
+    attributes = spark_extension.get_entities(dsl_state, [:attributes])
 
     embedded_attrs =
       Enum.filter(attributes, fn attr ->
@@ -244,7 +245,8 @@ defmodule AshPhoenixTranslations.Embedded do
         end
       end)
 
-    Spark.Dsl.Transformer.persist(
+    spark_transformer = Spark.Dsl.Transformer
+    spark_transformer.persist(
       dsl_state,
       :embedded_translatable_attributes,
       embedded_attrs
@@ -260,8 +262,9 @@ defmodule AshPhoenixTranslations.Embedded do
   defp is_embedded_type?(_), do: false
 
   defp add_embedded_translation_storage(dsl_state) do
+    spark_extension = Spark.Dsl.Extension
     embedded_attrs =
-      Spark.Dsl.Extension.get_persisted(dsl_state, :embedded_translatable_attributes, [])
+      spark_extension.get_persisted(dsl_state, :embedded_translatable_attributes, [])
 
     Enum.reduce(embedded_attrs, {:ok, dsl_state}, fn attr, {:ok, state} ->
       add_embedded_storage_attribute(state, attr)
@@ -272,7 +275,8 @@ defmodule AshPhoenixTranslations.Embedded do
     # Add JSON storage for embedded translations
     storage_name = :"#{attr.name}_embedded_translations"
 
-    Ash.Resource.Builder.add_new_attribute(
+    resource_builder = Ash.Resource.Builder
+    resource_builder.add_new_attribute(
       dsl_state,
       storage_name,
       :map,
@@ -282,8 +286,9 @@ defmodule AshPhoenixTranslations.Embedded do
   end
 
   defp add_embedded_translation_calculations(dsl_state) do
+    spark_extension = Spark.Dsl.Extension
     embedded_attrs =
-      Spark.Dsl.Extension.get_persisted(dsl_state, :embedded_translatable_attributes, [])
+      spark_extension.get_persisted(dsl_state, :embedded_translatable_attributes, [])
 
     Enum.reduce(embedded_attrs, {:ok, dsl_state}, fn attr, {:ok, state} ->
       add_embedded_calculation(state, attr)
