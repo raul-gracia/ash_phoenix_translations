@@ -37,6 +37,8 @@ defmodule AshPhoenixTranslations.Info do
   """
 
   use Spark.InfoGenerator, extension: AshPhoenixTranslations, sections: [:translations]
+  
+  alias Spark.Dsl.Extension
 
   @doc """
   Returns all translatable attributes for a resource.
@@ -45,13 +47,13 @@ defmodule AshPhoenixTranslations.Info do
           [AshPhoenixTranslations.TranslatableAttribute.t()]
   def translatable_attributes(resource) do
     # Try to get from persisted data first
-    case Spark.Dsl.Extension.get_persisted(resource, :translatable_attributes) do
+    case Extension.get_persisted(resource, :translatable_attributes) do
       {:ok, attrs} when is_list(attrs) ->
         attrs
 
       _ ->
         # Fallback to entities if not persisted
-        case Spark.Dsl.Extension.get_entities(resource, [:translations]) do
+        case Extension.get_entities(resource, [:translations]) do
           [] -> []
           entities -> entities
         end
@@ -63,7 +65,7 @@ defmodule AshPhoenixTranslations.Info do
   """
   @spec backend(Ash.Resource.t() | Spark.Dsl.t()) :: :database | :gettext
   def backend(resource) do
-    Spark.Dsl.Extension.get_opt(resource, [:translations], :backend, :database)
+    Extension.get_opt(resource, [:translations], :backend, :database)
   end
 
   @doc """
@@ -71,7 +73,7 @@ defmodule AshPhoenixTranslations.Info do
   """
   @spec cache_ttl(Ash.Resource.t() | Spark.Dsl.t()) :: pos_integer()
   def cache_ttl(resource) do
-    Spark.Dsl.Extension.get_opt(resource, [:translations], :cache_ttl, 3600)
+    Extension.get_opt(resource, [:translations], :cache_ttl, 3600)
   end
 
   @doc """
@@ -79,7 +81,7 @@ defmodule AshPhoenixTranslations.Info do
   """
   @spec audit_changes?(Ash.Resource.t() | Spark.Dsl.t()) :: boolean()
   def audit_changes?(resource) do
-    Spark.Dsl.Extension.get_opt(resource, [:translations], :audit_changes, false)
+    Extension.get_opt(resource, [:translations], :audit_changes, false)
   end
 
   @doc """
@@ -87,7 +89,7 @@ defmodule AshPhoenixTranslations.Info do
   """
   @spec auto_validate?(Ash.Resource.t() | Spark.Dsl.t()) :: boolean()
   def auto_validate?(resource) do
-    Spark.Dsl.Extension.get_opt(resource, [:translations], :auto_validate, true)
+    Extension.get_opt(resource, [:translations], :auto_validate, true)
   end
 
   @doc """
@@ -144,7 +146,7 @@ defmodule AshPhoenixTranslations.Info do
   """
   @spec translation_policies(Ash.Resource.t() | Spark.Dsl.t()) :: keyword() | nil
   def translation_policies(resource) do
-    Spark.Dsl.Extension.get_opt(resource, [:translations], :policy, nil)
+    Extension.get_opt(resource, [:translations], :policy, nil)
   end
 
   @doc """

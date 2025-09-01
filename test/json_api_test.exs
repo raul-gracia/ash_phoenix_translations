@@ -1,10 +1,20 @@
 defmodule AshPhoenixTranslations.JsonApiTest do
   use ExUnit.Case, async: true
+  import Plug.Conn
 
   alias AshPhoenixTranslations.JsonApi
 
+  defmodule TestDomain do
+    use Ash.Domain
+
+    resources do
+      resource TestResource
+    end
+  end
+
   defmodule TestResource do
     use Ash.Resource,
+      domain: TestDomain,
       data_layer: Ash.DataLayer.Ets,
       extensions: [AshPhoenixTranslations]
 
@@ -25,11 +35,8 @@ defmodule AshPhoenixTranslations.JsonApiTest do
   describe "LocalePlug" do
     test "extracts locale from query parameter" do
       conn =
-        %{
-          params: %{"locale" => "es"},
-          assigns: %{}
-        }
-        |> Map.put(:private, %{})
+        Plug.Test.conn(:get, "/?locale=es")
+        |> Plug.Conn.fetch_query_params()
 
       conn = JsonApi.LocalePlug.call(conn, [])
 
@@ -39,41 +46,25 @@ defmodule AshPhoenixTranslations.JsonApiTest do
 
     test "extracts locale from Accept-Language header" do
       conn =
-        %{
-          params: %{},
-          assigns: %{},
-          req_headers: [{"accept-language", "fr-FR,fr;q=0.9,en;q=0.8"}]
-        }
-        |> Map.put(:private, %{})
-
-      # Mock get_req_header function
-      conn =
-        Map.put(conn, :get_req_header, fn _conn, header ->
-          if header == "accept-language" do
-            ["fr-FR,fr;q=0.9,en;q=0.8"]
-          else
-            []
-          end
-        end)
+        Plug.Test.conn(:get, "/")
+        |> put_req_header("accept-language", "fr-FR,fr;q=0.9,en;q=0.8")
+        |> Plug.Conn.fetch_query_params()
 
       conn = JsonApi.LocalePlug.call(conn, [])
 
       assert conn.assigns.locale == :fr
+      assert conn.private.ash_json_api_locale == :fr
     end
 
     test "falls back to default locale" do
-      conn =
-        %{
-          params: %{},
-          assigns: %{}
-        }
-        |> Map.put(:private, %{})
-        |> Map.put(:req_headers, [])
-        |> Map.put(:get_req_header, fn _conn, _header -> [] end)
+      conn = 
+        Plug.Test.conn(:get, "/")
+        |> Plug.Conn.fetch_query_params()
 
       conn = JsonApi.LocalePlug.call(conn, [])
 
       assert conn.assigns.locale == :en
+      assert conn.private.ash_json_api_locale == :en
     end
   end
 
@@ -231,14 +222,15 @@ defmodule AshPhoenixTranslations.JsonApiTest do
 
   describe "apply_sparse_fieldsets/3" do
     test "applies fieldsets with locale context" do
-      query = %Ash.Query{}
+      query = Ash.Query.new(TestResource)
       fields = [:name, :price]
       locale = :es
 
       result = JsonApi.apply_sparse_fieldsets(query, fields, locale)
 
-      # Would test actual query modification if Ash.Query was available
+      # Check that the query has been modified
       assert result != nil
+      assert result.resource == TestResource
     end
   end
 end

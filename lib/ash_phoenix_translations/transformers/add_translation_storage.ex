@@ -10,6 +10,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorage do
 
   use Spark.Dsl.Transformer
   alias Spark.Dsl.Transformer
+  alias Ash.Resource.Builder
   require Ash.Expr
 
   @impl true
@@ -55,7 +56,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorage do
 
     # Add the storage attribute
     {:ok, dsl_state} =
-      Ash.Resource.Builder.add_new_attribute(
+      Builder.add_new_attribute(
         dsl_state,
         storage_name,
         :map,

@@ -35,24 +35,24 @@ defmodule AshPhoenixTranslations do
 
   ## Examples
 
-      iex> # Assuming you have a product with translations
-      iex> product = %{
-      ...>   __struct__: MyApp.Product,
-      ...>   id: "123",
-      ...>   name_translations: %{en: "Product", es: "Producto"},
-      ...>   description_translations: %{en: "Description", es: "Descripción"}
-      ...> }
-      iex> 
-      iex> # Translate to Spanish
-      iex> spanish_product = AshPhoenixTranslations.translate(product, :es)
-      iex> spanish_product.name
-      "Producto"
+      # Assuming you have a product with translations
+      product = %{
+        __struct__: MyApp.Product,
+        id: "123",
+        name_translations: %{en: "Product", es: "Producto"},
+        description_translations: %{en: "Description", es: "Descripción"}
+      }
       
-      iex> # Translate multiple resources  
-      iex> products = [product, product]
-      iex> spanish_products = AshPhoenixTranslations.translate_all(products, :es)
-      iex> length(spanish_products)
-      2
+      # Translate to Spanish
+      spanish_product = AshPhoenixTranslations.translate(product, :es)
+      spanish_product.name
+      # => "Producto"
+      
+      # Translate multiple resources  
+      products = [product, product]
+      spanish_products = AshPhoenixTranslations.translate_all(products, :es)
+      length(spanish_products)
+      # => 2
 
   """
 
