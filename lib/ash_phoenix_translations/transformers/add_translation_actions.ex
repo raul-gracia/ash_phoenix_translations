@@ -53,6 +53,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActions do
         :update,
         :update_translation,
         accept: accept_fields,
+        require_atomic?: false,
         description: "Update a single translation for a specific locale"
       )
     
@@ -69,6 +70,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActions do
         :update,
         :import_translations,
         accept: [],  # Empty accept list
+        require_atomic?: false,
         description: "Bulk import translations from various formats"
       )
     
@@ -111,6 +113,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActions do
         :update,
         :clear_translations,
         accept: accept_fields,
+        require_atomic?: false,
         description: "Clear translations for specific locales or attributes"
       )
     

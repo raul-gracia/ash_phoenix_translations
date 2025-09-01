@@ -48,11 +48,15 @@ defmodule AshPhoenixTranslations.MixProject do
       {:phoenix, "~> 1.7"},
       {:phoenix_live_view, "~> 1.0"},
       {:plug, "~> 1.15"},
+      {:jason, "~> 1.4"},
       
       # Optional backend dependencies
       {:gettext, "~> 0.20", optional: true},
-      {:redix, "~> 1.1", optional: true},
-      {:jason, "~> 1.4"},
+      {:redix, "~> 1.5", optional: true},
+      {:phoenix_html, "~> 3.0 or ~> 4.0", optional: true},
+      {:absinthe, "~> 1.7", optional: true},
+      {:dataloader, "~> 2.0", optional: true},
+      {:csv, "~> 3.0", optional: true},
       
       # Development and test dependencies
       {:ex_doc, "~> 0.29", only: :dev, runtime: false},
@@ -60,7 +64,8 @@ defmodule AshPhoenixTranslations.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.16", only: :test},
       {:mix_test_watch, "~> 1.1", only: :dev, runtime: false},
-      {:ex_machina, "~> 2.7", only: :test}
+      {:ex_machina, "~> 2.7", only: :test},
+      {:ash_postgres, "~> 2.0", only: :test}
     ]
   end
 

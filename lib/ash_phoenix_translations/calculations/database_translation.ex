@@ -25,19 +25,13 @@ defmodule AshPhoenixTranslations.Calculations.DatabaseTranslation do
       storage_field = :"#{attribute_name}_translations"
       translations = Map.get(record, storage_field, %{})
       
-      # Try to get translation for current locale
-      translation = Map.get(translations, locale)
-      
-      # If no translation and fallback is configured, try fallback locale
-      translation = 
-        if is_nil(translation) && fallback do
-          Map.get(translations, fallback)
-        else
-          translation
-        end
-      
-      # Return the translation or nil
-      translation
+      # Use the fallback module for robust translation fetching
+      AshPhoenixTranslations.Fallback.get_translation(
+        translations,
+        locale,
+        fallback: fallback,
+        default: nil
+      )
     end)
   end
 

@@ -133,11 +133,6 @@ defmodule AshPhoenixTranslations.JsonApi do
     end
   end
   
-  @doc """
-  Serializer for translation fields in JSON:API responses.
-  
-  Formats translations according to JSON:API specification.
-  """
   def serialize_translations(resource, locale \\ :en) do
     translatable_attrs = 
       resource.__struct__
@@ -279,7 +274,40 @@ defmodule AshPhoenixTranslations.JsonApi do
   end
   
   defp translation_completeness(resource) do
-    AshPhoenixTranslations.translation_completeness(resource)
+    # Calculate translation completeness for a resource
+    translatable_attrs = 
+      resource.__struct__
+      |> AshPhoenixTranslations.Info.translatable_attributes()
+    
+    if Enum.empty?(translatable_attrs) do
+      100.0
+    else
+      # Calculate percentage based on non-empty translations
+      completeness_scores = 
+        Enum.map(translatable_attrs, fn attr ->
+          storage_field = :"#{attr.name}_translations"
+          translations = Map.get(resource, storage_field, %{})
+          
+          total_locales = length(attr.locales || [:en])
+          filled_locales = 
+            translations
+            |> Enum.count(fn {_locale, value} -> 
+              value && value != "" 
+            end)
+          
+          if total_locales > 0 do
+            (filled_locales / total_locales) * 100
+          else
+            0
+          end
+        end)
+      
+      if Enum.empty?(completeness_scores) do
+        0.0
+      else
+        Enum.sum(completeness_scores) / length(completeness_scores)
+      end
+    end
   end
   
   defp atomize_keys(map) when is_map(map) do

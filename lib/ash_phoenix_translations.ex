@@ -200,11 +200,6 @@ defmodule AshPhoenixTranslations do
     |> Ash.load!(calculations, authorize?: false, context: %{locale: locale})
   end
 
-  defp translation_calculations(resource) do
-    resource.__struct__
-    |> AshPhoenixTranslations.Info.translatable_attributes()
-    |> Enum.map(& &1.name)
-  end
 
   defp get_locale(%Plug.Conn{} = conn) do
     Plug.Conn.get_session(conn, :locale) ||

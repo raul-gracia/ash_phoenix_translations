@@ -5,55 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2024-01-31
+## [Unreleased]
+
+## [1.0.0] - 2024-09-01
 
 ### Added
 - Initial release of AshPhoenixTranslations
-- Multi-backend support (Database/JSONB, Gettext, Redis)
-- Policy-aware translation access control
-- DSL for defining translatable attributes
-- Automatic storage attribute generation
-- Translation calculations for locale-aware access
-- Validation changes for required locales
-- Audit trail support for translation changes
-- Phoenix integration with plugs and helpers
-- LiveView support with real-time locale switching
-- ETS-based caching with TTL and invalidation
-- Mix tasks for installation, import/export, and validation
-- Support for CSV, JSON, and XLIFF formats
-- Comprehensive locale resolution strategies
-- Translation completeness tracking
-- Bulk translation operations
-- Example blog application
+- Multi-locale support for unlimited locales per field
+- Policy-aware translations leveraging Ash policies
+- Multiple storage backends:
+  - Database backend with JSONB storage (PostgreSQL)
+  - Gettext backend integration
+  - Redis backend (placeholder for future implementation)
+- Automatic DSL transformers for translation management
+- Translation calculations for locale-aware field access
+- Fallback chain support for missing translations
+- Error handling with custom exception types
+- Basic caching layer with ETS backend
+- Phoenix integration helpers
+- LiveView support for real-time locale switching
+- GraphQL field generation (basic support)
+- JSON:API integration
+- Embedded schema support
+- Mix tasks for import/export (basic implementation)
+- Comprehensive test suite foundation
 
-### Features
-- **Translatable Attributes**: Define fields that can be translated with locale constraints
-- **Multiple Storage Backends**: Choose between database, gettext, or redis storage
-- **Policy Integration**: Leverage Ash policies for translation access control
-- **Caching Layer**: Built-in caching with automatic invalidation
-- **Import/Export**: Bulk translation management via CSV, JSON, or XLIFF
-- **Validation**: Quality checks and completeness validation
-- **Phoenix Helpers**: Template helpers for easy translation rendering
-- **LiveView Components**: Real-time translation management components
-- **Locale Detection**: Multiple strategies for determining user locale
-- **Audit Trail**: Track translation changes with actor information
+### Security
+- Input sanitization for translations
+- Policy-based access control for view/edit permissions
+- Secure locale resolution strategies
+
+### Performance
+- Built-in caching with configurable TTL
+- Efficient JSONB queries for PostgreSQL backend
+- Lazy loading of translations
 
 ### Documentation
 - Comprehensive README with examples
-- Getting Started guide
-- Integration test suite
-- Example blog application demonstrating features
+- API documentation with ExDoc
+- Installation and configuration guides
 
-## [Unreleased]
-
-### Planned
-- Admin UI package (ash_phoenix_translations_admin)
-- Machine translation integration
-- Translation workflow management
-- Collaborative translation features
-- WebSocket-based real-time translation updates
-- GraphQL support via AshGraphql
-- Additional storage backends (MongoDB, DynamoDB)
-- Translation memory and glossary support
-- A/B testing for translations
-- Analytics and translation performance metrics
+[Unreleased]: https://github.com/raul-gracia/ash_phoenix_translations/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/raul-gracia/ash_phoenix_translations/releases/tag/v1.0.0
