@@ -40,7 +40,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
     end
 
     test "adds translation calculation for each translatable attribute" do
-      calculations = Ash.Resource.Info.calculations(DatabaseProduct)
+      resource_info = Ash.Resource.Info
+      calculations = resource_info.calculations(DatabaseProduct)
       calc_names = Enum.map(calculations, & &1.name)
 
       # Should have calculation with same name as attribute
@@ -49,7 +50,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
     end
 
     test "adds all_translations calculation for each attribute" do
-      calculations = Ash.Resource.Info.calculations(DatabaseProduct)
+      resource_info = Ash.Resource.Info
+      calculations = resource_info.calculations(DatabaseProduct)
       calc_names = Enum.map(calculations, & &1.name)
 
       # Should have all_translations calculations
@@ -58,18 +60,20 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
     end
 
     test "translation calculations are public" do
+      resource_info = Ash.Resource.Info
       name_calc =
         DatabaseProduct
-        |> Ash.Resource.Info.calculations()
+        |> resource_info.calculations()
         |> Enum.find(&(&1.name == :name))
 
       assert name_calc.public? == true
     end
 
     test "calculations use correct modules based on backend" do
+      resource_info = Ash.Resource.Info
       name_calc =
         DatabaseProduct
-        |> Ash.Resource.Info.calculations()
+        |> resource_info.calculations()
         |> Enum.find(&(&1.name == :name))
 
       assert name_calc.calculation ==
@@ -83,9 +87,10 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
     end
 
     test "all_translations calculations use AllTranslations module" do
+      resource_info = Ash.Resource.Info
       all_calc =
         DatabaseProduct
-        |> Ash.Resource.Info.calculations()
+        |> resource_info.calculations()
         |> Enum.find(&(&1.name == :name_all_translations))
 
       {module, opts} = all_calc.calculation
@@ -129,7 +134,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
     end
 
     test "adds calculations for gettext backend" do
-      calculations = Ash.Resource.Info.calculations(GettextProduct)
+      resource_info = Ash.Resource.Info
+      calculations = resource_info.calculations(GettextProduct)
       calc_names = Enum.map(calculations, & &1.name)
 
       assert :name in calc_names
@@ -137,9 +143,10 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
     end
 
     test "gettext calculations use GettextTranslation module" do
+      resource_info = Ash.Resource.Info
       name_calc =
         GettextProduct
-        |> Ash.Resource.Info.calculations()
+        |> resource_info.calculations()
         |> Enum.find(&(&1.name == :name))
 
       {module, _opts} = name_calc.calculation
@@ -181,7 +188,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
     end
 
     test "adds calculations for redis backend" do
-      calculations = Ash.Resource.Info.calculations(RedisProduct)
+      resource_info = Ash.Resource.Info
+      calculations = resource_info.calculations(RedisProduct)
       calc_names = Enum.map(calculations, & &1.name)
 
       assert :name in calc_names
@@ -189,9 +197,10 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
     end
 
     test "redis calculations use RedisTranslation module" do
+      resource_info = Ash.Resource.Info
       name_calc =
         RedisProduct
-        |> Ash.Resource.Info.calculations()
+        |> resource_info.calculations()
         |> Enum.find(&(&1.name == :name))
 
       {module, opts} = name_calc.calculation
@@ -202,9 +211,10 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
 
   describe "Calculation Options" do
     test "calculations receive correct options" do
+      resource_info = Ash.Resource.Info
       name_calc =
         AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest.DatabaseProduct
-        |> Ash.Resource.Info.calculations()
+        |> resource_info.calculations()
         |> Enum.find(&(&1.name == :name))
 
       {_module, opts} = name_calc.calculation
@@ -215,9 +225,10 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
     end
 
     test "calculations without fallback don't include fallback option" do
+      resource_info = Ash.Resource.Info
       desc_calc =
         AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest.DatabaseProduct
-        |> Ash.Resource.Info.calculations()
+        |> resource_info.calculations()
         |> Enum.find(&(&1.name == :description))
 
       {_module, opts} = desc_calc.calculation

@@ -38,14 +38,15 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorageTest do
     end
 
     test "adds map storage attributes for database backend" do
-      attributes = Ash.Resource.Info.attribute_names(DatabaseProduct)
+      resource_info = Ash.Resource.Info
+      attributes = resource_info.attribute_names(DatabaseProduct)
 
       # Should have translation storage fields
       assert :name_translations in attributes
       assert :description_translations in attributes
 
       # Check the storage attribute details
-      name_attr = Ash.Resource.Info.attribute(DatabaseProduct, :name_translations)
+      name_attr = resource_info.attribute(DatabaseProduct, :name_translations)
       assert name_attr.type == Ash.Type.Map
       assert name_attr.public? == false
       assert name_attr.default == %{}
@@ -57,9 +58,10 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorageTest do
     end
 
     test "storage attributes are not public" do
+      resource_info = Ash.Resource.Info
       public_attrs =
         DatabaseProduct
-        |> Ash.Resource.Info.attributes()
+        |> resource_info.attributes()
         |> Enum.filter(& &1.public?)
         |> Enum.map(& &1.name)
 
@@ -98,7 +100,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorageTest do
     end
 
     test "does not add storage attributes for gettext backend" do
-      attributes = Ash.Resource.Info.attribute_names(GettextProduct)
+      resource_info = Ash.Resource.Info
+      attributes = resource_info.attribute_names(GettextProduct)
 
       # Should NOT have translation storage fields for gettext
       refute :name_translations in attributes
@@ -140,7 +143,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorageTest do
     end
 
     test "adds redis key and cache attributes for redis backend" do
-      attributes = Ash.Resource.Info.attribute_names(RedisProduct)
+      resource_info = Ash.Resource.Info
+      attributes = resource_info.attribute_names(RedisProduct)
 
       # Should have redis key fields
       assert :name_redis_key in attributes
@@ -151,21 +155,22 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorageTest do
       assert :description_cache in attributes
 
       # Check redis key attribute
-      key_attr = Ash.Resource.Info.attribute(RedisProduct, :name_redis_key)
+      key_attr = resource_info.attribute(RedisProduct, :name_redis_key)
       assert key_attr.type == Ash.Type.String
       assert key_attr.public? == false
 
       # Check cache attribute
-      cache_attr = Ash.Resource.Info.attribute(RedisProduct, :name_cache)
+      cache_attr = resource_info.attribute(RedisProduct, :name_cache)
       assert cache_attr.type == Ash.Type.Map
       assert cache_attr.public? == false
     end
 
     test "cache attributes are not public" do
-      cache_attr = Ash.Resource.Info.attribute(RedisProduct, :name_cache)
+      resource_info = Ash.Resource.Info
+      cache_attr = resource_info.attribute(RedisProduct, :name_cache)
       assert cache_attr.public? == false
 
-      desc_cache = Ash.Resource.Info.attribute(RedisProduct, :description_cache)
+      desc_cache = resource_info.attribute(RedisProduct, :description_cache)
       assert desc_cache.public? == false
     end
   end

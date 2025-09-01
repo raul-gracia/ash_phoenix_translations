@@ -39,7 +39,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActionsTest do
     end
 
     test "adds update_translation action" do
-      actions = Ash.Resource.Info.actions(DatabaseProduct)
+      resource_info = Ash.Resource.Info
+      actions = resource_info.actions(DatabaseProduct)
       action_names = Enum.map(actions, & &1.name)
 
       assert :update_translation in action_names
@@ -54,7 +55,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActionsTest do
     end
 
     test "adds import_translations action" do
-      actions = Ash.Resource.Info.actions(DatabaseProduct)
+      resource_info = Ash.Resource.Info
+      actions = resource_info.actions(DatabaseProduct)
 
       import_action = Enum.find(actions, &(&1.name == :import_translations))
       assert import_action != nil
@@ -62,7 +64,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActionsTest do
     end
 
     test "adds export_translations action" do
-      actions = Ash.Resource.Info.actions(DatabaseProduct)
+      resource_info = Ash.Resource.Info
+      actions = resource_info.actions(DatabaseProduct)
 
       export_action = Enum.find(actions, &(&1.name == :export_translations))
       assert export_action != nil
@@ -70,7 +73,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActionsTest do
     end
 
     test "adds clear_translations action" do
-      actions = Ash.Resource.Info.actions(DatabaseProduct)
+      resource_info = Ash.Resource.Info
+      actions = resource_info.actions(DatabaseProduct)
 
       clear_action = Enum.find(actions, &(&1.name == :clear_translations))
       assert clear_action != nil
@@ -116,7 +120,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActionsTest do
     end
 
     test "adds translation actions for gettext backend" do
-      actions = Ash.Resource.Info.actions(GettextProduct)
+      resource_info = Ash.Resource.Info
+      actions = resource_info.actions(GettextProduct)
       action_names = Enum.map(actions, & &1.name)
 
       # Should still have the actions, but with different behavior
@@ -165,7 +170,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActionsTest do
     end
 
     test "adds translation actions for redis backend" do
-      actions = Ash.Resource.Info.actions(RedisProduct)
+      resource_info = Ash.Resource.Info
+      actions = resource_info.actions(RedisProduct)
       action_names = Enum.map(actions, & &1.name)
 
       # Should have all translation actions

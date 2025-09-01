@@ -1,6 +1,8 @@
 defmodule AshPhoenixTranslations.MixTasksTest do
   use ExUnit.Case
   import ExUnit.CaptureIO
+  
+  alias Mix.Tasks.AshPhoenixTranslations
 
   describe "install task" do
     @tag :tmp_dir
@@ -12,7 +14,7 @@ defmodule AshPhoenixTranslations.MixTasksTest do
       in_tmp_dir(tmp_dir, fn ->
         output =
           capture_io(fn ->
-            Mix.Tasks.AshPhoenixTranslations.Install.run(["--backend", "database"])
+            AshPhoenixTranslations.Install.run(["--backend", "database"])
           end)
 
         assert output =~ "Installing AshPhoenixTranslations"
@@ -28,7 +30,7 @@ defmodule AshPhoenixTranslations.MixTasksTest do
     test "creates example resource", %{tmp_dir: tmp_dir} do
       in_tmp_dir(tmp_dir, fn ->
         capture_io(fn ->
-          Mix.Tasks.AshPhoenixTranslations.Install.run(["--no-config", "--no-migration"])
+          AshPhoenixTranslations.Install.run(["--no-config", "--no-migration"])
         end)
 
         example_path = "lib/example/product.ex"
@@ -46,7 +48,7 @@ defmodule AshPhoenixTranslations.MixTasksTest do
       in_tmp_dir(tmp_dir, fn ->
         output =
           capture_io(fn ->
-            Mix.Tasks.AshPhoenixTranslations.Install.run(["--backend", "database", "--no-config"])
+            AshPhoenixTranslations.Install.run(["--backend", "database", "--no-config"])
           end)
 
         assert output =~ "Created migration"
@@ -67,7 +69,7 @@ defmodule AshPhoenixTranslations.MixTasksTest do
       in_tmp_dir(tmp_dir, fn ->
         output =
           capture_io(fn ->
-            Mix.Tasks.AshPhoenixTranslations.Install.run(["--backend", "gettext", "--no-config"])
+            AshPhoenixTranslations.Install.run(["--backend", "gettext", "--no-config"])
           end)
 
         assert output =~ "Created Gettext directories"
@@ -84,7 +86,7 @@ defmodule AshPhoenixTranslations.MixTasksTest do
 
     test "raises on invalid backend" do
       assert_raise Mix.Error, ~r/Unknown backend: invalid/, fn ->
-        Mix.Tasks.AshPhoenixTranslations.Install.run(["--backend", "invalid"])
+        AshPhoenixTranslations.Install.run(["--backend", "invalid"])
       end
     end
   end
@@ -92,7 +94,7 @@ defmodule AshPhoenixTranslations.MixTasksTest do
   describe "validate task" do
     test "requires resource or all flag" do
       assert_raise Mix.Error, ~r/Either --resource or --all option is required/, fn ->
-        Mix.Tasks.AshPhoenixTranslations.Validate.run([])
+        AshPhoenixTranslations.Validate.run([])
       end
     end
 
@@ -100,7 +102,7 @@ defmodule AshPhoenixTranslations.MixTasksTest do
       output =
         capture_io(fn ->
           try do
-            Mix.Tasks.AshPhoenixTranslations.Validate.run(["--resource", "Example.Product"])
+            AshPhoenixTranslations.Validate.run(["--resource", "Example.Product"])
           rescue
             # Ignore errors from missing resource
             _ -> :ok
@@ -116,7 +118,7 @@ defmodule AshPhoenixTranslations.MixTasksTest do
 
       capture_io(fn ->
         try do
-          Mix.Tasks.AshPhoenixTranslations.Validate.run([
+          AshPhoenixTranslations.Validate.run([
             "--resource",
             "Example.Product",
             "--output",
@@ -136,13 +138,13 @@ defmodule AshPhoenixTranslations.MixTasksTest do
   describe "import task" do
     test "requires resource option" do
       assert_raise Mix.Error, ~r/--resource option is required/, fn ->
-        Mix.Tasks.AshPhoenixTranslations.Import.run(["file.csv"])
+        AshPhoenixTranslations.Import.run(["file.csv"])
       end
     end
 
     test "requires file argument" do
       assert_raise Mix.Error, ~r/Please provide a file to import/, fn ->
-        Mix.Tasks.AshPhoenixTranslations.Import.run(["--resource", "Example.Product"])
+        AshPhoenixTranslations.Import.run(["--resource", "Example.Product"])
       end
     end
 
@@ -154,7 +156,7 @@ defmodule AshPhoenixTranslations.MixTasksTest do
       output =
         capture_io(fn ->
           try do
-            Mix.Tasks.AshPhoenixTranslations.Import.run([
+            AshPhoenixTranslations.Import.run([
               csv_path,
               "--resource",
               "Example.Product",
@@ -177,7 +179,7 @@ defmodule AshPhoenixTranslations.MixTasksTest do
       output =
         capture_io(fn ->
           try do
-            Mix.Tasks.AshPhoenixTranslations.Import.run([
+            AshPhoenixTranslations.Import.run([
               json_path,
               "--resource",
               "Example.Product",
@@ -195,13 +197,13 @@ defmodule AshPhoenixTranslations.MixTasksTest do
   describe "export task" do
     test "requires resource option" do
       assert_raise Mix.Error, ~r/--resource option is required/, fn ->
-        Mix.Tasks.AshPhoenixTranslations.Export.run(["output.csv"])
+        AshPhoenixTranslations.Export.run(["output.csv"])
       end
     end
 
     test "requires output file" do
       assert_raise Mix.Error, ~r/Please provide an output file/, fn ->
-        Mix.Tasks.AshPhoenixTranslations.Export.run(["--resource", "Example.Product"])
+        AshPhoenixTranslations.Export.run(["--resource", "Example.Product"])
       end
     end
 
@@ -211,7 +213,7 @@ defmodule AshPhoenixTranslations.MixTasksTest do
 
       capture_io(fn ->
         try do
-          Mix.Tasks.AshPhoenixTranslations.Export.run([
+          AshPhoenixTranslations.Export.run([
             output_path,
             "--resource",
             "Example.Product"
@@ -232,7 +234,7 @@ defmodule AshPhoenixTranslations.MixTasksTest do
 
       capture_io(fn ->
         try do
-          Mix.Tasks.AshPhoenixTranslations.Export.run([
+          AshPhoenixTranslations.Export.run([
             output_path,
             "--resource",
             "Example.Product",
@@ -257,7 +259,7 @@ defmodule AshPhoenixTranslations.MixTasksTest do
 
       capture_io(fn ->
         try do
-          Mix.Tasks.AshPhoenixTranslations.Export.run([
+          AshPhoenixTranslations.Export.run([
             output_path,
             "--resource",
             "Example.Product",

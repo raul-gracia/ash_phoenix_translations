@@ -124,6 +124,9 @@ defmodule AshPhoenixTranslations.Graphql do
 
   def parse_locale(input) when is_map(input) do
     case input do
+      %Absinthe.Blueprint.Input.Null{} ->
+        {:ok, nil}
+        
       %{value: value} when is_binary(value) ->
         case validate_locale(value) do
           {:ok, locale} -> {:ok, locale}
@@ -138,6 +141,10 @@ defmodule AshPhoenixTranslations.Graphql do
     end
   end
 
+  def parse_locale(nil) do
+    {:ok, nil}
+  end
+  
   def parse_locale(_) do
     :error
   end
@@ -185,15 +192,16 @@ defmodule AshPhoenixTranslations.Graphql do
       }
   """
   def add_locale_argument_to_query(query_config) do
-    Map.update(query_config, :args, [], fn args ->
-      args ++
-        [
-          locale: [
-            type: :locale,
-            description: "Locale for translations",
-            default: :en
-          ]
-        ]
+    locale_arg = [
+      locale: [
+        type: :locale,
+        description: "Locale for translations",
+        default: :en
+      ]
+    ]
+    
+    Map.update(query_config, :args, locale_arg, fn args ->
+      args ++ locale_arg
     end)
   end
 
@@ -233,14 +241,16 @@ defmodule AshPhoenixTranslations.Graphql do
   # Private helpers
 
   defp has_graphql_extension?(dsl_state) do
-    AshGraphql.Resource in Spark.Dsl.Extension.get_persisted(dsl_state, :extensions, [])
+    spark_extension = Spark.Dsl.Extension
+    AshGraphql.Resource in spark_extension.get_persisted(dsl_state, :extensions, [])
   rescue
     _ -> false
   end
 
   defp add_translation_fields(dsl_state) do
+    spark_extension = Spark.Dsl.Extension
     translatable_attrs =
-      Spark.Dsl.Extension.get_entities(dsl_state, [:translations, :translatable_attribute])
+      spark_extension.get_entities(dsl_state, [:translations, :translatable_attribute])
 
     Enum.reduce(translatable_attrs, {:ok, dsl_state}, fn attr, {:ok, state} ->
       add_field_to_graphql_type(state, attr)

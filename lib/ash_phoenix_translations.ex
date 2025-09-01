@@ -73,7 +73,7 @@ defmodule AshPhoenixTranslations do
         describe: "Configure translation behavior for the resource",
         schema: [
           backend: [
-            type: {:in, [:database, :gettext]},
+            type: {:in, [:database, :gettext, :redis]},
             default: :database,
             doc: "The backend to use for storing translations"
           ],
@@ -258,9 +258,10 @@ defmodule AshPhoenixTranslations do
 
   defp do_translate(resource, locale) do
     # Get the calculation names directly from the resource
+    resource_info = Ash.Resource.Info
     calculations =
       resource.__struct__
-      |> Ash.Resource.Info.calculations()
+      |> resource_info.calculations()
       |> Enum.filter(fn calc ->
         # Only load translation-related calculations
         String.contains?(to_string(calc.name), ["name", "description", "features"]) &&

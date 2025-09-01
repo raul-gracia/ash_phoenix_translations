@@ -45,7 +45,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
 
     test "adds validation changes for required translations" do
       # Get all changes
-      actions = Ash.Resource.Info.actions(ValidatedProduct)
+      resource_info = Ash.Resource.Info
+      actions = resource_info.actions(ValidatedProduct)
       create_action = Enum.find(actions, &(&1.name == :create))
       update_action = Enum.find(actions, &(&1.name == :update))
 
@@ -106,7 +107,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
     end
 
     test "does not add validation changes when auto_validate is false" do
-      actions = Ash.Resource.Info.actions(NoAutoValidateProduct)
+      resource_info = Ash.Resource.Info
+      actions = resource_info.actions(NoAutoValidateProduct)
       create_action = Enum.find(actions, &(&1.name == :create))
 
       # Should not have validation changes
@@ -156,7 +158,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
     end
 
     test "adds UpdateTranslation change to update_translation action" do
-      actions = Ash.Resource.Info.actions(UpdateActionProduct)
+      resource_info = Ash.Resource.Info
+      actions = resource_info.actions(UpdateActionProduct)
       update_translation_action = Enum.find(actions, &(&1.name == :update_translation))
 
       # Should have the UpdateTranslation change
@@ -206,7 +209,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
     end
 
     test "adds ImportTranslations change to import_translations action" do
-      actions = Ash.Resource.Info.actions(ImportActionProduct)
+      resource_info = Ash.Resource.Info
+      actions = resource_info.actions(ImportActionProduct)
       import_action = Enum.find(actions, &(&1.name == :import_translations))
 
       # Should have the ImportTranslations change
@@ -256,7 +260,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
     end
 
     test "changes receive correct backend option" do
-      actions = Ash.Resource.Info.actions(RedisProduct)
+      resource_info = Ash.Resource.Info
+      actions = resource_info.actions(RedisProduct)
       create_action = Enum.find(actions, &(&1.name == :create))
 
       # Find validation change
