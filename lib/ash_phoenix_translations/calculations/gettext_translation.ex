@@ -1,96 +1,92 @@
 defmodule AshPhoenixTranslations.Calculations.GettextTranslation do
   @moduledoc """
-  Calculation for fetching translations from Gettext.
-  
-  This calculation uses Phoenix's Gettext module to retrieve translations
-  based on the current locale and a message ID constructed from the
-  resource name and attribute.
+  Calculation for retrieving translations from Gettext.
   """
-  
+
   use Ash.Resource.Calculation
   
   @impl true
   def init(opts) do
     {:ok, opts}
   end
-  
-  @impl true
-  def expression(opts, context) do
-    # For Gettext, we need to return the value at runtime, not in expression
-    # This is because Gettext translations are looked up dynamically
-    nil
-  end
-  
+
   @impl true
   def calculate(records, opts, context) do
-    attribute = opts[:attribute]
-    resource_name = opts[:resource_name]
+    field = opts[:field]
+    locale = context[:locale] || :en
     gettext_module = opts[:gettext_module]
-    locale = get_locale(context)
+
+    unless gettext_module do
+      raise ArgumentError, """
+      Gettext module not configured. Please set the gettext_module option in your resource:
+      
+      translations do
+        backend :gettext
+        gettext_module MyAppWeb.Gettext
+      end
+      """
+    end
+
+    Enum.map(records, fn record ->
+      get_gettext_translation(record, field, locale, gettext_module)
+    end)
+  end
+
+  defp get_gettext_translation(record, field, locale, gettext_module) do
+    # Build the msgid from resource name and field
+    resource_name = record.__struct__
+                    |> Module.split()
+                    |> List.last()
+                    |> Macro.underscore()
     
-    # If no Gettext module is configured, fall back to the field value
-    if is_nil(gettext_module) do
-      Enum.map(records, fn record ->
-        Map.get(record, attribute)
-      end)
-    else
-      Enum.map(records, fn record ->
-        # Construct the message ID from resource and attribute
-        # e.g., "product.name", "product.description"
-        msgid = "#{resource_name}.#{attribute}"
-        
-        # Get the default value from the record (usually English)
-        default_value = Map.get(record, attribute) || ""
-        
-        # Try to get the translation from Gettext
-        # If the translation doesn't exist, fall back to the default
-        try do
-          # Use Gettext.with_locale to set the locale for this translation
-          Gettext.with_locale(gettext_module, to_string(locale), fn ->
-            # Use dgettext for domain-based translations
-            # The domain could be the resource name or a general "resources" domain
-            Gettext.dgettext(gettext_module, "resources", msgid, %{
-              default: default_value,
-              # Pass the record ID for interpolation if needed
-              id: record.id
-            })
-          end)
-        rescue
-          _ -> default_value
-        end
-      end)
+    # Get the record's unique identifier (could be id, slug, sku, etc.)
+    identifier = get_record_identifier(record)
+    
+    # Build msgid like "product.name.laptop-001"
+    msgid = "#{resource_name}.#{field}.#{identifier}"
+    
+    # Use Gettext with the specified module and locale
+    old_locale = Gettext.get_locale(gettext_module)
+    
+    try do
+      Gettext.put_locale(gettext_module, to_string(locale))
+      
+      # Try to get the translation, fall back to msgid if not found
+      case apply(gettext_module, :dgettext, ["resources", msgid]) do
+        ^msgid -> 
+          # Translation not found, try fallback or return nil
+          get_fallback_value(record, field, locale)
+        translated -> 
+          translated
+      end
+    after
+      # Restore original locale
+      Gettext.put_locale(gettext_module, old_locale)
+    end
+  rescue
+    _error ->
+      # If Gettext module doesn't exist or other error, fall back
+      get_fallback_value(record, field, locale)
+  end
+
+  defp get_record_identifier(record) do
+    cond do
+      Map.has_key?(record, :slug) && record.slug -> record.slug
+      Map.has_key?(record, :sku) && record.sku -> record.sku
+      Map.has_key?(record, :id) && record.id -> to_string(record.id)
+      true -> "unknown"
     end
   end
-  
-  @impl true
-  def load(_query, _opts, _context) do
-    # Gettext translations don't need to load any fields
-    []
-  end
-  
-  @impl true
-  def select(_query, opts, _context) do
-    # We need the base attribute field for fallback
-    [opts[:attribute]]
-  end
-  
-  defp get_locale(context) do
-    cond do
-      # Check for locale in context (preferred)
-      is_map(context) && Map.has_key?(context, :locale) ->
-        context.locale
-      
-      # Check for locale in actor
-      is_map(context) && is_map(context[:actor]) && Map.has_key?(context[:actor], :locale) ->
-        context[:actor][:locale]
-      
-      # Check if Gettext has a current locale set
-      Code.ensure_loaded?(Gettext) && function_exported?(Gettext, :get_locale, 0) ->
-        String.to_atom(Gettext.get_locale())
-      
-      # Default to English
-      true ->
-        :en
+
+  defp get_fallback_value(record, field, locale) do
+    # Try to get from database storage if available
+    storage_field = :"#{field}_translations"
+    
+    if Map.has_key?(record, storage_field) do
+      translations = Map.get(record, storage_field) || %{}
+      Map.get(translations, to_string(locale))
+    else
+      nil
     end
   end
 end

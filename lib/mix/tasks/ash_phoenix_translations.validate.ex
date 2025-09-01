@@ -36,7 +36,6 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
   """
   
   use Mix.Task
-  require Logger
   
   @shortdoc "Validates translations for completeness and quality"
   
