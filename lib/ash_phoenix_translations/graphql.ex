@@ -126,7 +126,7 @@ defmodule AshPhoenixTranslations.Graphql do
     case input do
       %Absinthe.Blueprint.Input.Null{} ->
         {:ok, nil}
-        
+
       %{value: value} when is_binary(value) ->
         case validate_locale(value) do
           {:ok, locale} -> {:ok, locale}
@@ -144,7 +144,7 @@ defmodule AshPhoenixTranslations.Graphql do
   def parse_locale(nil) do
     {:ok, nil}
   end
-  
+
   def parse_locale(_) do
     :error
   end
@@ -199,7 +199,7 @@ defmodule AshPhoenixTranslations.Graphql do
         default: :en
       ]
     ]
-    
+
     Map.update(query_config, :args, locale_arg, fn args ->
       args ++ locale_arg
     end)
@@ -249,6 +249,7 @@ defmodule AshPhoenixTranslations.Graphql do
 
   defp add_translation_fields(dsl_state) do
     spark_extension = Spark.Dsl.Extension
+
     translatable_attrs =
       spark_extension.get_entities(dsl_state, [:translations, :translatable_attribute])
 

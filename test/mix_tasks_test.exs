@@ -1,7 +1,7 @@
 defmodule AshPhoenixTranslations.MixTasksTest do
   use ExUnit.Case
   import ExUnit.CaptureIO
-  
+
   alias Mix.Tasks.AshPhoenixTranslations
 
   describe "install task" do

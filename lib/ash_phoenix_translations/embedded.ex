@@ -246,6 +246,7 @@ defmodule AshPhoenixTranslations.Embedded do
       end)
 
     spark_transformer = Spark.Dsl.Transformer
+
     spark_transformer.persist(
       dsl_state,
       :embedded_translatable_attributes,
@@ -263,6 +264,7 @@ defmodule AshPhoenixTranslations.Embedded do
 
   defp add_embedded_translation_storage(dsl_state) do
     spark_extension = Spark.Dsl.Extension
+
     embedded_attrs =
       spark_extension.get_persisted(dsl_state, :embedded_translatable_attributes, [])
 
@@ -276,6 +278,7 @@ defmodule AshPhoenixTranslations.Embedded do
     storage_name = :"#{attr.name}_embedded_translations"
 
     resource_builder = Ash.Resource.Builder
+
     resource_builder.add_new_attribute(
       dsl_state,
       storage_name,
@@ -287,6 +290,7 @@ defmodule AshPhoenixTranslations.Embedded do
 
   defp add_embedded_translation_calculations(dsl_state) do
     spark_extension = Spark.Dsl.Extension
+
     embedded_attrs =
       spark_extension.get_persisted(dsl_state, :embedded_translatable_attributes, [])
 
