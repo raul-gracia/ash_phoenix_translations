@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- Redis backend support (deferred to future release)
+- All Redis-related dependencies and code
+
+### Fixed
+- Compilation warnings for unused variables
+- Removed undefined function warnings for optional dependencies
+
 ## [1.0.0] - 2024-09-01
 
 ### Added
@@ -16,7 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multiple storage backends:
   - Database backend with JSONB storage (PostgreSQL)
   - Gettext backend integration
-  - Redis backend (placeholder for future implementation)
 - Automatic DSL transformers for translation management
 - Translation calculations for locale-aware field access
 - Fallback chain support for missing translations

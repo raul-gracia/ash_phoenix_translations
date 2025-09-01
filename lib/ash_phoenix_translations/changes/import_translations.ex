@@ -36,9 +36,6 @@ defmodule AshPhoenixTranslations.Changes.ImportTranslations do
           :database ->
             import_database_translations(changeset, parsed_translations, merge)
           
-          :redis ->
-            import_redis_translations(changeset, parsed_translations, merge)
-          
           :gettext ->
             # Gettext imports would update PO files
             import_gettext_translations(changeset, parsed_translations, merge)
@@ -109,30 +106,6 @@ defmodule AshPhoenixTranslations.Changes.ImportTranslations do
     end)
   end
 
-  defp import_redis_translations(changeset, parsed_translations, merge) do
-    # For Redis, update cache and mark for sync
-    Enum.reduce(parsed_translations, changeset, fn {attribute, locale_values}, changeset ->
-      cache_field = :"#{attribute}_cache"
-      
-      # Get current cache if merging
-      current_cache = 
-        if merge do
-          Ash.Changeset.get_attribute(changeset, cache_field) || %{}
-        else
-          %{}
-        end
-      
-      # Merge or replace cache
-      updated_cache = Map.merge(current_cache, locale_values)
-      
-      Ash.Changeset.force_change_attribute(changeset, cache_field, updated_cache)
-    end)
-    |> Ash.Changeset.after_action(fn _changeset, record ->
-      # Sync all translations to Redis
-      sync_all_to_redis(record, parsed_translations)
-      {:ok, record}
-    end)
-  end
 
   defp import_gettext_translations(changeset, _parsed_translations, _merge) do
     # For Gettext, this would typically:
@@ -145,9 +118,4 @@ defmodule AshPhoenixTranslations.Changes.ImportTranslations do
     changeset
   end
 
-  defp sync_all_to_redis(_record, _translations) do
-    # Placeholder for Redis sync
-    # In production, this would batch update all translations to Redis
-    :ok
-  end
 end

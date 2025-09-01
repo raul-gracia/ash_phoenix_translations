@@ -8,7 +8,7 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Install do
       
   ## Options
   
-    * `--backend` - The default backend to use (database, gettext, redis). Default: database
+    * `--backend` - The default backend to use (database, gettext). Default: database
     * `--no-config` - Skip config file modifications
     * `--no-gettext` - Skip Gettext setup even if selected as backend
     * `--no-migration` - Skip migration generation for database backend
@@ -62,11 +62,8 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Install do
           generate_migration()
         end
         
-      "redis" ->
-        add_redis_dependency()
-        
       _ ->
-        Mix.raise("Unknown backend: #{backend}. Use database, gettext, or redis.")
+        Mix.raise("Unknown backend: #{backend}. Use database or gettext.")
     end
     
     create_example_resource()
@@ -197,19 +194,6 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Install do
     Mix.shell().info("Created migration: #{migration_path}")
   end
   
-  defp add_redis_dependency do
-    Mix.shell().info("""
-    
-    Add the following to your mix.exs dependencies:
-    
-        {:redix, "~> 1.2"}
-    
-    Then run:
-    
-        mix deps.get
-    """)
-  end
-  
   defp create_example_resource do
     example_path = "lib/example/product.ex"
     
@@ -272,19 +256,6 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Install do
     
         mix gettext.extract
         mix gettext.merge priv/gettext
-    """
-  end
-  
-  defp backend_specific_instructions("redis") do
-    """
-    Redis backend specific:
-    
-    Ensure Redis is running and configure connection:
-    
-        config :ash_phoenix_translations, :redis,
-          host: "localhost",
-          port: 6379,
-          database: 0
     """
   end
   

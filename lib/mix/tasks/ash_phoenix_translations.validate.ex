@@ -211,16 +211,16 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
   defp check_quality(value, resource_id, field, locale, attr) do
     quality_issues = []
     
-    # Check length constraints
+    # Check length constraints using struct field access
     quality_issues = 
-      if attr[:min_length] && String.length(value) < attr.min_length do
+      if Map.get(attr, :min_length) && String.length(value) < attr.min_length do
         [{:too_short, resource_id, field, locale, String.length(value), attr.min_length} | quality_issues]
       else
         quality_issues
       end
     
     quality_issues = 
-      if attr[:max_length] && String.length(value) > attr.max_length do
+      if Map.get(attr, :max_length) && String.length(value) > attr.max_length do
         [{:too_long, resource_id, field, locale, String.length(value), attr.max_length} | quality_issues]
       else
         quality_issues
@@ -228,7 +228,7 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
     
     # Check for HTML if not allowed
     quality_issues = 
-      if attr[:no_html] && contains_html?(value) do
+      if Map.get(attr, :no_html) && contains_html?(value) do
         [{:contains_html, resource_id, field, locale} | quality_issues]
       else
         quality_issues

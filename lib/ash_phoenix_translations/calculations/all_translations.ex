@@ -28,10 +28,6 @@ defmodule AshPhoenixTranslations.Calculations.AllTranslations do
         :gettext ->
           # For Gettext, we need to fetch each locale
           fetch_all_gettext_translations(record, attribute_name, locales)
-        
-        :redis ->
-          # For Redis, fetch from cache or Redis for all locales
-          fetch_all_redis_translations(record, attribute_name, locales)
       end
     end)
   end
@@ -80,38 +76,6 @@ defmodule AshPhoenixTranslations.Calculations.AllTranslations do
     end
   end
 
-  defp fetch_all_redis_translations(record, attribute_name, locales) do
-    # Check cache first
-    cache_field = :"#{attribute_name}_cache"
-    cache = Map.get(record, cache_field, %{})
-    
-    # If cache has all locales, return it
-    if Enum.all?(locales, &Map.has_key?(cache, &1)) do
-      cache
-    else
-      # Fetch missing locales from Redis
-      redis_key_field = :"#{attribute_name}_redis_key"
-      redis_key = Map.get(record, redis_key_field)
-      
-      if redis_key do
-        # Fetch each locale from Redis
-        Enum.reduce(locales, cache, fn locale, acc ->
-          if Map.has_key?(acc, locale) do
-            acc
-          else
-            translation = fetch_from_redis(redis_key, locale)
-            if translation do
-              Map.put(acc, locale, translation)
-            else
-              acc
-            end
-          end
-        end)
-      else
-        cache
-      end
-    end
-  end
 
   defp build_message_id(record, attribute_name) do
     resource_name = record.__struct__ |> Module.split() |> List.last() |> Macro.underscore()
@@ -123,18 +87,4 @@ defmodule AshPhoenixTranslations.Calculations.AllTranslations do
     end
   end
 
-  defp fetch_from_redis(redis_key, locale) do
-    # Placeholder for Redis integration
-    full_key = "#{redis_key}:#{locale}"
-    
-    case redis_get(full_key) do
-      {:ok, value} when not is_nil(value) -> value
-      _ -> nil
-    end
-  end
-
-  defp redis_get(_key) do
-    # Placeholder for Redis GET operation
-    {:ok, nil}
-  end
 end

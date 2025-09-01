@@ -3,10 +3,9 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorage do
   Adds storage attributes for translations based on the configured backend.
   This is the first transformer that runs.
   
-  Supports three backends:
+  Supports two backends:
   - Database: Uses JSONB/Map columns for storing translations
   - Gettext: No storage needed, relies on PO files
-  - Redis: Stores key references for Redis lookup
   """
 
   use Spark.Dsl.Transformer
@@ -16,9 +15,12 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorage do
   @impl true
   def transform(dsl_state) do
     backend = get_backend(dsl_state)
+    translatable_attrs = get_translatable_attributes(dsl_state)
     
-    dsl_state
-    |> get_translatable_attributes()
+    # Persist the translatable attributes for later use by Info module
+    dsl_state = Transformer.persist(dsl_state, :translatable_attributes, translatable_attrs)
+    
+    translatable_attrs
     |> Enum.reduce({:ok, dsl_state}, fn attr, {:ok, dsl_state} ->
       add_storage_for_attribute(dsl_state, attr, backend)
     end)
@@ -70,35 +72,6 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorage do
     {:ok, dsl_state}
   end
 
-  defp add_storage_for_attribute(dsl_state, attr, :redis) do
-    # For Redis, we store the key pattern that will be used to fetch translations
-    storage_name = :"#{attr.name}_redis_key"
-    
-    {:ok, dsl_state} =
-      Ash.Resource.Builder.add_new_attribute(
-        dsl_state,
-        storage_name,
-        :string,
-        public?: false,
-        description: "Redis key pattern for #{attr.name} translations"
-      )
-    
-    # Also add a cache field for performance
-    cache_name = :"#{attr.name}_cache"
-    
-    {:ok, dsl_state} =
-      Ash.Resource.Builder.add_new_attribute(
-        dsl_state,
-        cache_name,
-        :map,
-        default: %{},
-        public?: false,
-        # Virtual attributes are not directly supported, we'll handle this differently
-        description: "Local cache for #{attr.name} translations"
-      )
-    
-    {:ok, dsl_state}
-  end
 
   defp normalize_field_type(:text), do: :string
   defp normalize_field_type(type), do: type

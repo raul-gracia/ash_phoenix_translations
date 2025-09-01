@@ -12,7 +12,7 @@ Policy-aware translation extension for [Ash Framework](https://ash-hq.org/) with
 
 - 🌍 **Multi-locale Support** - Manage translations for unlimited locales per field
 - 🔐 **Policy-aware** - Leverage Ash policies for translation access control
-- 💾 **Multiple Storage Backends** - Database (JSONB ✅), Gettext (✅), Redis (🚧)
+- 💾 **Multiple Storage Backends** - Database (JSONB ✅), Gettext (✅)
 - ⚡ **Performance Optimized** - Built-in caching with TTL and invalidation
 - 🔄 **LiveView Integration** - Real-time locale switching and updates
 - 📦 **Import/Export** - CSV, JSON, and XLIFF format support
@@ -20,8 +20,10 @@ Policy-aware translation extension for [Ash Framework](https://ash-hq.org/) with
 - 🎨 **Phoenix Helpers** - Template helpers for easy translation rendering
 - 📊 **GraphQL Support** - Automatic GraphQL field generation with resolvers
 - 🔗 **JSON:API Support** - Full JSON:API integration with locale handling
-- 🏗️ **Embedded Schemas** - Translation support for nested and embedded resources
+- 🏗️ **Embedded Schemas** - Translation support for nested and embedded resources  
 - 🔍 **Gettext Extraction** - Extract translatable strings to POT files
+- 🎯 **Role-based Authorization** - Admin, translator, and user role support
+- 📋 **Mix Tasks** - Install, import, export, validate, and extract commands
 
 ## Installation
 
@@ -65,7 +67,7 @@ defmodule MyApp.Product do
       locales: [:en, :es, :fr],
       translate: true  # Auto-translate via calculation
     
-    backend :database  # :database | :gettext | :redis
+    backend :database  # :database | :gettext
     cache_ttl 3600
     audit_changes true
   end
@@ -206,7 +208,16 @@ Uses JSONB columns for PostgreSQL or JSON for other databases:
 translations do
   backend :database
   # Stores in name_translations, description_translations columns
+  cache_ttl 3600  # Optional caching
+  audit_changes true  # Optional audit trail
 end
+```
+
+**Migration Example:**
+```bash
+# The install task generates this automatically
+mix ash_phoenix_translations.install --backend database
+mix ecto.migrate
 ```
 
 ### Gettext Backend
@@ -224,27 +235,38 @@ translations do
 end
 ```
 
+**Gettext Setup:**
+```bash
+# Install and setup gettext directories
+mix ash_phoenix_translations.install --backend gettext
+
+# Extract translatable strings
+mix ash_phoenix_translations.extract
+
+# Update .po files
+mix gettext.merge priv/gettext
+```
+
 When using Gettext backend:
 - Translations are stored in `.po` files under `priv/gettext/`
 - Use the "resources" domain for Ash resource translations
 - Message IDs are formatted as `"resource_name.attribute_name"`
 - Editing is managed through .po files, not the UI
 
-### Redis Backend
+## Mix Tasks
 
-For high-performance key-value storage:
+The package includes several Mix tasks for managing translations:
 
-```elixir
-translations do
-  backend :redis
-  redis_ttl 86400  # 24 hours
-end
+### Installation
+```bash
+# Install with database backend (default)
+mix ash_phoenix_translations.install
 
-# Configure Redis connection
-config :ash_phoenix_translations, :redis,
-  host: "localhost",
-  port: 6379,
-  database: 0
+# Install with gettext backend
+mix ash_phoenix_translations.install --backend gettext
+
+# Skip migration generation
+mix ash_phoenix_translations.install --no-migration
 ```
 
 ## GraphQL Integration
@@ -565,30 +587,214 @@ end
 config :ash_phoenix_translations,
   default_backend: :database,
   default_locales: [:en, :es, :fr, :de],
-  cache_ttl: 3600,
-  cache_backend: :ets,
-  cache_max_size: 10000
+  default_locale: :en,
+  cache_ttl: 3600
+
+# Configure cache (optional)
+config :ash_phoenix_translations, AshPhoenixTranslations.Cache,
+  ttl: 3600,
+  max_size: 10000
+
+# Configure PubSub for LiveView (optional)
+config :ash_phoenix_translations,
+  pubsub_server: MyApp.PubSub
 ```
 
 ## Testing
 
-```elixir
-# In your tests
-setup do
-  AshPhoenixTranslations.Cache.clear()
-  :ok
-end
+### Basic Testing Setup
 
-test "creates product with translations" do
-  {:ok, product} = 
-    Product
-    |> Ash.Changeset.for_create(:create, %{
-      name_translations: %{en: "Test", es: "Prueba"}
-    })
-    |> Ash.create()
+```elixir
+# In your test_helper.exs or case template
+defmodule MyApp.DataCase do
+  use ExUnit.CaseTemplate
   
-  assert product.name_translations.en == "Test"
-  assert product.name_translations.es == "Prueba"
+  using do
+    quote do
+      alias MyApp.Repo
+      import MyApp.DataCase
+      import MyApp.Factory
+    end
+  end
+  
+  setup tags do
+    # Clear translation cache before each test
+    AshPhoenixTranslations.Cache.clear()
+    
+    # Set up database
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(MyApp.Repo)
+    
+    unless tags[:async] do
+      Ecto.Adapters.SQL.Sandbox.mode(MyApp.Repo, {:shared, self()})
+    end
+    
+    :ok
+  end
+end
+```
+
+### Testing Translations
+
+```elixir
+defmodule MyApp.ProductTest do
+  use MyApp.DataCase
+  
+  alias MyApp.Catalog.Product
+  
+  describe "creating products with translations" do
+    test "creates product with multiple translations" do
+      {:ok, product} = 
+        Product.create(%{
+          sku: "TEST-001",
+          price: Decimal.new("99.99"),
+          name_translations: %{
+            en: "Test Product",
+            es: "Producto de Prueba",
+            fr: "Produit de Test"
+          },
+          description_translations: %{
+            en: "A great test product",
+            es: "Un gran producto de prueba",
+            fr: "Un excellent produit de test"
+          }
+        })
+      
+      assert product.name_translations.en == "Test Product"
+      assert product.name_translations.es == "Producto de Prueba"
+      assert product.name_translations.fr == "Produit de Test"
+    end
+    
+    test "handles missing translations gracefully" do
+      {:ok, product} = 
+        Product.create(%{
+          sku: "TEST-002",
+          price: Decimal.new("49.99"),
+          name_translations: %{en: "Partial Product"}
+        })
+      
+      # Get translated version
+      spanish = AshPhoenixTranslations.translate(product, :es)
+      
+      # Should gracefully handle missing Spanish translation
+      assert spanish.name == nil
+    end
+  end
+  
+  describe "translation completeness" do
+    test "calculates completeness correctly" do
+      product = insert(:product, 
+        name_translations: %{en: "Test", es: "Prueba"},
+        description_translations: %{en: "Description"}
+      )
+      
+      # 3 out of 4 possible translations = 75%
+      completeness = AshPhoenixTranslations.Helpers.translation_completeness(
+        product, 
+        locales: [:en, :es]
+      )
+      
+      assert completeness == 75.0
+    end
+  end
+  
+  describe "translation validation" do
+    test "validates required translations" do
+      # This should fail because English is required
+      assert {:error, changeset} = 
+        Product.create(%{
+          sku: "INVALID-001",
+          price: Decimal.new("99.99"),
+          name_translations: %{es: "Producto"}  # Missing required :en
+        })
+      
+      assert changeset.errors[:name_translations]
+    end
+  end
+end
+```
+
+### Testing Phoenix Integration
+
+```elixir
+defmodule MyAppWeb.ProductControllerTest do
+  use MyAppWeb.ConnCase
+  
+  import MyApp.Factory
+  
+  describe "GET /products" do
+    test "renders products in current locale", %{conn: conn} do
+      product = insert(:product_with_translations)
+      
+      # Test English (default)
+      conn = get(conn, ~p"/products")
+      assert html_response(conn, 200) =~ "Test Product"
+      
+      # Test Spanish
+      conn = 
+        conn
+        |> get(~p"/products?locale=es")
+      
+      assert html_response(conn, 200) =~ "Producto de Prueba"
+    end
+    
+    test "falls back to default locale for missing translations", %{conn: conn} do
+      product = insert(:product, 
+        name_translations: %{en: "English Only"}
+      )
+      
+      # Request Spanish but should fall back to English
+      conn = get(conn, ~p"/products?locale=es")
+      response = html_response(conn, 200)
+      
+      assert response =~ "English Only"
+    end
+  end
+end
+```
+
+### Testing LiveView Integration
+
+```elixir
+defmodule MyAppWeb.ProductLiveTest do
+  use MyAppWeb.ConnCase
+  
+  import Phoenix.LiveViewTest
+  import MyApp.Factory
+  
+  describe "locale switching" do
+    test "changes locale dynamically", %{conn: conn} do
+      product = insert(:product_with_translations)
+      
+      {:ok, view, html} = live(conn, ~p"/live-products")
+      
+      # Should show English by default
+      assert html =~ "Test Product"
+      
+      # Switch to Spanish
+      html = 
+        view
+        |> element("select[name=locale]")
+        |> render_change(%{locale: "es"})
+      
+      assert html =~ "Producto de Prueba"
+    end
+    
+    test "updates translation form in real-time", %{conn: conn} do
+      product = insert(:product)
+      
+      {:ok, view, _html} = live(conn, ~p"/live-products/#{product.id}/edit")
+      
+      # Update Spanish name
+      view
+      |> form("#product-form", product: %{
+        name_translations: %{es: "Nuevo Nombre"}
+      })
+      |> render_change()
+      
+      # Check that progress indicator updates
+      assert render(view) =~ "50%" # Assuming 1 out of 2 locales completed
+    end
+  end
 end
 ```
 

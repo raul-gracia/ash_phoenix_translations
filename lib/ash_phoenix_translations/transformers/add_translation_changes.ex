@@ -34,11 +34,13 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChanges do
   defp add_validation_changes(dsl_state, backend) do
     translatable_attrs = get_translatable_attributes(dsl_state)
     
-    # Add validation change to create and update actions
+    # Add validation change to create and update actions (but not update_translation)
     actions = Transformer.get_entities(dsl_state, [:actions])
     
     Enum.reduce(actions, {:ok, dsl_state}, fn action, {:ok, dsl_state} ->
-      if action.type in [:create, :update] do
+      # Skip validation for update_translation and clear_translations actions
+      if action.type in [:create, :update] and 
+         action.name not in [:update_translation, :clear_translations] do
         add_validation_to_action(dsl_state, action, translatable_attrs, backend)
       else
         {:ok, dsl_state}

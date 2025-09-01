@@ -151,8 +151,25 @@ defmodule AshPhoenixTranslations.LiveView do
   @doc """
   Creates a locale switcher component for LiveView.
   
+  ## Examples
+  
+      # Basic usage
       <.locale_switcher socket={@socket} />
-      <.locale_switcher socket={@socket} class="custom-class" />
+      
+      # With custom CSS class
+      <.locale_switcher socket={@socket} class="my-locale-switcher" />
+      
+      # With specific locales
+      <.locale_switcher socket={@socket} locales={["en", "es", "fr"]} />
+      
+  ## Handling Changes
+  
+  You need to handle the "change_locale" event in your LiveView:
+  
+      def handle_event("change_locale", %{"locale" => locale}, socket) do
+        socket = update_locale(socket, locale)
+        {:noreply, socket}
+      end
   """
   attr :socket, :map, required: true
   attr :class, :string, default: "locale-switcher"
@@ -180,7 +197,27 @@ defmodule AshPhoenixTranslations.LiveView do
   @doc """
   Translation input component for LiveView forms.
   
+  ## Examples
+  
+      # Basic text inputs for name field
       <.translation_field form={@form} field={:name} locales={[:en, :es, :fr]} />
+      
+      # Textarea inputs for description
+      <.translation_field 
+        form={@form} 
+        field={:description} 
+        locales={[:en, :es, :fr]}
+        type="textarea"
+        label="Product Description"
+      />
+      
+      # With custom CSS class
+      <.translation_field 
+        form={@form} 
+        field={:name} 
+        locales={[:en, :es]} 
+        class="product-name-translations"
+      />
   """
   attr :form, :map, required: true
   attr :field, :atom, required: true
