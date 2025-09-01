@@ -106,6 +106,7 @@ jobs:
         run: |
           DATE=$(date +%Y-%m-%d)
           VERSION="${{ steps.version.outputs.version }}"
+          PRERELEASE_TYPE="${{ github.event.inputs.prerelease_type }}"
           
           # Create a pre-release section in CHANGELOG
           if ! grep -q "## \[$VERSION\]" CHANGELOG.md; then
@@ -114,7 +115,7 @@ jobs:
             echo "## [$VERSION] - $DATE (Pre-release)" >> temp_changelog.md
             echo "" >> temp_changelog.md
             echo "### Notes" >> temp_changelog.md
-            echo "This is a ${{ github.event.inputs.prerelease_type }} pre-release version for testing." >> temp_changelog.md
+            echo "This is a $PRERELEASE_TYPE pre-release version for testing." >> temp_changelog.md
             echo "" >> temp_changelog.md
             echo "### Added" >> temp_changelog.md
             echo "- Pre-release for testing upcoming features" >> temp_changelog.md
