@@ -88,7 +88,8 @@
       "mcp__serena__find_file",
       "Bash(yamllint:*)",
       "Bash(python3:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(gh api:*)"
     ],
     "deny": [],
     "ask": []
