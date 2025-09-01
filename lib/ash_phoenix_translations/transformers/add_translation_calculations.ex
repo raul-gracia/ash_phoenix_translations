@@ -45,7 +45,6 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculations do
       case backend do
         :database -> AshPhoenixTranslations.Calculations.DatabaseTranslation
         :gettext -> AshPhoenixTranslations.Calculations.GettextTranslation
-        :redis -> AshPhoenixTranslations.Calculations.RedisTranslation
       end
     
     # Get the resource name for Gettext message IDs

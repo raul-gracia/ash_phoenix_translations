@@ -190,7 +190,7 @@ defmodule AshPhoenixTranslations.Plugs.LoadTranslations do
   end
 
   # Cache implementation
-  # In production, this would use ETS, Redis, or another cache backend
+  # In production, this would use ETS or another cache backend
   
   defp get_from_cache(key) do
     case Process.get({:translation_cache, key}) do

@@ -95,7 +95,9 @@ defmodule AshPhoenixTranslations.Graphql do
       end
   """
   defmodule LocaleMiddleware do
-    @behaviour Absinthe.Middleware
+    if Code.ensure_loaded?(Absinthe.Middleware) do
+      @behaviour Absinthe.Middleware
+    end
     
     def call(resolution, _opts) do
       locale = get_locale_from_context(resolution.context)
@@ -202,7 +204,11 @@ defmodule AshPhoenixTranslations.Graphql do
       end
   """
   def data do
-    Dataloader.KV.new(&fetch_translations/2)
+    if Code.ensure_loaded?(Dataloader.KV) do
+      Dataloader.KV.new(&fetch_translations/2)
+    else
+      raise "Dataloader is required for GraphQL translation support. Add {:dataloader, \"~> 2.0\"} to your dependencies."
+    end
   end
   
   defp fetch_translations(_batch_key, resource_ids) do

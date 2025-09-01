@@ -146,9 +146,7 @@ defmodule AshPhoenixTranslations.Fallback do
     translatable_attrs = AshPhoenixTranslations.Info.translatable_attributes(resource)
     locale = normalize_locale(locale)
     
-    report = Enum.reduce(translatable_attrs, %{complete: 0, missing: [], total: 0}, fn attr, acc ->
-      storage_field = :"#{attr.name}_translations"
-      
+    report = Enum.reduce(translatable_attrs, %{complete: 0, missing: [], total: 0}, fn _attr, acc ->
       # This would need actual data loading in practice
       # For now, just return the structure
       %{

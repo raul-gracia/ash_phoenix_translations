@@ -12,7 +12,7 @@ defmodule AshPhoenixTranslations.Translations do
   ]
 
   @type t :: %__MODULE__{
-          backend: :database | :gettext | :redis,
+          backend: :database | :gettext,
           cache_ttl: pos_integer(),
           audit_changes: boolean(),
           auto_validate: boolean(),
