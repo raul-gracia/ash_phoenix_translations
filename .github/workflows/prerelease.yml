@@ -109,18 +109,16 @@ jobs:
           
           # Create a pre-release section in CHANGELOG
           if ! grep -q "## \[$VERSION\]" CHANGELOG.md; then
-            cat > temp_changelog.md << EOF
-# Changelog
-
-## [$VERSION] - $DATE (Pre-release)
-
-### Notes
-This is a ${{ github.event.inputs.prerelease_type }} pre-release version for testing.
-
-### Added
-- Pre-release for testing upcoming features
-
-EOF
+            echo "# Changelog" > temp_changelog.md
+            echo "" >> temp_changelog.md
+            echo "## [$VERSION] - $DATE (Pre-release)" >> temp_changelog.md
+            echo "" >> temp_changelog.md
+            echo "### Notes" >> temp_changelog.md
+            echo "This is a ${{ github.event.inputs.prerelease_type }} pre-release version for testing." >> temp_changelog.md
+            echo "" >> temp_changelog.md
+            echo "### Added" >> temp_changelog.md
+            echo "- Pre-release for testing upcoming features" >> temp_changelog.md
+            echo "" >> temp_changelog.md
             
             # Append the rest of the existing changelog
             tail -n +2 CHANGELOG.md >> temp_changelog.md

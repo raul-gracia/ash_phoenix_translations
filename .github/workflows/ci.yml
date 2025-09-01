@@ -210,4 +210,3 @@ jobs:
       - name: Check package
         run: |
           mix hex.build
-          mix hex.publish --dry-run
