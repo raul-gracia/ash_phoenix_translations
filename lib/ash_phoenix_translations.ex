@@ -33,6 +33,27 @@ defmodule AshPhoenixTranslations do
         end
       end
 
+  ## Examples
+
+      iex> # Assuming you have a product with translations
+      iex> product = %{
+      ...>   __struct__: MyApp.Product,
+      ...>   id: "123",
+      ...>   name_translations: %{en: "Product", es: "Producto"},
+      ...>   description_translations: %{en: "Description", es: "Descripción"}
+      ...> }
+      iex> 
+      iex> # Translate to Spanish
+      iex> spanish_product = AshPhoenixTranslations.translate(product, :es)
+      iex> spanish_product.name
+      "Producto"
+      
+      iex> # Translate multiple resources  
+      iex> products = [product, product]
+      iex> spanish_products = AshPhoenixTranslations.translate_all(products, :es)
+      iex> length(spanish_products)
+      2
+
   """
 
   @transformers [
@@ -52,7 +73,7 @@ defmodule AshPhoenixTranslations do
         describe: "Configure translation behavior for the resource",
         schema: [
           backend: [
-            type: {:in, [:database, :gettext, :redis]},
+            type: {:in, [:database, :gettext]},
             default: :database,
             doc: "The backend to use for storing translations"
           ],
@@ -126,7 +147,24 @@ defmodule AshPhoenixTranslations do
     ]
 
   @doc """
-  Translate a single resource based on the connection's locale
+  Translate a single resource based on the connection's locale.
+  
+  This function loads calculated translation fields based on the current locale
+  and returns a copy of the resource with the translated values.
+  
+  ## Examples
+  
+      # Translate based on conn locale
+      product = MyApp.Product |> MyApp.Product.get!(id)
+      translated = AshPhoenixTranslations.translate(product, conn)
+      translated.name  # Returns the name in the current locale
+      
+      # Translate to specific locale
+      spanish_product = AshPhoenixTranslations.translate(product, :es)
+      spanish_product.name  # Returns Spanish translation
+      
+      # Translate from LiveView socket
+      translated = AshPhoenixTranslations.translate(product, socket)
   """
   def translate(resource, conn_or_socket_or_locale)
 
@@ -145,7 +183,17 @@ defmodule AshPhoenixTranslations do
   end
 
   @doc """
-  Translate multiple resources based on the connection's locale
+  Translate multiple resources based on the connection's locale.
+  
+  ## Examples
+  
+      products = MyApp.Product.list!()
+      translated_products = AshPhoenixTranslations.translate_all(products, conn)
+      
+      # All products now have calculated translation fields
+      Enum.each(translated_products, fn product ->
+        IO.inspect(product.name)  # Shows name in current locale
+      end)
   """
   def translate_all(resources, conn_or_socket_or_locale) when is_list(resources) do
     locale =
@@ -159,7 +207,20 @@ defmodule AshPhoenixTranslations do
   end
 
   @doc """
-  Live translate a resource for LiveView with reactive updates
+  Live translate a resource for LiveView with reactive updates.
+  
+  This function translates a resource and stores it in socket assigns
+  for reactive LiveView updates when the locale changes.
+  
+  ## Examples
+  
+      def mount(_params, _session, socket) do
+        product = MyApp.Product.get!(id)
+        {translated_product, socket} = AshPhoenixTranslations.live_translate(product, socket)
+        
+        socket = assign(socket, product: translated_product)
+        {:ok, socket}
+      end
   """
   def live_translate(resource, %Phoenix.LiveView.Socket{} = socket) do
     locale = get_locale(socket)
@@ -175,7 +236,14 @@ defmodule AshPhoenixTranslations do
   end
 
   @doc """
-  Update the locale for a LiveView socket and retranslate resources
+  Update the locale for a LiveView socket and retranslate resources.
+  
+  ## Examples
+  
+      def handle_event("change_locale", %{"locale" => locale}, socket) do
+        socket = AshPhoenixTranslations.update_locale(socket, String.to_atom(locale))
+        {:noreply, socket}
+      end
   """
   def update_locale(%Phoenix.LiveView.Socket{} = socket, locale) when is_atom(locale) do
     socket

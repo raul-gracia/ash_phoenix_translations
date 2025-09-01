@@ -28,6 +28,14 @@ defmodule AshPhoenixTranslations.Cache do
   Gets a translation from cache.
   
   Returns `{:ok, value}` if found, `:miss` if not cached or expired.
+  
+  ## Examples
+  
+      key = AshPhoenixTranslations.Cache.key(MyApp.Product, :name, :es, "123")
+      case AshPhoenixTranslations.Cache.get(key) do
+        {:ok, translation} -> translation
+        :miss -> load_from_database()
+      end
   """
   def get(key) do
     case :ets.lookup(@table_name, key) do
@@ -50,6 +58,14 @@ defmodule AshPhoenixTranslations.Cache do
 
   @doc """
   Puts a translation in cache with TTL.
+  
+  ## Examples
+  
+      key = AshPhoenixTranslations.Cache.key(MyApp.Product, :name, :es, "123")
+      AshPhoenixTranslations.Cache.put(key, "Producto", 7200)  # Cache for 2 hours
+      
+      # Use default TTL
+      AshPhoenixTranslations.Cache.put(key, "Producto")
   """
   def put(key, value, ttl \\ nil) do
     ttl = ttl || @default_ttl
@@ -105,6 +121,15 @@ defmodule AshPhoenixTranslations.Cache do
 
   @doc """
   Warms up the cache with frequently accessed translations.
+  
+  ## Examples
+  
+      # Warm cache for all products' name and description in English and Spanish
+      products = MyApp.Product.list!()
+      AshPhoenixTranslations.Cache.warmup(products, [:en, :es])
+      
+      # Warm specific fields
+      AshPhoenixTranslations.Cache.warmup(products, [:en, :es], fields: [:name])
   """
   def warmup(resources, locales) do
     GenServer.cast(__MODULE__, {:warmup, resources, locales})
@@ -112,6 +137,20 @@ defmodule AshPhoenixTranslations.Cache do
 
   @doc """
   Gets cache statistics.
+  
+  ## Examples
+  
+      stats = AshPhoenixTranslations.Cache.stats()
+      # => %{
+      #   size: 1234,
+      #   memory: 45678,
+      #   hits: 5678,
+      #   misses: 234,
+      #   evictions: 12,
+      #   hit_rate: 96.0
+      # }
+      
+      IO.puts("Cache hit rate: \#{stats.hit_rate}%")
   """
   def stats do
     GenServer.call(__MODULE__, :stats)
@@ -209,7 +248,7 @@ defmodule AshPhoenixTranslations.Cache do
     length(keys)
   end
 
-  defp build_match_spec(pattern) do
+  defp build_match_spec(_pattern) do
     # Build ETS match specification from pattern
     # This is simplified - real implementation would be more complex
     [

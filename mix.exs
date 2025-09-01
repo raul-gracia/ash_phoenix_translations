@@ -42,6 +42,8 @@ defmodule AshPhoenixTranslations.MixProject do
 
   defp deps do
     [
+      {:usage_rules, "~> 0.1", only: [:dev]},
+      {:igniter, "~> 0.6", only: [:dev, :test]},
       # Core dependencies
       {:ash, "~> 3.0"},
       {:spark, "~> 2.0"},
@@ -49,15 +51,16 @@ defmodule AshPhoenixTranslations.MixProject do
       {:phoenix_live_view, "~> 1.0"},
       {:plug, "~> 1.15"},
       {:jason, "~> 1.4"},
-      
+
       # Optional backend dependencies
       {:gettext, "~> 0.20", optional: true},
-      {:redix, "~> 1.5", optional: true},
       {:phoenix_html, "~> 3.0 or ~> 4.0", optional: true},
       {:absinthe, "~> 1.7", optional: true},
       {:dataloader, "~> 2.0", optional: true},
-      {:csv, "~> 3.0", optional: true},
       
+      # Required for import/export functionality
+      {:csv, "~> 3.0"},
+
       # Development and test dependencies
       {:ex_doc, "~> 0.29", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
@@ -75,7 +78,8 @@ defmodule AshPhoenixTranslations.MixProject do
       licenses: ["MIT"],
       links: %{
         "GitHub" => "https://github.com/raul-gracia/ash_phoenix_translations",
-        "Changelog" => "https://github.com/raul-gracia/ash_phoenix_translations/blob/main/CHANGELOG.md"
+        "Changelog" =>
+          "https://github.com/raul-gracia/ash_phoenix_translations/blob/main/CHANGELOG.md"
       },
       files: ~w(lib mix.exs README.md LICENSE CHANGELOG.md)
     ]
@@ -94,25 +98,25 @@ defmodule AshPhoenixTranslations.MixProject do
         "guides/policies.md"
       ],
       groups_for_modules: [
-        "Core": [
+        Core: [
           AshPhoenixTranslations,
           AshPhoenixTranslations.Info
         ],
-        "DSL": [
+        DSL: [
           AshPhoenixTranslations.TranslatableAttribute
         ],
-        "Transformers": ~r/AshPhoenixTranslations.Transformers.*/,
-        "Calculations": ~r/AshPhoenixTranslations.Calculations.*/,
-        "Changes": ~r/AshPhoenixTranslations.Changes.*/,
-        "Preparations": ~r/AshPhoenixTranslations.Preparations.*/,
+        Transformers: ~r/AshPhoenixTranslations.Transformers.*/,
+        Calculations: ~r/AshPhoenixTranslations.Calculations.*/,
+        Changes: ~r/AshPhoenixTranslations.Changes.*/,
+        Preparations: ~r/AshPhoenixTranslations.Preparations.*/,
         "Phoenix Integration": [
           AshPhoenixTranslations.Controller,
           AshPhoenixTranslations.Helpers,
           AshPhoenixTranslations.LiveView
         ],
-        "Plugs": ~r/AshPhoenixTranslations.Plug.*/,
+        Plugs: ~r/AshPhoenixTranslations.Plug.*/,
         "Locale Resolution": ~r/AshPhoenixTranslations.LocaleResolver.*/,
-        "Cache": ~r/AshPhoenixTranslations.Cache.*/,
+        Cache: ~r/AshPhoenixTranslations.Cache.*/,
         "Mix Tasks": ~r/Mix.Tasks.*/
       ]
     ]

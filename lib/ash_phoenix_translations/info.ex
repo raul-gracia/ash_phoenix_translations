@@ -4,6 +4,36 @@ defmodule AshPhoenixTranslations.Info do
   
   Provides functions to retrieve translation configuration and metadata
   from resources that use the AshPhoenixTranslations extension.
+  
+  ## Examples
+  
+  Assuming you have a resource with translations configured:
+  
+      defmodule MyApp.Product do
+        use Ash.Resource,
+          extensions: [AshPhoenixTranslations]
+        
+        translations do
+          translatable_attribute :name, locales: [:en, :es, :fr]
+          translatable_attribute :description, locales: [:en, :es, :fr]
+          backend :database
+          cache_ttl 7200
+        end
+      end
+  
+  You can introspect the configuration:
+  
+      iex> AshPhoenixTranslations.Info.translatable?(MyApp.Product)
+      true
+      
+      iex> AshPhoenixTranslations.Info.supported_locales(MyApp.Product)
+      [:en, :es, :fr]
+      
+      iex> AshPhoenixTranslations.Info.backend(MyApp.Product)
+      :database
+      
+      iex> AshPhoenixTranslations.Info.cache_ttl(MyApp.Product)
+      7200
   """
 
   use Spark.InfoGenerator, extension: AshPhoenixTranslations, sections: [:translations]
@@ -19,14 +49,17 @@ defmodule AshPhoenixTranslations.Info do
       {:ok, attrs} when is_list(attrs) -> attrs
       _ ->
         # Fallback to entities if not persisted
-        Spark.Dsl.Extension.get_entities(resource, [:translations, :translatable_attribute])
+        case Spark.Dsl.Extension.get_entities(resource, [:translations]) do
+          [] -> []
+          entities -> entities
+        end
     end
   end
 
   @doc """
   Returns the configured backend for translations.
   """
-  @spec backend(Ash.Resource.t() | Spark.Dsl.t()) :: :database | :gettext | :redis
+  @spec backend(Ash.Resource.t() | Spark.Dsl.t()) :: :database | :gettext
   def backend(resource) do
     Spark.Dsl.Extension.get_opt(resource, [:translations], :backend, :database)
   end

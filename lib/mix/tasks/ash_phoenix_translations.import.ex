@@ -120,17 +120,21 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Import do
   end
   
   defp parse_file(file_path, "csv", default_locale) do
-    file_path
-    |> File.stream!()
-    |> CSV.decode!(headers: true)
-    |> Enum.map(fn row ->
-      %{
-        resource_id: row["resource_id"],
-        field: String.to_atom(row["field"]),
-        locale: String.to_atom(row["locale"] || default_locale),
-        value: row["value"]
-      }
-    end)
+    if Code.ensure_loaded?(CSV) do
+      file_path
+      |> File.stream!()
+      |> CSV.decode!(headers: true)
+      |> Enum.map(fn row ->
+        %{
+          resource_id: row["resource_id"],
+          field: String.to_atom(row["field"]),
+          locale: String.to_atom(row["locale"] || default_locale),
+          value: row["value"]
+        }
+      end)
+    else
+      raise "CSV library is required for CSV imports. Add {:csv, \"~> 3.0\"} to your dependencies."
+    end
   end
   
   defp parse_file(file_path, "json", default_locale) do

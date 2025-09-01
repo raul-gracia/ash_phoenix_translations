@@ -143,54 +143,68 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Export do
   end
   
   defp fetch_translations(resource, filters) do
-    # Get all translatable attributes for the resource
-    translatable_attrs = AshPhoenixTranslations.Info.translatable_attributes(resource)
-    
-    # Get all resource instances
+    # Get all resource instances first
     {:ok, resources} = Ash.read(resource)
     
-    # Extract translations
-    translations = 
-      for record <- resources,
-          attr <- translatable_attrs,
-          locale <- attr.locales do
-        
-        field = attr.name
-        storage_field = :"#{field}_translations"
-        
-        # Skip if field filter is applied
-        if filters[:fields] && field not in filters[:fields] do
-          nil
-        else
-          # Skip if locale filter is applied
-          if filters[:locales] && locale not in filters[:locales] do
-            nil
-          else
-            translations_map = Map.get(record, storage_field, %{})
-            value = Map.get(translations_map, locale)
+    # If no resources, return empty
+    if Enum.empty?(resources) do
+      []
+    else
+      # Get the first record to inspect available translation fields
+      first_record = List.first(resources)
+      
+      # Find all translation storage fields (fields ending with _translations)
+      translation_fields = 
+        first_record
+        |> Map.keys()
+        |> Enum.filter(fn key ->
+          key != :__struct__ && 
+          key != :__meta__ && 
+          String.ends_with?(to_string(key), "_translations") &&
+          # Make sure it's not an _all_translations field (those are calculations)
+          !String.ends_with?(to_string(key), "_all_translations") &&
+          # Make sure the value is a map (actual translation data)
+          is_map(Map.get(first_record, key))
+        end)
+      
+      # Extract translations from all records
+      translations = 
+        for record <- resources,
+            storage_field <- translation_fields,
+            {locale, value} <- Map.get(record, storage_field, %{}) do
+          
+          field = storage_field |> to_string() |> String.replace_suffix("_translations", "") |> String.to_atom()
+          
+          # Apply filters
+          cond do
+            # Skip if field filter is applied
+            filters[:fields] && field not in filters[:fields] ->
+              nil
             
+            # Skip if locale filter is applied  
+            filters[:locales] && locale not in filters[:locales] ->
+              nil
+              
             # Apply missing/complete filters
-            cond do
-              filters[:missing_only] && value != nil && value != "" ->
-                nil
-              
-              filters[:complete_only] && (value == nil || value == "") ->
-                nil
-              
-              true ->
-                %{
-                  resource_id: record.id,
-                  field: field,
-                  locale: locale,
-                  value: value || ""
-                }
-            end
+            filters[:missing_only] && value != nil && value != "" ->
+              nil
+            
+            filters[:complete_only] && (value == nil || value == "") ->
+              nil
+            
+            true ->
+              %{
+                resource_id: record.id,
+                field: field,
+                locale: locale,
+                value: value || ""
+              }
           end
         end
-      end
-    
-    # Remove nils and return
-    Enum.reject(translations, &is_nil/1)
+        |> Enum.reject(&is_nil/1)
+      
+      translations
+    end
   end
   
   defp write_file(path, "csv", translations) do

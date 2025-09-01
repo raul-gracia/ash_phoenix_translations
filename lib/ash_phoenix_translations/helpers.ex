@@ -16,6 +16,24 @@ defmodule AshPhoenixTranslations.Helpers do
   
       <h1><%= t(@product, :name) %></h1>
       <p><%= t(@product, :description, locale: "es") %></p>
+      
+  ## Examples
+  
+      iex> product = %{
+      ...>   name_translations: %{en: "Product", es: "Producto", fr: "Produit"},
+      ...>   description_translations: %{en: "Great product", es: "Gran producto"}
+      ...> }
+      iex> AshPhoenixTranslations.Helpers.translate_field(product, :name, :es)
+      "Producto"
+      
+      iex> AshPhoenixTranslations.Helpers.all_translations(product, :name)
+      %{en: "Product", es: "Producto", fr: "Produit"}
+      
+      iex> AshPhoenixTranslations.Helpers.translation_exists?(product, :description, :fr)
+      false
+      
+      iex> AshPhoenixTranslations.Helpers.locale_name(:es)
+      "Español"
   """
 
   # Check if Phoenix.HTML is available
@@ -24,11 +42,27 @@ defmodule AshPhoenixTranslations.Helpers do
   @doc """
   Translates a field from a resource.
   
+  This is the main helper for displaying translated content in templates.
+  It retrieves the translation from the resource's translation storage field
+  and falls back to the provided fallback if the translation is empty.
+  
   ## Examples
   
+      # Basic usage - uses current locale
       <%= t(@product, :name) %>
+      
+      # With specific locale
       <%= t(@product, :description, locale: "es") %>
+      <%= t(@product, :description, locale: :es) %>
+      
+      # With fallback text
       <%= t(@product, :name, fallback: "Untitled") %>
+      
+      # With connection context (gets locale from conn)
+      <%= t(@product, :description, conn: @conn) %>
+      
+      # Combined options
+      <%= t(@product, :tagline, locale: "fr", fallback: "No tagline") %>
   """
   def t(resource, field, opts \\ []) do
     locale = Keyword.get(opts, :locale, current_locale(opts[:conn]))
@@ -172,10 +206,19 @@ defmodule AshPhoenixTranslations.Helpers do
   end
 
   @doc """
-  Shows translation status badges.
+  Shows translation status badges indicating completeness for each locale.
+  
+  ## Examples
   
       <%= translation_status(@product, :description) %>
       # Shows badges like: [EN ✓] [ES ✓] [FR ✗]
+      
+      # With specific locales
+      <%= translation_status(@product, :name, locales: [:en, :es, :fr]) %>
+      
+      # Returns plain text if Phoenix.HTML not available
+      translation_status(product, :description, locales: [:en, :es])
+      # => "[EN ✓] [ES ✗]"
   """
   def translation_status(resource, field, opts \\ []) do
     if @phoenix_html_available do
@@ -251,8 +294,23 @@ defmodule AshPhoenixTranslations.Helpers do
   @doc """
   Returns a percentage of translation completeness.
   
+  ## Examples
+  
+      # Check completeness for all translatable fields
       <%= translation_completeness(@product) %>
       # => 66.7 (if 2 out of 3 locales are translated)
+      
+      # Check specific fields only
+      completeness = translation_completeness(@product, fields: [:name, :description])
+      
+      # Check specific locales only
+      completeness = translation_completeness(@product, locales: [:en, :es])
+      
+      # Check both specific fields and locales
+      completeness = translation_completeness(@product, 
+        fields: [:name], 
+        locales: [:en, :es, :fr]
+      )
   """
   def translation_completeness(resource, opts \\ []) do
     fields = opts[:fields] || translatable_fields(resource)

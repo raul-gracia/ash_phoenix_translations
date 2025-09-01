@@ -38,7 +38,6 @@ mix ash_phoenix_translations.install
 You'll be prompted to choose a backend:
 - `database` (recommended) - Stores translations in JSONB columns
 - `gettext` - Uses Phoenix's Gettext
-- `redis` - Stores in Redis key-value store
 
 ### Step 3: Run Migrations (Database Backend)
 

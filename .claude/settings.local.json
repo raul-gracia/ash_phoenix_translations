@@ -72,7 +72,13 @@
       "Bash(tree:*)",
       "Bash(MIX_ENV=test mix compile --warnings-as-errors)",
       "Bash(pg_isready:*)",
-      "mcp__sequential-thinking__sequentialthinking"
+      "mcp__sequential-thinking__sequentialthinking",
+      "mcp__serena__search_for_pattern",
+      "Bash(MIX_NO_DEPS_CHECK=true mix compile --no-deps-check)",
+      "Bash(cat:*)",
+      "Bash(echo \"Exit code: $?\")",
+      "mcp__serena__activate_project",
+      "mcp__serena__replace_regex"
     ],
     "deny": [],
     "ask": []

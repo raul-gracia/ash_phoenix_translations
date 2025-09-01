@@ -279,7 +279,7 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Extract do
     resource_name = resource |> Module.split() |> List.last() |> Macro.underscore()
     
     Enum.reduce(actions, strings, fn action, acc ->
-      if action[:description] do
+      if Map.get(action, :description) do
         msgid = "#{resource_name}.actions.#{action.name}.description"
         
         entry = %{
