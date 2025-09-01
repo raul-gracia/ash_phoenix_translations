@@ -48,13 +48,13 @@ defmodule AshPhoenixTranslations.MixProject do
       {:ash, "~> 3.0"},
       {:spark, "~> 2.0"},
       {:phoenix, "~> 1.7"},
-      {:phoenix_live_view, "~> 1.0"},
+      {:phoenix_live_view, "~> 0.20 or ~> 1.0"},
       {:plug, "~> 1.15"},
       {:jason, "~> 1.4"},
+      {:phoenix_html, "~> 3.0 or ~> 4.0"},
 
       # Optional backend dependencies
       {:gettext, "~> 0.20", optional: true},
-      {:phoenix_html, "~> 3.0 or ~> 4.0", optional: true},
       {:absinthe, "~> 1.7", optional: true},
       {:dataloader, "~> 2.0", optional: true},
 

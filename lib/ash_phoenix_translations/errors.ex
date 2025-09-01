@@ -7,10 +7,7 @@ defmodule AshPhoenixTranslations.MissingTranslationError do
 
   @impl true
   def message(exception) do
-    available =
-      exception.available
-      |> Enum.map(&inspect/1)
-      |> Enum.join(", ")
+    available = Enum.map_join(exception.available, ", ", &inspect/1)
 
     """
     Missing translation for locale #{inspect(exception.locale)}.
@@ -30,10 +27,7 @@ defmodule AshPhoenixTranslations.InvalidLocaleError do
 
   @impl true
   def message(exception) do
-    supported =
-      exception.supported
-      |> Enum.map(&inspect/1)
-      |> Enum.join(", ")
+    supported = Enum.map_join(exception.supported, ", ", &inspect/1)
 
     """
     Invalid locale: #{inspect(exception.locale)}.

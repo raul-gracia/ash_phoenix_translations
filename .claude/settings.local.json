@@ -79,7 +79,16 @@
       "Bash(echo \"Exit code: $?\")",
       "mcp__serena__activate_project",
       "mcp__serena__replace_regex",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "mcp__serena__list_dir",
+      "mcp__serena__read_file",
+      "WebSearch",
+      "WebSearch",
+      "WebSearch",
+      "mcp__serena__find_file",
+      "Bash(yamllint:*)",
+      "Bash(python3:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

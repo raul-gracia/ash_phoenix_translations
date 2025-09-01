@@ -281,7 +281,7 @@ defmodule AshPhoenixTranslations do
 
   defp get_locale(%Phoenix.LiveView.Socket{} = socket) do
     socket.assigns[:__translation_locale__] ||
-      Phoenix.Component.get_connect_params(socket)["locale"] ||
+      Map.get(socket.private.connect_params || %{}, "locale") ||
       Application.get_env(:ash_phoenix_translations, :default_locale, :en)
   end
 
