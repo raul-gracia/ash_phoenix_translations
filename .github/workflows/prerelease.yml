@@ -1,0 +1,297 @@
+name: Pre-Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      prerelease_type:
+        description: 'Pre-release type'
+        required: true
+        type: choice
+        options:
+          - alpha
+          - beta
+          - rc
+      increment:
+        description: 'Version increment for pre-release'
+        required: false
+        type: choice
+        default: 'patch'
+        options:
+          - major
+          - minor
+          - patch
+
+env:
+  ELIXIR_VERSION: "1.17.3"
+  OTP_VERSION: "27.0"
+
+jobs:
+  prepare:
+    name: Prepare Pre-Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+      
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      
+      - name: Calculate pre-release version
+        id: version
+        run: |
+          # Get current version from mix.exs
+          CURRENT_VERSION=$(grep 'version:' mix.exs | head -1 | sed 's/.*version: "\(.*\)".*/\1/')
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Remove any existing pre-release suffix
+          BASE_VERSION=$(echo "$CURRENT_VERSION" | sed 's/-.*//')
+          
+          # Check if this is already a pre-release version
+          if [[ "$CURRENT_VERSION" == *"-${{ github.event.inputs.prerelease_type }}."* ]]; then
+            # Extract the pre-release number and increment it
+            PRERELEASE_NUM=$(echo "$CURRENT_VERSION" | sed -n 's/.*-${{ github.event.inputs.prerelease_type }}\.\([0-9]*\).*/\1/p')
+            PRERELEASE_NUM=$((PRERELEASE_NUM + 1))
+            NEW_VERSION="${BASE_VERSION}-${{ github.event.inputs.prerelease_type }}.${PRERELEASE_NUM}"
+          else
+            # First pre-release of this type, bump the base version if needed
+            if [ "${{ github.event.inputs.increment }}" != "none" ]; then
+              IFS='.' read -r major minor patch <<< "$BASE_VERSION"
+              case "${{ github.event.inputs.increment }}" in
+                major)
+                  major=$((major + 1))
+                  minor=0
+                  patch=0
+                  ;;
+                minor)
+                  minor=$((minor + 1))
+                  patch=0
+                  ;;
+                patch)
+                  patch=$((patch + 1))
+                  ;;
+              esac
+              BASE_VERSION="$major.$minor.$patch"
+            fi
+            NEW_VERSION="${BASE_VERSION}-${{ github.event.inputs.prerelease_type }}.1"
+          fi
+          
+          echo "New pre-release version: $NEW_VERSION"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Update version
+        run: |
+          mix ash_phoenix_translations.version set ${{ steps.version.outputs.version }}
+      
+      - name: Update changelog
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Create a pre-release section in CHANGELOG
+          if ! grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            cat > temp_changelog.md << EOF
+# Changelog
+
+## [$VERSION] - $DATE (Pre-release)
+
+### Notes
+This is a ${{ github.event.inputs.prerelease_type }} pre-release version for testing.
+
+### Added
+- Pre-release for testing upcoming features
+
+EOF
+            
+            # Append the rest of the existing changelog
+            tail -n +2 CHANGELOG.md >> temp_changelog.md
+            mv temp_changelog.md CHANGELOG.md
+          fi
+      
+      - name: Commit version changes
+        run: |
+          git add mix.exs README.md CHANGELOG.md
+          git commit -m "Prepare pre-release v${{ steps.version.outputs.version }}"
+          git push origin main
+
+  test:
+    name: Run Tests
+    needs: prepare
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+      
+      - name: Restore dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-prerelease-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mix-prerelease-
+      
+      - name: Install dependencies
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      
+      - name: Run tests
+        run: mix test
+      
+      - name: Run quality checks
+        run: |
+          mix format --check-formatted
+          mix credo --strict || true
+          mix sobelow --config || true
+
+  create-prerelease:
+    name: Create Pre-Release
+    needs: [prepare, test]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      
+      - name: Create pre-release tag
+        run: |
+          git tag "v${{ needs.prepare.outputs.version }}"
+          git push origin "v${{ needs.prepare.outputs.version }}"
+      
+      - name: Create release notes
+        run: |
+          cat > release_notes.md << EOF
+# Pre-Release v${{ needs.prepare.outputs.version }}
+
+This is a **${{ github.event.inputs.prerelease_type }}** pre-release version.
+
+## ⚠️ Warning
+This is a pre-release version and should not be used in production. It may contain:
+- Incomplete features
+- Breaking changes
+- Known issues
+
+## Installation
+
+Add to your \`mix.exs\`:
+
+\`\`\`elixir
+{:ash_phoenix_translations, "~> ${{ needs.prepare.outputs.version }}"}
+\`\`\`
+
+## Testing Instructions
+
+Please test the following areas:
+- [ ] Translation storage backends
+- [ ] LiveView integration
+- [ ] Policy-based access control
+- [ ] Mix tasks
+- [ ] Import/Export functionality
+
+## Feedback
+
+Please report any issues or feedback on the [GitHub Issues](https://github.com/${{ github.repository }}/issues) page.
+
+EOF
+      
+      - name: Create GitHub pre-release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.prepare.outputs.version }}
+          name: v${{ needs.prepare.outputs.version }} (${{ github.event.inputs.prerelease_type }})
+          body_path: release_notes.md
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-prerelease:
+    name: Publish Pre-Release to Hex
+    needs: [prepare, test, create-prerelease]
+    runs-on: ubuntu-latest
+    environment: hex-prerelease
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      
+      - name: Build package
+        run: mix hex.build
+      
+      - name: Publish pre-release to Hex
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
+        run: |
+          # Note: Pre-releases are automatically marked as such on Hex.pm
+          # based on the version string containing -alpha, -beta, or -rc
+          mix hex.publish --yes
+
+  notify:
+    name: Notify
+    needs: [prepare, publish-prerelease]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Send notification
+        run: |
+          if [ "${{ needs.publish-prerelease.result }}" = "success" ]; then
+            echo "🚀 Pre-release v${{ needs.prepare.outputs.version }} published successfully!"
+            echo ""
+            echo "📦 Hex Package: https://hex.pm/packages/ash_phoenix_translations/${{ needs.prepare.outputs.version }}"
+            echo "🏷️ GitHub Release: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.prepare.outputs.version }}"
+            echo ""
+            echo "This is a ${{ github.event.inputs.prerelease_type }} pre-release for testing purposes."
+          else
+            echo "❌ Pre-release v${{ needs.prepare.outputs.version }} failed"
+            echo "Check the workflow logs for details"
+            exit 1
+          fi
