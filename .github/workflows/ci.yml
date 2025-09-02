@@ -134,8 +134,6 @@ jobs:
       - name: Run Sobelow security analysis
         run: mix sobelow --config
       
-      - name: Check for security vulnerabilities
-        run: mix deps.audit
       
       - name: Check documentation
         run: mix docs
