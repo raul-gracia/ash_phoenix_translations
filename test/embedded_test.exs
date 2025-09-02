@@ -3,8 +3,20 @@ defmodule AshPhoenixTranslations.EmbeddedTest do
 
   alias AshPhoenixTranslations.Embedded
 
+  defmodule TestDomain do
+    use Ash.Domain
+
+    resources do
+      resource Address
+      resource ProductFeature
+      resource User
+      resource Product
+    end
+  end
+
   defmodule Address do
     use Ash.Resource,
+      domain: TestDomain,
       data_layer: :embedded,
       extensions: [AshPhoenixTranslations]
 
@@ -22,6 +34,7 @@ defmodule AshPhoenixTranslations.EmbeddedTest do
 
   defmodule ProductFeature do
     use Ash.Resource,
+      domain: TestDomain,
       data_layer: :embedded,
       extensions: [AshPhoenixTranslations]
 
@@ -38,6 +51,7 @@ defmodule AshPhoenixTranslations.EmbeddedTest do
 
   defmodule User do
     use Ash.Resource,
+      domain: TestDomain,
       data_layer: Ash.DataLayer.Ets,
       extensions: [AshPhoenixTranslations]
 
@@ -54,6 +68,7 @@ defmodule AshPhoenixTranslations.EmbeddedTest do
 
   defmodule Product do
     use Ash.Resource,
+      domain: TestDomain,
       data_layer: Ash.DataLayer.Ets,
       extensions: [AshPhoenixTranslations]
 
