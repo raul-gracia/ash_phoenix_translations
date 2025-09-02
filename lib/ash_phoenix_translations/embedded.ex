@@ -480,8 +480,8 @@ defmodule AshPhoenixTranslations.Embedded do
       |> Enum.filter(fn attr ->
         # Check if attribute is an embedded type
         case attr.type do
-          {:array, mod} when is_atom(mod) -> is_embedded_resource?(mod)
-          mod when is_atom(mod) -> is_embedded_resource?(mod)
+          {:array, mod} when is_atom(mod) -> embedded_resource?(mod)
+          mod when is_atom(mod) -> embedded_resource?(mod)
           _ -> false
         end
       end)
@@ -495,7 +495,7 @@ defmodule AshPhoenixTranslations.Embedded do
     _ -> []
   end
 
-  defp is_embedded_resource?(module) do
+  defp embedded_resource?(module) do
     Code.ensure_loaded?(module) && function_exported?(module, :spark_dsl_config, 0)
   rescue
     _ -> false
