@@ -189,7 +189,7 @@ defmodule AshPhoenixTranslations.CacheTest do
     test "warm cache triggers async loading" do
       # This is a placeholder test since warm is async
       # In production, we'd mock the loading function
-      Cache.warm(Product, [:name, :description], [:en, :es])
+      Cache.warmup(Product, [:name, :description])
 
       # The warm function should not crash
       Process.sleep(100)
