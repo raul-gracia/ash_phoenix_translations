@@ -119,12 +119,17 @@ defmodule AshPhoenixTranslations.JsonApi do
     defp parse_language_tag(tag) do
       case String.split(tag, ";") do
         [lang] ->
-          parsed_lang = lang |> String.trim() |> String.split("-") |> List.first() |> String.to_atom()
+          parsed_lang =
+            lang |> String.trim() |> String.split("-") |> List.first() |> String.to_atom()
+
           {parsed_lang, 1.0}
 
         [lang, "q=" <> quality] ->
           quality_value = String.to_float(quality)
-          parsed_lang = lang |> String.trim() |> String.split("-") |> List.first() |> String.to_atom()
+
+          parsed_lang =
+            lang |> String.trim() |> String.split("-") |> List.first() |> String.to_atom()
+
           {parsed_lang, quality_value}
       end
     end
