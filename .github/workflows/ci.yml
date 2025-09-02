@@ -36,7 +36,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       
       - name: Setup Elixir
         uses: erlef/setup-beam@v1
@@ -100,7 +100,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       
       - name: Setup Elixir
         uses: erlef/setup-beam@v1
@@ -144,7 +144,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       
       - name: Setup Elixir
         uses: erlef/setup-beam@v1
@@ -191,7 +191,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       
       - name: Setup Elixir
         uses: erlef/setup-beam@v1
