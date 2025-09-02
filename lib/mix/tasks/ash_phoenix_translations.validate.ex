@@ -152,14 +152,13 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
     # Get all resource instances
     {:ok, records} = Ash.read(resource)
 
-    issues = []
-
     # Check each record
     issues =
-      Enum.reduce(records, issues, fn record, acc ->
+      Enum.reduce(records, [], fn record, acc ->
         record_issues = validate_record(record, attrs_to_check, filters)
-        acc ++ record_issues
+        record_issues ++ acc
       end)
+      |> Enum.reverse()
 
     # Summary statistics
     stats = calculate_stats(records, attrs_to_check, filters)
@@ -173,9 +172,7 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
   end
 
   defp validate_record(record, attrs, filters) do
-    issues = []
-
-    Enum.reduce(attrs, issues, fn attr, acc ->
+    Enum.reduce(attrs, [], fn attr, acc ->
       field = attr.name
       storage_field = :"#{field}_translations"
       translations = Map.get(record, storage_field, %{})
@@ -203,11 +200,13 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
               check_quality(value, record.id, field, locale, attr)
             end
 
-          field_acc ++ current_issues
+          current_issues ++ field_acc
         end)
+        |> Enum.reverse()
 
-      acc ++ field_issues
+      field_issues ++ acc
     end)
+    |> Enum.reverse()
   end
 
   defp check_quality(value, resource_id, field, locale, attr) do
@@ -366,10 +365,7 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
   end
 
   defp output_results(results, "text", path) do
-    content =
-      results
-      |> Enum.map(&format_text_result/1)
-      |> Enum.join("\n\n")
+    content = Enum.map_join(results, "\n\n", &format_text_result/1)
 
     File.write!(path, content)
     Mix.shell().info("Results written to #{path}")
@@ -382,7 +378,7 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
       File.write!(path, json)
       Mix.shell().info("Results written to #{path}")
     else
-      IO.puts(json)
+      Mix.shell().info(json)
     end
   end
 

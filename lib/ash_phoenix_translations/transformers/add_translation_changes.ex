@@ -9,8 +9,9 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChanges do
   """
 
   use Spark.Dsl.Transformer
-  alias Spark.Dsl.Transformer
+
   alias Ash.Resource.Builder
+  alias Spark.Dsl.Transformer
 
   @impl true
   def after?(AshPhoenixTranslations.Transformers.AddTranslationCalculations), do: true
@@ -66,7 +67,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChanges do
           )
 
         # Add it to the action's changes
-        updated_action = %{action | changes: action.changes ++ [change]}
+        updated_action = %{action | changes: [change | action.changes]}
 
         # Replace the action in the DSL state
         dsl_state =
@@ -101,7 +102,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChanges do
       # Add it to the action's changes
       updated_action = %{
         update_translation_action
-        | changes: update_translation_action.changes ++ [change]
+        | changes: [change | update_translation_action.changes]
       }
 
       # Replace the action in the DSL state
@@ -134,7 +135,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChanges do
         )
 
       # Add it to the action's changes
-      updated_action = %{import_action | changes: import_action.changes ++ [change]}
+      updated_action = %{import_action | changes: [change | import_action.changes]}
 
       # Replace the action in the DSL state
       dsl_state =
@@ -152,7 +153,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChanges do
   end
 
   defp get_translatable_attributes(dsl_state) do
-    Transformer.get_entities(dsl_state, [:translations])
+    dsl_state
+    |> Transformer.get_entities([:translations])
     |> Enum.filter(&is_struct(&1, AshPhoenixTranslations.TranslatableAttribute))
   end
 end

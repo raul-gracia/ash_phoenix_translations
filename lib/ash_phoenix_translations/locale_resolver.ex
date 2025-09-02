@@ -187,7 +187,8 @@ defmodule AshPhoenixTranslations.LocaleResolver do
   defp parse_language_tag(tag) do
     case String.split(tag, ";") do
       [lang] ->
-        {String.trim(lang) |> String.split("-") |> List.first() |> String.downcase(), 1.0}
+        parsed_lang = lang |> String.trim() |> String.split("-") |> List.first() |> String.downcase()
+        {parsed_lang, 1.0}
 
       [lang, quality] ->
         quality_value =
@@ -200,8 +201,8 @@ defmodule AshPhoenixTranslations.LocaleResolver do
             :error -> 0.0
           end
 
-        {String.trim(lang) |> String.split("-") |> List.first() |> String.downcase(),
-         quality_value}
+        parsed_lang = lang |> String.trim() |> String.split("-") |> List.first() |> String.downcase()
+        {parsed_lang, quality_value}
     end
   end
 

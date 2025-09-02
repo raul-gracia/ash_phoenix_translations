@@ -181,7 +181,7 @@ defmodule AshPhoenixTranslations.CacheTest do
       # Older entries should be evicted based on expiry time
       # This is a simplified test - actual implementation may vary
       # Default max size
-      assert Cache.size() <= 10000
+      assert Cache.size() <= 10_000
     end
   end
 

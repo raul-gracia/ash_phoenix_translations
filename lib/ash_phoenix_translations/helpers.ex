@@ -231,12 +231,11 @@ defmodule AshPhoenixTranslations.Helpers do
       field_name = Form.input_name(form, field)
 
       options_html =
-        Enum.map(options, fn {label, value} ->
+        Enum.map_join(options, "", fn {label, value} ->
           selected_attr = if value == selected, do: " selected=\"selected\"", else: ""
 
           "<option value=\"#{HTML.html_escape(value)}\"#{selected_attr}>#{HTML.html_escape(label)}</option>"
         end)
-        |> Enum.join("")
 
       HTML.raw("""
       <select id="#{field_id}" name="#{field_name}" class="#{opts[:class]}">
@@ -329,14 +328,13 @@ defmodule AshPhoenixTranslations.Helpers do
       locales = opts[:locales] || Map.keys(translations) || [:en, :es, :fr]
 
       badges =
-        Enum.map(locales, fn locale ->
+        Enum.map_join(locales, "", fn locale ->
           translated = Map.get(translations, locale)
           status = if translated && translated != "", do: "complete", else: "missing"
           icon = if status == "complete", do: "✓", else: "✗"
 
           "<span class=\"badge badge-#{status}\">#{String.upcase(to_string(locale))} #{icon}</span>"
         end)
-        |> Enum.join("")
 
       HTML.raw("<div class=\"translation-status\">#{badges}</div>")
     else
@@ -344,12 +342,11 @@ defmodule AshPhoenixTranslations.Helpers do
       translations = all_translations(resource, field)
       locales = opts[:locales] || Map.keys(translations) || [:en, :es, :fr]
 
-      Enum.map(locales, fn locale ->
+      Enum.map_join(locales, " ", fn locale ->
         translated = Map.get(translations, locale)
         status = if translated && translated != "", do: "✓", else: "✗"
         "[#{String.upcase(to_string(locale))} #{status}]"
       end)
-      |> Enum.join(" ")
     end
   end
 
@@ -364,14 +361,13 @@ defmodule AshPhoenixTranslations.Helpers do
       locales = AshPhoenixTranslations.Info.supported_locales(resource_module)
 
       items =
-        Enum.map(locales, fn locale ->
+        Enum.map_join(locales, "", fn locale ->
           locale_str = to_string(locale)
           active = locale_str == current
           class = if active, do: "active", else: ""
 
           "<li class=\"#{class}\"><a href=\"#{locale_url(conn, locale_str)}\" data-locale=\"#{locale_str}\">#{HTML.html_escape(locale_name(locale))}</a></li>"
         end)
-        |> Enum.join("")
 
       HTML.raw("<ul class=\"#{opts[:class] || "language-switcher"}\">#{items}</ul>")
     else
@@ -447,7 +443,7 @@ defmodule AshPhoenixTranslations.Helpers do
   def locale_name(locale) do
     locale_names()[locale] ||
       locale_names()[to_string(locale)] ||
-      to_string(locale) |> String.upcase()
+      (locale |> to_string() |> String.upcase())
   end
 
   # Private helpers

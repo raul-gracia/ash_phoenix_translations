@@ -104,6 +104,11 @@ defmodule AshPhoenixTranslations.Graphql do
       end
   """
   defmodule LocaleMiddleware do
+    @moduledoc """
+    Absinthe middleware for handling locale resolution in GraphQL queries.
+
+    Extracts locale from the GraphQL context and applies it to the resolution.
+    """
     if Code.ensure_loaded?(Absinthe.Middleware) do
       @behaviour Absinthe.Middleware
     end
