@@ -93,7 +93,8 @@
       "Bash(MIX_ENV=test mix docs)",
       "Bash(rm:*)",
       "Bash(MIX_ENV=test mix deps.get)",
-      "Bash(timeout 5 mix test test/embedded_test.exs)"
+      "Bash(timeout 5 mix test test/embedded_test.exs)",
+      "Bash(timeout 10 mix test)"
     ],
     "deny": [],
     "ask": []
