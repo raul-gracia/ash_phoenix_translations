@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Compilation warnings for unused variables
 - Removed undefined function warnings for optional dependencies
+- CI pipeline issues including deps.audit task removal
+- Credo configuration to suppress module dependency warnings
+- Sobelow security analysis configuration with proper ignore rules
+- Test compilation errors with proper domain configuration
+- Documentation generation by adding ex_doc to test environment
+- Added missing documentation guide files (import_export.md, liveview.md)
+- Added missing LICENSE file for MIT licensing
 
 ## [1.0.0] - 2024-09-01
 

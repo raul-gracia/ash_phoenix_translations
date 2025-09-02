@@ -62,7 +62,7 @@ defmodule AshPhoenixTranslations.MixProject do
       {:csv, "~> 3.0"},
 
       # Development and test dependencies
-      {:ex_doc, "~> 0.29", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.29", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.14", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
@@ -93,10 +93,13 @@ defmodule AshPhoenixTranslations.MixProject do
       extras: [
         "README.md",
         "CHANGELOG.md",
+        "LICENSE",
         "guides/getting_started.md",
         "guides/backends.md",
         "guides/phoenix_integration.md",
-        "guides/policies.md"
+        "guides/policies.md",
+        "guides/import_export.md",
+        "guides/liveview.md"
       ],
       groups_for_modules: [
         Core: [
