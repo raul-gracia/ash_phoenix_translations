@@ -169,7 +169,7 @@ defmodule AshPhoenixTranslations.Graphql do
   """
   def translation_input_type(resource, field) do
     %{
-      name: :"#{resource.__resource__}_#{field}_translation_input",
+      name: :"#{resource.__resource__()}_#{field}_translation_input",
       description: "Translation input for #{field}",
       fields: %{
         locale: %{
