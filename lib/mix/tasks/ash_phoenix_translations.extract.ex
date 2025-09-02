@@ -375,6 +375,7 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Extract do
   defp format_pot_entry(entry) do
     comment_lines = Enum.map(entry.comments, &"# #{&1}")
     location_lines = Enum.map(entry.locations, &"#: #{&1}")
+
     flag_lines =
       if entry.flags != [] do
         ["#, " <> Enum.join(entry.flags, ", ")]
@@ -389,9 +390,9 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Extract do
 
     lines =
       comment_lines ++
-      location_lines ++
-      flag_lines ++
-      msg_lines
+        location_lines ++
+        flag_lines ++
+        msg_lines
 
     Enum.join(lines, "\n") <> "\n"
   end

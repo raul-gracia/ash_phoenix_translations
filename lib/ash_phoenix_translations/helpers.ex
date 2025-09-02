@@ -443,7 +443,7 @@ defmodule AshPhoenixTranslations.Helpers do
   def locale_name(locale) do
     locale_names()[locale] ||
       locale_names()[to_string(locale)] ||
-      (locale |> to_string() |> String.upcase())
+      locale |> to_string() |> String.upcase()
   end
 
   # Private helpers
