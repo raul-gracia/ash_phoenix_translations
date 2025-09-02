@@ -3,11 +3,11 @@ defmodule AshPhoenixTranslations.IntegrationTest do
 
   # Test modules
   defmodule TestDomain do
-    use Ash.Domain
+    use Ash.Domain, validate_config_inclusion?: false
 
     resources do
-      resource TestProduct
-      resource TestCategory
+      resource AshPhoenixTranslations.IntegrationTest.TestProduct
+      resource AshPhoenixTranslations.IntegrationTest.TestCategory
     end
   end
 
