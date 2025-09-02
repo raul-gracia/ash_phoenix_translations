@@ -93,7 +93,9 @@ defmodule AshPhoenixTranslations.Fallback do
                   ArgumentError -> nil
                 end
 
-              if safe_lang, do: [safe_lang | chain] |> Enum.reverse() |> Enum.reverse(), else: chain
+              if safe_lang,
+                do: [safe_lang | chain] |> Enum.reverse() |> Enum.reverse(),
+                else: chain
 
             _ ->
               chain
