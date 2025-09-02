@@ -102,11 +102,18 @@ defmodule AshPhoenixTranslations.Embedded do
       iex> translated.address.street
       "Calle Principal"
   """
-  def translate_embedded(resource, locale \\ :en) do
+  def translate_embedded(resource, locale \\ :en)
+
+  def translate_embedded(resource, locale) when is_struct(resource) do
     resource
     |> Map.from_struct()
     |> translate_map(resource.__struct__, locale)
     |> then(&struct(resource.__struct__, &1))
+  end
+
+  def translate_embedded(resource, _locale) do
+    # For non-structs, return as-is
+    resource
   end
 
   @doc """
@@ -134,8 +141,9 @@ defmodule AshPhoenixTranslations.Embedded do
   def update_embedded_translation(resource, path, locale, value) do
     with {:ok, updated_data} <- update_nested_translation(resource, path, locale, value) do
       resource
-      |> Ash.Changeset.for_update(:update)
+      |> Ash.Changeset.new()
       |> Ash.Changeset.change_attributes(updated_data)
+      |> Ash.Changeset.for_update(:update)
       |> Ash.update()
     end
   end
@@ -176,9 +184,14 @@ defmodule AshPhoenixTranslations.Embedded do
       case resource_or_module do
         %{__struct__: mod} -> mod
         mod when is_atom(mod) -> mod
+        _ -> nil
       end
 
-    extract_paths_recursive(module, [])
+    if module do
+      extract_paths_recursive(module, [])
+    else
+      []
+    end
   end
 
   @doc """
@@ -226,7 +239,7 @@ defmodule AshPhoenixTranslations.Embedded do
     %{
       total_paths: length(paths),
       complete_paths: Enum.count(stats, fn {_, pct} -> pct == 100 end),
-      incomplete_paths: Enum.filter(stats, fn {_, pct} -> pct < 100 end),
+      incomplete_paths: Enum.count(stats, fn {_, pct} -> pct < 100 end),
       average_completeness: average_completeness(stats)
     }
   end
@@ -373,21 +386,30 @@ defmodule AshPhoenixTranslations.Embedded do
     # Navigate deeper into embedded structure
     embedded = Map.get(resource, head)
 
-    case update_nested_translation(embedded, rest, locale, value) do
-      {:ok, updated_embedded} ->
-        {:ok, %{head => updated_embedded}}
+    if is_nil(embedded) do
+      {:error, "Invalid path: #{inspect([head | rest])}"}
+    else
+      case update_nested_translation(embedded, rest, locale, value) do
+        {:ok, updated_embedded} ->
+          {:ok, %{head => updated_embedded}}
 
-      error ->
-        error
+        error ->
+          error
+      end
     end
   end
 
   defp collect_embedded_validation_errors(resource, required_locales) do
     paths = extract_translatable_paths(resource)
 
-    Enum.flat_map(paths, fn path ->
-      validate_path_translations(resource, path, required_locales)
-    end)
+    if Enum.empty?(paths) do
+      # No translatable paths found, return no errors
+      []
+    else
+      Enum.flat_map(paths, fn path ->
+        validate_path_translations(resource, path, required_locales)
+      end)
+    end
   end
 
   defp validate_path_translations(resource, path, required_locales) do
@@ -436,8 +458,14 @@ defmodule AshPhoenixTranslations.Embedded do
   end
 
   defp get_translatable_attributes(module) do
-    if function_exported?(module, :__translatable_attributes__, 0) do
-      module.__translatable_attributes__()
+    # Try to get translatable attributes from AshPhoenixTranslations Info
+    if function_exported?(module, :spark_dsl_config, 0) do
+      try do
+        AshPhoenixTranslations.Info.translatable_attributes(module)
+        |> Enum.map(& &1.name)
+      rescue
+        _ -> []
+      end
     else
       []
     end
@@ -446,14 +474,35 @@ defmodule AshPhoenixTranslations.Embedded do
   end
 
   defp get_embedded_attributes(module) do
-    if function_exported?(module, :__embedded_schemas__, 0) do
-      module.__embedded_schemas__()
+    # Get embedded attributes from Ash resource attributes
+    if function_exported?(module, :__ash_attributes__, 0) do
+      module.__ash_attributes__()
+      |> Enum.filter(fn attr ->
+        # Check if attribute is an embedded type
+        case attr.type do
+          {:array, mod} when is_atom(mod) -> is_embedded_resource?(mod)
+          mod when is_atom(mod) -> is_embedded_resource?(mod)
+          _ -> false
+        end
+      end)
+      |> Enum.map(fn attr ->
+        {attr.name, extract_embedded_module(attr.type)}
+      end)
     else
       []
     end
   rescue
     _ -> []
   end
+
+  defp is_embedded_resource?(module) do
+    Code.ensure_loaded?(module) && function_exported?(module, :spark_dsl_config, 0)
+  rescue
+    _ -> false
+  end
+
+  defp extract_embedded_module({:array, mod}), do: mod
+  defp extract_embedded_module(mod), do: mod
 
   defp apply_path_translations(resource, path, locale_values) do
     Enum.reduce_while(locale_values, {:ok, resource}, fn {locale, value}, {:ok, res} ->

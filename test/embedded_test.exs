@@ -3,20 +3,8 @@ defmodule AshPhoenixTranslations.EmbeddedTest do
 
   alias AshPhoenixTranslations.Embedded
 
-  defmodule TestDomain do
-    use Ash.Domain
-
-    resources do
-      resource Address
-      resource ProductFeature
-      resource User
-      resource Product
-    end
-  end
-
   defmodule Address do
     use Ash.Resource,
-      domain: TestDomain,
       data_layer: :embedded,
       extensions: [AshPhoenixTranslations]
 
@@ -34,7 +22,6 @@ defmodule AshPhoenixTranslations.EmbeddedTest do
 
   defmodule ProductFeature do
     use Ash.Resource,
-      domain: TestDomain,
       data_layer: :embedded,
       extensions: [AshPhoenixTranslations]
 
@@ -49,11 +36,21 @@ defmodule AshPhoenixTranslations.EmbeddedTest do
     end
   end
 
+  defmodule TestDomain do
+    use Ash.Domain, validate_config_inclusion?: false
+
+    resources do
+      resource User
+      resource Product
+    end
+  end
+
   defmodule User do
     use Ash.Resource,
       domain: TestDomain,
       data_layer: Ash.DataLayer.Ets,
-      extensions: [AshPhoenixTranslations]
+      extensions: [AshPhoenixTranslations],
+      validate_domain_inclusion?: false
 
     attributes do
       uuid_primary_key :id
@@ -64,13 +61,18 @@ defmodule AshPhoenixTranslations.EmbeddedTest do
     translations do
       translatable_attribute :name, :string, locales: [:en, :es, :fr]
     end
+
+    actions do
+      defaults [:create, :read, :update, :destroy]
+    end
   end
 
   defmodule Product do
     use Ash.Resource,
       domain: TestDomain,
       data_layer: Ash.DataLayer.Ets,
-      extensions: [AshPhoenixTranslations]
+      extensions: [AshPhoenixTranslations],
+      validate_domain_inclusion?: false
 
     attributes do
       uuid_primary_key :id
@@ -80,6 +82,10 @@ defmodule AshPhoenixTranslations.EmbeddedTest do
 
     translations do
       translatable_attribute :name, :string, locales: [:en, :es, :fr]
+    end
+
+    actions do
+      defaults [:create, :read, :update, :destroy]
     end
   end
 
