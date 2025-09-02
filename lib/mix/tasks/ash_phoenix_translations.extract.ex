@@ -95,6 +95,14 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Extract do
 
   @impl Mix.Task
   def run(args) do
+    opts = parse_options(args)
+    setup_environment()
+
+    config = build_config(opts)
+    process_extraction(config, opts)
+  end
+
+  defp parse_options(args) do
     {opts, _} =
       OptionParser.parse!(args,
         strict: [
@@ -108,19 +116,41 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Extract do
         ]
       )
 
+    opts
+  end
+
+  defp setup_environment do
     Mix.Task.run("compile")
     Mix.Task.run("loadpaths")
+  end
 
-    output_dir = opts[:output] || @default_output
-    verbose = opts[:verbose] || false
-    format = String.to_atom(opts[:format] || "pot")
+  defp build_config(opts) do
+    %{
+      output_dir: opts[:output] || @default_output,
+      verbose: opts[:verbose] || false,
+      format: String.to_atom(opts[:format] || "pot")
+    }
+  end
 
-    if verbose do
-      Mix.shell().info("Starting translation extraction...")
-      Mix.shell().info("Output directory: #{output_dir}")
-    end
+  defp process_extraction(config, opts) do
+    log_start(config)
 
-    # Get resources to extract from
+    resources = fetch_and_validate_resources(opts, config)
+    strings = extract_and_log_strings(resources, config)
+
+    generate_output_files(strings, config, opts)
+
+    log_completion(opts)
+  end
+
+  defp log_start(%{verbose: true} = config) do
+    Mix.shell().info("Starting translation extraction...")
+    Mix.shell().info("Output directory: #{config.output_dir}")
+  end
+
+  defp log_start(_config), do: :ok
+
+  defp fetch_and_validate_resources(opts, config) do
     resources = get_resources(opts)
 
     if Enum.empty?(resources) do
@@ -128,34 +158,42 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Extract do
       exit(1)
     end
 
-    if verbose do
+    if config.verbose do
       Mix.shell().info("Found #{length(resources)} resources with translations")
     end
 
-    # Extract translatable strings
-    strings = extract_strings(resources, verbose)
+    resources
+  end
 
-    if verbose do
+  defp extract_and_log_strings(resources, config) do
+    strings = extract_strings(resources, config.verbose)
+
+    if config.verbose do
       Mix.shell().info("Extracted #{map_size(strings)} unique strings")
     end
 
-    # Generate POT files
-    case format do
+    strings
+  end
+
+  defp generate_output_files(strings, config, opts) do
+    case config.format do
       :pot ->
-        generate_pot_files(strings, output_dir, opts)
+        generate_pot_files(strings, config.output_dir, opts)
 
       :po ->
-        generate_po_files(strings, output_dir, opts)
+        generate_po_files(strings, config.output_dir, opts)
 
       :both ->
-        generate_pot_files(strings, output_dir, opts)
-        generate_po_files(strings, output_dir, opts)
+        generate_pot_files(strings, config.output_dir, opts)
+        generate_po_files(strings, config.output_dir, opts)
 
       _ ->
-        Mix.shell().error("Invalid format: #{format}. Use pot, po, or both")
+        Mix.shell().error("Invalid format: #{config.format}. Use pot, po, or both")
         exit(1)
     end
+  end
 
+  defp log_completion(opts) do
     Mix.shell().info("✓ Extraction complete")
 
     if opts[:locales] do
@@ -216,37 +254,40 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Extract do
     translatable_attrs = AshPhoenixTranslations.Info.translatable_attributes(resource)
     resource_name = resource |> Module.split() |> List.last() |> Macro.underscore()
 
-    Enum.reduce(translatable_attrs, %{}, fn attr, acc ->
-      # Generate msgid for attribute name
-      name_msgid = "#{resource_name}.#{attr.name}"
+    base_strings =
+      Enum.reduce(translatable_attrs, %{}, fn attr, acc ->
+        # Generate msgid for attribute name
+        name_msgid = "#{resource_name}.#{attr.name}"
 
-      name_entry = %{
-        msgid: name_msgid,
-        msgstr: "",
-        comments: ["Attribute name for #{resource}.#{attr.name}"],
-        locations: ["#{resource}:#{attr.name}"],
-        flags: []
-      }
-
-      acc = Map.put(acc, name_msgid, name_entry)
-
-      # Generate msgid for attribute description if present
-      if attr[:description] do
-        desc_msgid = "#{resource_name}.#{attr.name}.description"
-
-        desc_entry = %{
-          msgid: desc_msgid,
+        name_entry = %{
+          msgid: name_msgid,
           msgstr: "",
-          comments: ["Description for #{resource}.#{attr.name}"],
+          comments: ["Attribute name for #{resource}.#{attr.name}"],
           locations: ["#{resource}:#{attr.name}"],
           flags: []
         }
 
-        Map.put(acc, desc_msgid, desc_entry)
-      else
-        acc
-      end
-    end)
+        acc = Map.put(acc, name_msgid, name_entry)
+
+        # Generate msgid for attribute description if present
+        if attr[:description] do
+          desc_msgid = "#{resource_name}.#{attr.name}.description"
+
+          desc_entry = %{
+            msgid: desc_msgid,
+            msgstr: "",
+            comments: ["Description for #{resource}.#{attr.name}"],
+            locations: ["#{resource}:#{attr.name}"],
+            flags: []
+          }
+
+          Map.put(acc, desc_msgid, desc_entry)
+        else
+          acc
+        end
+      end)
+
+    base_strings
     |> extract_validation_messages(resource)
     |> extract_error_messages(resource)
     |> extract_action_descriptions(resource)
@@ -326,36 +367,31 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Extract do
       strings
       |> Map.values()
       |> Enum.sort_by(& &1.msgid)
-      |> Enum.map(&format_pot_entry/1)
-      |> Enum.join("\n")
+      |> Enum.map_join("\n", &format_pot_entry/1)
 
     @pot_header <> entries
   end
 
   defp format_pot_entry(entry) do
-    lines = []
-
-    # Add comments
-    lines = lines ++ Enum.map(entry.comments, &"# #{&1}")
-
-    # Add locations
-    lines = lines ++ Enum.map(entry.locations, &"#: #{&1}")
-
-    # Add flags
-    lines =
+    comment_lines = Enum.map(entry.comments, &"# #{&1}")
+    location_lines = Enum.map(entry.locations, &"#: #{&1}")
+    flag_lines =
       if entry.flags != [] do
-        lines ++ ["#, " <> Enum.join(entry.flags, ", ")]
+        ["#, " <> Enum.join(entry.flags, ", ")]
       else
-        lines
+        []
       end
 
-    # Add msgid and msgstr
+    msg_lines = [
+      ~s(msgid "#{escape_string(entry.msgid)}"),
+      ~s(msgstr "#{escape_string(entry.msgstr)}")
+    ]
+
     lines =
-      lines ++
-        [
-          ~s(msgid "#{escape_string(entry.msgid)}"),
-          ~s(msgstr "#{escape_string(entry.msgstr)}")
-        ]
+      comment_lines ++
+      location_lines ++
+      flag_lines ++
+      msg_lines
 
     Enum.join(lines, "\n") <> "\n"
   end
@@ -408,7 +444,7 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Extract do
       strings
       |> Map.values()
       |> Enum.sort_by(& &1.msgid)
-      |> Enum.map(fn entry ->
+      |> Enum.map_join("\n", fn entry ->
         # For PO files, we might have existing translations
         entry_with_translation =
           if opts[:merge] do
@@ -420,7 +456,6 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Extract do
 
         format_pot_entry(entry_with_translation)
       end)
-      |> Enum.join("\n")
 
     header <> entries
   end

@@ -51,11 +51,11 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest do
     # test "adds translation aggregates" do
     #   aggregates = Ash.Resource.Info.aggregates(AuditProduct)
     #   aggregate_names = Enum.map(aggregates, & &1.name)
-    #   
+    #
     #   # Should have translation count aggregate
     #   assert :translation_count in aggregate_names
-    #   
-    #   # Should have last_translated_at aggregate  
+    #
+    #   # Should have last_translated_at aggregate
     #   assert :last_translated_at in aggregate_names
     # end
 
@@ -114,7 +114,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest do
     # test "does not add translation aggregates" do
     #   aggregates = Ash.Resource.Info.aggregates(NoAuditProduct)
     #   aggregate_names = Enum.map(aggregates, & &1.name)
-    #   
+    #
     #   # Should NOT have translation aggregates
     #   refute :translation_count in aggregate_names
     #   refute :last_translated_at in aggregate_names
