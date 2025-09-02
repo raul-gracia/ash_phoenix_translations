@@ -45,8 +45,8 @@ defmodule AshPhoenixTranslations.EmbeddedTest do
     use Ash.Domain, validate_config_inclusion?: false
 
     resources do
-      resource User
-      resource Product
+      resource AshPhoenixTranslations.EmbeddedTest.User
+      resource AshPhoenixTranslations.EmbeddedTest.Product
     end
   end
 
