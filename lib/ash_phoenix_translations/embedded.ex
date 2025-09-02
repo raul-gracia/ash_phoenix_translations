@@ -240,8 +240,8 @@ defmodule AshPhoenixTranslations.Embedded do
     embedded_attrs =
       Enum.filter(attributes, fn attr ->
         case attr.type do
-          {:array, type} -> is_embedded_type?(type)
-          type -> is_embedded_type?(type)
+          {:array, type} -> embedded_type?(type)
+          type -> embedded_type?(type)
         end
       end)
 
@@ -254,13 +254,13 @@ defmodule AshPhoenixTranslations.Embedded do
     )
   end
 
-  defp is_embedded_type?(type) when is_atom(type) do
+  defp embedded_type?(type) when is_atom(type) do
     Code.ensure_loaded?(type) && function_exported?(type, :__schema__, 1)
   rescue
     _ -> false
   end
 
-  defp is_embedded_type?(_), do: false
+  defp embedded_type?(_), do: false
 
   defp add_embedded_translation_storage(dsl_state) do
     spark_extension = Spark.Dsl.Extension
@@ -319,7 +319,7 @@ defmodule AshPhoenixTranslations.Embedded do
         key in translatable_attrs ->
           Map.put(acc, key, translate_value(value, locale))
 
-        is_embedded_value?(value) ->
+        embedded_value?(value) ->
           Map.put(acc, key, translate_embedded_value(value, locale))
 
         true ->
@@ -334,15 +334,15 @@ defmodule AshPhoenixTranslations.Embedded do
 
   defp translate_value(value, _locale), do: value
 
-  defp is_embedded_value?(value) when is_map(value) do
+  defp embedded_value?(value) when is_map(value) do
     Map.has_key?(value, :__struct__)
   end
 
-  defp is_embedded_value?(value) when is_list(value) do
-    Enum.all?(value, &is_embedded_value?/1)
+  defp embedded_value?(value) when is_list(value) do
+    Enum.all?(value, &embedded_value?/1)
   end
 
-  defp is_embedded_value?(_), do: false
+  defp embedded_value?(_), do: false
 
   defp translate_embedded_value(%{__struct__: _schema} = embedded, locale) do
     translate_embedded(embedded, locale)
@@ -419,14 +419,14 @@ defmodule AshPhoenixTranslations.Embedded do
 
       direct_paths =
         Enum.map(translatable_attrs, fn attr ->
-          parent_path ++ [attr]
+          [attr | parent_path] |> Enum.reverse()
         end)
 
       embedded_paths =
         module
         |> get_embedded_attributes()
         |> Enum.flat_map(fn {field, embedded_module} ->
-          extract_paths_recursive(embedded_module, parent_path ++ [field])
+          extract_paths_recursive(embedded_module, [field | parent_path] |> Enum.reverse())
         end)
 
       direct_paths ++ embedded_paths

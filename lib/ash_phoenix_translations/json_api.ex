@@ -67,6 +67,12 @@ defmodule AshPhoenixTranslations.JsonApi do
       plug AshPhoenixTranslations.JsonApi.LocalePlug
   """
   defmodule LocalePlug do
+    @moduledoc """
+    Plug for extracting and setting locale from JSON:API requests.
+
+    Extracts locale from query parameters or Accept-Language header
+    and sets it in the connection assigns for use by the API.
+    """
     import Plug.Conn
 
     def init(opts), do: opts
@@ -113,13 +119,13 @@ defmodule AshPhoenixTranslations.JsonApi do
     defp parse_language_tag(tag) do
       case String.split(tag, ";") do
         [lang] ->
-          {String.trim(lang) |> String.split("-") |> List.first() |> String.to_atom(), 1.0}
+          parsed_lang = lang |> String.trim() |> String.split("-") |> List.first() |> String.to_atom()
+          {parsed_lang, 1.0}
 
         [lang, "q=" <> quality] ->
           quality_value = String.to_float(quality)
-
-          {String.trim(lang) |> String.split("-") |> List.first() |> String.to_atom(),
-           quality_value}
+          parsed_lang = lang |> String.trim() |> String.split("-") |> List.first() |> String.to_atom()
+          {parsed_lang, quality_value}
       end
     end
 
@@ -325,8 +331,9 @@ defmodule AshPhoenixTranslations.JsonApi do
           String.to_existing_atom(k)
         rescue
           ArgumentError ->
-            raise ArgumentError,
-                  "Invalid key: #{inspect(k)}. Only predefined keys are allowed in translation updates."
+            reraise ArgumentError,
+                    "Invalid key: #{inspect(k)}. Only predefined keys are allowed in translation updates.",
+                    __STACKTRACE__
         end
 
       {atom_key, v}

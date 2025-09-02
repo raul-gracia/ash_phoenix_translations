@@ -146,71 +146,80 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Export do
   end
 
   defp fetch_translations(resource, filters) do
-    # Get all resource instances first
     {:ok, resources} = Ash.read(resource)
 
-    # If no resources, return empty
     if Enum.empty?(resources) do
       []
     else
-      # Get the first record to inspect available translation fields
       first_record = List.first(resources)
-
-      # Find all translation storage fields (fields ending with _translations)
-      translation_fields =
-        first_record
-        |> Map.keys()
-        |> Enum.filter(fn key ->
-          # Make sure it's not an _all_translations field (those are calculations)
-          # Make sure the value is a map (actual translation data)
-          key != :__struct__ &&
-            key != :__meta__ &&
-            String.ends_with?(to_string(key), "_translations") &&
-            !String.ends_with?(to_string(key), "_all_translations") &&
-            is_map(Map.get(first_record, key))
-        end)
-
-      # Extract translations from all records
-      translations =
-        for record <- resources,
-            storage_field <- translation_fields,
-            {locale, value} <- Map.get(record, storage_field, %{}) do
-          field =
-            storage_field
-            |> to_string()
-            |> String.replace_suffix("_translations", "")
-            |> String.to_atom()
-
-          # Apply filters
-          cond do
-            # Skip if field filter is applied
-            filters[:fields] && field not in filters[:fields] ->
-              nil
-
-            # Skip if locale filter is applied  
-            filters[:locales] && locale not in filters[:locales] ->
-              nil
-
-            # Apply missing/complete filters
-            filters[:missing_only] && value != nil && value != "" ->
-              nil
-
-            filters[:complete_only] && (value == nil || value == "") ->
-              nil
-
-            true ->
-              %{
-                resource_id: record.id,
-                field: field,
-                locale: locale,
-                value: value || ""
-              }
-          end
-        end
-        |> Enum.reject(&is_nil/1)
-
-      translations
+      translation_fields = get_translation_fields(first_record)
+      extract_all_translations(resources, translation_fields, filters)
     end
+  end
+
+  defp get_translation_fields(record) do
+    record
+    |> Map.keys()
+    |> Enum.filter(&translation_field?(&1, record))
+  end
+
+  defp translation_field?(key, record) do
+    key != :__struct__ &&
+      key != :__meta__ &&
+      String.ends_with?(to_string(key), "_translations") &&
+      !String.ends_with?(to_string(key), "_all_translations") &&
+      is_map(Map.get(record, key))
+  end
+
+  defp extract_all_translations(resources, translation_fields, filters) do
+    for record <- resources,
+        storage_field <- translation_fields,
+        {locale, value} <- Map.get(record, storage_field, %{}),
+        translation = build_translation(record, storage_field, locale, value, filters),
+        translation != nil do
+      translation
+    end
+  end
+
+  defp build_translation(record, storage_field, locale, value, filters) do
+    field = extract_field_name(storage_field)
+
+    if should_include_translation?(field, locale, value, filters) do
+      %{
+        resource_id: record.id,
+        field: field,
+        locale: locale,
+        value: value || ""
+      }
+    else
+      nil
+    end
+  end
+
+  defp extract_field_name(storage_field) do
+    storage_field
+    |> to_string()
+    |> String.replace_suffix("_translations", "")
+    |> String.to_atom()
+  end
+
+  defp should_include_translation?(field, locale, value, filters) do
+    !field_filtered?(field, filters) &&
+      !locale_filtered?(locale, filters) &&
+      !value_filtered?(value, filters)
+  end
+
+  defp field_filtered?(field, filters) do
+    filters[:fields] && field not in filters[:fields]
+  end
+
+  defp locale_filtered?(locale, filters) do
+    filters[:locales] && locale not in filters[:locales]
+  end
+
+  defp value_filtered?(value, filters) do
+    (filters[:missing_only] && value != nil && value != "") ||
+      (filters[:complete_only] && (value == nil || value == ""))
   end
 
   defp write_file(path, "csv", translations) do
@@ -236,8 +245,8 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Export do
 
     # Write data
     Enum.each(csv_data, fn row ->
-      escaped_row = Enum.map(row, &escape_csv_field/1)
-      IO.write(file, Enum.join(escaped_row, ",") <> "\n")
+      escaped_row = Enum.map_join(row, ",", &escape_csv_field/1)
+      IO.write(file, escaped_row <> "\n")
     end)
 
     File.close(file)
@@ -275,7 +284,7 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Export do
     xliff = """
     <?xml version="1.0" encoding="UTF-8"?>
     <xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
-    #{Enum.map(grouped, fn {locale, trans} -> format_xliff_file(locale, trans) end) |> Enum.join("\n")}
+    #{Enum.map_join(grouped, "\n", fn {locale, trans} -> format_xliff_file(locale, trans) end)}
     </xliff>
     """
 
@@ -298,7 +307,7 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Export do
     """
       <file source-language="en" target-language="#{locale}" datatype="plaintext">
         <body>
-    #{Enum.map(translations, &format_xliff_unit/1) |> Enum.join("\n")}
+    #{Enum.map_join(translations, "\n", &format_xliff_unit/1)}
         </body>
       </file>
     """

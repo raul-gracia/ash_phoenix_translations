@@ -165,7 +165,8 @@ defmodule AshPhoenixTranslations.Controller do
   def locale_switcher(conn, resource) do
     current_locale = get_locale(conn)
 
-    available_locales(resource)
+    resource
+    |> available_locales()
     |> Enum.map(fn locale ->
       %{
         code: to_string(locale),
@@ -204,13 +205,12 @@ defmodule AshPhoenixTranslations.Controller do
   defp to_atom(value) when is_atom(value), do: value
 
   defp to_atom(value) when is_binary(value) do
-    try do
-      String.to_existing_atom(value)
-    rescue
-      ArgumentError ->
-        raise ArgumentError,
-              "Invalid locale atom: #{inspect(value)}. Only predefined locales are allowed."
-    end
+    String.to_existing_atom(value)
+  rescue
+    ArgumentError ->
+      reraise ArgumentError,
+              "Invalid locale atom: #{inspect(value)}. Only predefined locales are allowed.",
+              __STACKTRACE__
   end
 
   defp locale_name(locale) do

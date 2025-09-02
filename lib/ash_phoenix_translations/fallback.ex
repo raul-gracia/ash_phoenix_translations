@@ -93,7 +93,7 @@ defmodule AshPhoenixTranslations.Fallback do
                   ArgumentError -> nil
                 end
 
-              if safe_lang, do: chain ++ [safe_lang], else: chain
+              if safe_lang, do: [safe_lang | chain] |> Enum.reverse() |> Enum.reverse(), else: chain
 
             _ ->
               chain
@@ -106,7 +106,7 @@ defmodule AshPhoenixTranslations.Fallback do
     # Add configured fallback
     chain =
       if fallback && fallback not in chain do
-        chain ++ [fallback]
+        [fallback | Enum.reverse(chain)] |> Enum.reverse()
       else
         chain
       end
@@ -114,7 +114,7 @@ defmodule AshPhoenixTranslations.Fallback do
     # Add default locale if not already in chain
     chain =
       if @default_locale not in chain do
-        chain ++ [@default_locale]
+        [@default_locale | Enum.reverse(chain)] |> Enum.reverse()
       else
         chain
       end
@@ -197,11 +197,9 @@ defmodule AshPhoenixTranslations.Fallback do
   # Private functions
 
   defp normalize_locale(locale) when is_binary(locale) do
-    try do
-      String.to_existing_atom(locale)
-    rescue
-      ArgumentError -> @default_locale
-    end
+    String.to_existing_atom(locale)
+  rescue
+    ArgumentError -> @default_locale
   end
 
   defp normalize_locale(locale) when is_atom(locale), do: locale

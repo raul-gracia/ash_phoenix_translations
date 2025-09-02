@@ -9,8 +9,9 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActions do
   """
 
   use Spark.Dsl.Transformer
-  alias Spark.Dsl.Transformer
+
   alias Ash.Resource.Builder
+  alias Spark.Dsl.Transformer
 
   @impl true
   def after?(AshPhoenixTranslations.Transformers.AddTranslationRelationships), do: true
@@ -125,7 +126,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActions do
   end
 
   defp get_translatable_attributes(dsl_state) do
-    Transformer.get_entities(dsl_state, [:translations])
+    dsl_state
+    |> Transformer.get_entities([:translations])
     |> Enum.filter(&is_struct(&1, AshPhoenixTranslations.TranslatableAttribute))
   end
 end

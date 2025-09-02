@@ -111,7 +111,7 @@ defmodule AshPhoenixTranslations.Changes.ImportTranslations do
     # 1. Generate or update PO files
     # 2. Compile the translations
     # 3. Reload the Gettext backend
-    # 
+    #
     # This is a placeholder - actual implementation would depend on
     # the specific Gettext setup
     changeset

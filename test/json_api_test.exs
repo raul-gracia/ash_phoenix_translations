@@ -35,7 +35,8 @@ defmodule AshPhoenixTranslations.JsonApiTest do
   describe "LocalePlug" do
     test "extracts locale from query parameter" do
       conn =
-        Plug.Test.conn(:get, "/?locale=es")
+        :get
+        |> Plug.Test.conn("/?locale=es")
         |> Plug.Conn.fetch_query_params()
 
       conn = JsonApi.LocalePlug.call(conn, [])
@@ -46,7 +47,8 @@ defmodule AshPhoenixTranslations.JsonApiTest do
 
     test "extracts locale from Accept-Language header" do
       conn =
-        Plug.Test.conn(:get, "/")
+        :get
+        |> Plug.Test.conn("/")
         |> put_req_header("accept-language", "fr-FR,fr;q=0.9,en;q=0.8")
         |> Plug.Conn.fetch_query_params()
 
@@ -58,7 +60,8 @@ defmodule AshPhoenixTranslations.JsonApiTest do
 
     test "falls back to default locale" do
       conn =
-        Plug.Test.conn(:get, "/")
+        :get
+        |> Plug.Test.conn("/")
         |> Plug.Conn.fetch_query_params()
 
       conn = JsonApi.LocalePlug.call(conn, [])

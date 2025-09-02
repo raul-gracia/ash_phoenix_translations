@@ -148,7 +148,7 @@ defmodule AshPhoenixTranslations.TranslationHistory do
   # Identities are removed since ETS doesn't support native checking
   # In production with SQL backend, add:
   # identities do
-  #   identity :unique_history_entry, 
+  #   identity :unique_history_entry,
   #            [:resource_id, :attribute_name, :locale, :translated_at]
   # end
 end

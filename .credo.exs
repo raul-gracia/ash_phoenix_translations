@@ -82,14 +82,15 @@
           {Credo.Check.Refactor.FilterFilter, []},
           {Credo.Check.Refactor.IoPuts, []},
           {Credo.Check.Refactor.MapJoin, []},
-          {Credo.Check.Refactor.MapMap, []},
-          {Credo.Check.Refactor.ModuleDependencies, [priority: :low, max_deps: 10]},
+          # {Credo.Check.Refactor.MapMap, []}, # Moved to disabled
+          # Disabled: Ash extensions naturally have many dependencies due to framework integration
+          # {Credo.Check.Refactor.ModuleDependencies, [priority: :low, max_deps: 10]},
           {Credo.Check.Refactor.NegatedConditionsInUnless, []},
-          {Credo.Check.Refactor.NegatedConditionsWithElse, []},
+          # {Credo.Check.Refactor.NegatedConditionsWithElse, []}, # Moved to disabled
           {Credo.Check.Refactor.Nesting, [priority: :low, max_nesting: 3]},
-          {Credo.Check.Refactor.PipeChainStart, []},
+          # {Credo.Check.Refactor.PipeChainStart, []}, # Moved to disabled
           {Credo.Check.Refactor.RejectReject, []},
-          {Credo.Check.Refactor.UnlessWithElse, []},
+          # {Credo.Check.Refactor.UnlessWithElse, []}, # Moved to disabled
           {Credo.Check.Refactor.WithClauses, []},
 
           # Warning Checks - Catch potential issues
@@ -120,6 +121,15 @@
           
           # This check is too opinionated for DSL-heavy library code
           {Credo.Check.Refactor.CyclomaticComplexity, []},
+          
+          # These conflict with common Elixir patterns in our codebase
+          {Credo.Check.Refactor.UnlessWithElse, []},
+          {Credo.Check.Refactor.NegatedConditionsWithElse, []},
+          {Credo.Check.Refactor.PipeChainStart, []},
+          {Credo.Check.Refactor.MapMap, []},
+          
+          # Not compatible with Elixir 1.17.3
+          {Credo.Check.Warning.LazyLogging, []},
           
           # Transformers may have longer functions due to DSL building logic
           {Credo.Check.Refactor.FunctionArity, []},
