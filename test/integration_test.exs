@@ -26,7 +26,7 @@ defmodule AshPhoenixTranslations.IntegrationTest do
 
       backend :database
       cache_ttl 3600
-      audit_changes true
+      audit_changes false
     end
 
     attributes do
@@ -86,8 +86,12 @@ defmodule AshPhoenixTranslations.IntegrationTest do
   end
 
   setup do
-    # Start the cache
-    {:ok, _} = AshPhoenixTranslations.Cache.start_link()
+    # Start the cache if not already started
+    case AshPhoenixTranslations.Cache.start_link() do
+      {:ok, _} -> :ok
+      {:error, {:already_started, _}} -> :ok
+    end
+    
     AshPhoenixTranslations.Cache.clear()
 
     :ok
