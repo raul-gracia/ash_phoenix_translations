@@ -4,14 +4,6 @@ defmodule AshPhoenixTranslations.JsonApiTest do
 
   alias AshPhoenixTranslations.JsonApi
 
-  defmodule TestDomain do
-    use Ash.Domain
-
-    resources do
-      resource TestResource
-    end
-  end
-
   defmodule TestResource do
     use Ash.Resource,
       domain: TestDomain,
@@ -29,6 +21,14 @@ defmodule AshPhoenixTranslations.JsonApiTest do
       translatable_attribute :description, :text,
         locales: [:en, :es, :fr],
         fallback: :en
+    end
+  end
+
+  defmodule TestDomain do
+    use Ash.Domain
+
+    resources do
+      resource TestResource
     end
   end
 

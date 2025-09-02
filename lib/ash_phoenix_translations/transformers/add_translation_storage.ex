@@ -78,6 +78,12 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorage do
     {:ok, dsl_state}
   end
 
+  defp add_storage_for_attribute(dsl_state, _attr, :redis) do
+    # Redis doesn't need storage attributes - it uses external storage
+    # Translations are fetched directly from Redis at runtime
+    {:ok, dsl_state}
+  end
+
   defp normalize_field_type(:text), do: :string
   defp normalize_field_type(type), do: type
 
