@@ -233,7 +233,7 @@ jobs:
           echo "Please report any issues or feedback on the [GitHub Issues](https://github.com/${REPO}/issues) page." >> release_notes.md
       
       - name: Create GitHub pre-release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.prepare.outputs.version }}
           name: v${{ needs.prepare.outputs.version }} (${{ github.event.inputs.prerelease_type }})
