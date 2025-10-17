@@ -81,6 +81,9 @@ CREATE INDEX products_description_translations_gin_idx ON products USING gin (de
 
 The Gettext backend integrates with Phoenix's built-in internationalization system using `.po` files.
 
+> **📚 Comprehensive Guide Available**
+> For detailed documentation on message ID patterns, .po file structure, pluralization, and advanced features, see the [Gettext Backend Complete Guide](gettext_backend.md).
+
 ### Configuration
 
 ```elixir
