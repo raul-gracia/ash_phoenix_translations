@@ -73,9 +73,9 @@ defmodule AshPhoenixTranslations do
         describe: "Configure translation behavior for the resource",
         schema: [
           backend: [
-            type: {:in, [:database, :gettext, :redis]},
+            type: {:in, [:database, :gettext]},
             default: :database,
-            doc: "The backend to use for storing translations"
+            doc: "The backend to use for storing translations (database or gettext)"
           ],
           gettext_module: [
             type: :atom,
@@ -257,27 +257,29 @@ defmodule AshPhoenixTranslations do
   end
 
   defp do_translate(resource, locale) do
-    # Get the calculation names directly from the resource
-    resource_info = Ash.Resource.Info
+    resource_module = resource.__struct__
 
+    # Get translatable attributes from the extension
+    translatable_attrs = AshPhoenixTranslations.Info.translatable_attributes(resource_module)
+
+    # For each translatable attribute, there's a calculation with its name
     calculations =
-      resource.__struct__
-      |> resource_info.calculations()
-      |> Enum.filter(fn calc ->
-        # Only load translation-related calculations
-        String.contains?(to_string(calc.name), ["name", "description", "features"]) &&
-          !String.contains?(to_string(calc.name), "_all_translations")
-      end)
+      translatable_attrs
       |> Enum.map(& &1.name)
 
     # Load the calculations with locale context
-    resource
-    |> Ash.load!(calculations, authorize?: false, context: %{locale: locale})
+    if Enum.empty?(calculations) do
+      resource
+    else
+      resource
+      |> Ash.load!(calculations, authorize?: false, context: %{locale: locale})
+    end
   end
 
   defp get_locale(%Plug.Conn{} = conn) do
-    Plug.Conn.get_session(conn, :locale) ||
-      conn.assigns[:locale] ||
+    # Check assigns first (doesn't require fetch_session), then session
+    conn.assigns[:locale] ||
+      (conn.private[:plug_session_fetch] && Plug.Conn.get_session(conn, :locale)) ||
       Application.get_env(:ash_phoenix_translations, :default_locale, :en)
   end
 
@@ -297,5 +299,102 @@ defmodule AshPhoenixTranslations do
         retranslated = do_translate(resource, locale)
         Phoenix.Component.assign(socket, :__translated_resource__, retranslated)
     end
+  end
+
+  @doc """
+  Get a specific translation for a field.
+
+  ## Examples
+
+      product = MyApp.Product.get!(id)
+      spanish_name = AshPhoenixTranslations.translate_field(product, :name, :es)
+  """
+  def translate_field(resource, field, locale) do
+    storage_field = AshPhoenixTranslations.Info.storage_field(field)
+
+    case Map.get(resource, storage_field) do
+      nil -> nil
+      translations when is_map(translations) -> Map.get(translations, locale)
+    end
+  end
+
+  @doc """
+  Get all available locales for a specific field on a resource.
+
+  ## Examples
+
+      product = MyApp.Product.get!(id)
+      locales = AshPhoenixTranslations.available_locales(product, :name)
+      # => [:en, :es, :fr]
+  """
+  def available_locales(resource, field) do
+    storage_field = AshPhoenixTranslations.Info.storage_field(field)
+
+    case Map.get(resource, storage_field) do
+      nil ->
+        []
+
+      translations when is_map(translations) ->
+        translations
+        |> Map.keys()
+        |> Enum.filter(fn locale -> translations[locale] not in [nil, ""] end)
+    end
+  end
+
+  @doc """
+  Calculate translation completeness percentage for a resource.
+
+  Returns a percentage (0.0 to 100.0) representing how many translations
+  are complete across all translatable fields.
+
+  ## Examples
+
+      product = MyApp.Product.get!(id)
+      completeness = AshPhoenixTranslations.translation_completeness(product)
+      # => 75.0  (if 3 out of 4 possible translations are present)
+  """
+  def translation_completeness(resource) do
+    resource_module = resource.__struct__
+    attrs = AshPhoenixTranslations.Info.translatable_attributes(resource_module)
+
+    if Enum.empty?(attrs) do
+      100.0
+    else
+      total_translations =
+        Enum.reduce(attrs, 0, fn attr, acc ->
+          acc + length(attr.locales)
+        end)
+
+      present_translations =
+        Enum.reduce(attrs, 0, fn attr, acc ->
+          storage_field = AshPhoenixTranslations.Info.storage_field(attr.name)
+          translations = Map.get(resource, storage_field, %{})
+
+          present =
+            attr.locales
+            |> Enum.count(fn locale ->
+              case Map.get(translations, locale) do
+                nil -> false
+                "" -> false
+                _ -> true
+              end
+            end)
+
+          acc + present
+        end)
+
+      if total_translations == 0 do
+        100.0
+      else
+        present_translations / total_translations * 100.0
+      end
+    end
+  end
+
+  @doc """
+  Alias for Info.translatable_attributes/1 for convenience.
+  """
+  def translatable_attributes(resource_module) do
+    AshPhoenixTranslations.Info.translatable_attributes(resource_module)
   end
 end

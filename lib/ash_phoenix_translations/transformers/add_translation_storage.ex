@@ -57,6 +57,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorage do
       end)
 
     # Add the storage attribute
+    # Note: Must be public/writable for update_translation action and calculations
     {:ok, dsl_state} =
       Builder.add_new_attribute(
         dsl_state,
@@ -64,8 +65,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorage do
         :map,
         default: %{},
         constraints: [fields: fields],
-        # Hide from public API
-        public?: false,
+        public?: true,
+        writable?: true,
         description: "Translation storage for #{attr.name}"
       )
 
@@ -75,12 +76,6 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorage do
   defp add_storage_for_attribute(dsl_state, _attr, :gettext) do
     # Gettext doesn't need storage attributes - it uses PO files
     # We might add a virtual attribute for caching purposes later
-    {:ok, dsl_state}
-  end
-
-  defp add_storage_for_attribute(dsl_state, _attr, :redis) do
-    # Redis doesn't need storage attributes - it uses external storage
-    # Translations are fetched directly from Redis at runtime
     {:ok, dsl_state}
   end
 

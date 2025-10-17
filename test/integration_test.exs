@@ -52,6 +52,7 @@ defmodule AshPhoenixTranslations.IntegrationTest do
       update :update do
         primary? true
         accept [:sku, :price, :name_translations, :description_translations]
+        require_atomic? false
       end
     end
   end
@@ -81,7 +82,18 @@ defmodule AshPhoenixTranslations.IntegrationTest do
     end
 
     actions do
-      defaults [:create, :read, :update, :destroy]
+      defaults [:read, :destroy]
+
+      create :create do
+        primary? true
+        accept [:slug, :title_translations]
+      end
+
+      update :update do
+        primary? true
+        accept [:slug, :title_translations]
+        require_atomic? false
+      end
     end
   end
 
@@ -91,7 +103,7 @@ defmodule AshPhoenixTranslations.IntegrationTest do
       {:ok, _} -> :ok
       {:error, {:already_started, _}} -> :ok
     end
-    
+
     AshPhoenixTranslations.Cache.clear()
 
     :ok
