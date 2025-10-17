@@ -14,6 +14,9 @@ defmodule AshPhoenixTranslations.LocaleResolver do
   """
 
   import Plug.Conn
+  require Logger
+
+  alias AshPhoenixTranslations.LocaleValidator
 
   @doc """
   Resolves the locale using the specified strategy.
@@ -42,21 +45,67 @@ defmodule AshPhoenixTranslations.LocaleResolver do
   end
 
   def resolve(conn, :param) do
-    conn.params["locale"] || conn.query_params["locale"]
+    locale = conn.params["locale"] || conn.query_params["locale"]
+
+    case LocaleValidator.validate_locale(locale) do
+      {:ok, valid_locale} ->
+        valid_locale
+
+      {:error, _} ->
+        Logger.warning("Invalid locale in request parameters",
+          locale: inspect(locale),
+          ip: get_client_ip(conn)
+        )
+
+        nil
+    end
   end
 
   def resolve(conn, :session) do
-    get_session(conn, :locale)
+    case get_session(conn, :locale) do
+      nil ->
+        nil
+
+      locale ->
+        case LocaleValidator.validate_locale(locale) do
+          {:ok, valid} ->
+            valid
+
+          {:error, _} ->
+            Logger.warning("Invalid locale in session", locale: inspect(locale))
+            nil
+        end
+    end
   end
 
   def resolve(conn, :cookie) do
-    conn.cookies["locale"]
+    case conn.cookies["locale"] do
+      nil ->
+        nil
+
+      locale ->
+        case LocaleValidator.validate_locale(locale) do
+          {:ok, valid} ->
+            valid
+
+          {:error, _} ->
+            Logger.warning("Invalid locale in cookie", locale: inspect(locale))
+            nil
+        end
+    end
   end
 
   def resolve(conn, :subdomain) do
     case String.split(conn.host, ".") do
-      [locale | _rest] when byte_size(locale) == 2 ->
-        locale
+      [subdomain | _rest] ->
+        case LocaleValidator.validate_locale(subdomain) do
+          {:ok, locale} ->
+            locale
+
+          {:error, _} ->
+            Logger.warning("Invalid subdomain locale", subdomain: subdomain)
+            nil
+        end
 
       _ ->
         nil
@@ -65,8 +114,15 @@ defmodule AshPhoenixTranslations.LocaleResolver do
 
   def resolve(conn, :path) do
     case conn.path_info do
-      [locale | _rest] when byte_size(locale) == 2 ->
-        locale
+      [path_locale | _rest] ->
+        case LocaleValidator.validate_locale(path_locale) do
+          {:ok, locale} ->
+            locale
+
+          {:error, _} ->
+            Logger.warning("Invalid path locale", path_locale: path_locale)
+            nil
+        end
 
       _ ->
         nil
@@ -76,10 +132,16 @@ defmodule AshPhoenixTranslations.LocaleResolver do
   def resolve(conn, :user) do
     case conn.assigns[:current_user] do
       %{locale: locale} when not is_nil(locale) ->
-        to_string(locale)
+        case LocaleValidator.validate_locale(locale) do
+          {:ok, valid} -> valid
+          {:error, _} -> nil
+        end
 
       %{preferred_locale: locale} when not is_nil(locale) ->
-        to_string(locale)
+        case LocaleValidator.validate_locale(locale) do
+          {:ok, valid} -> valid
+          {:error, _} -> nil
+        end
 
       _ ->
         nil
@@ -178,6 +240,8 @@ defmodule AshPhoenixTranslations.LocaleResolver do
     header
     |> String.split(",")
     |> Enum.map(&parse_language_tag/1)
+    # Filter out invalid locales
+    |> Enum.reject(&is_nil/1)
     |> Enum.sort_by(fn {_lang, quality} -> quality end, :desc)
     |> Enum.map(fn {lang, _quality} -> lang end)
   end
@@ -185,12 +249,18 @@ defmodule AshPhoenixTranslations.LocaleResolver do
   defp parse_accept_language(_), do: []
 
   defp parse_language_tag(tag) do
-    case String.split(tag, ";") do
+    # SECURITY: Sanitize input to prevent injection
+    sanitized = String.replace(tag, ~r/[^a-zA-Z0-9,;=.\-]/, "")
+
+    case String.split(sanitized, ";") do
       [lang] ->
         parsed_lang =
           lang |> String.trim() |> String.split("-") |> List.first() |> String.downcase()
 
-        {parsed_lang, 1.0}
+        case LocaleValidator.validate_locale(parsed_lang) do
+          {:ok, locale} -> {locale, 1.0}
+          {:error, _} -> nil
+        end
 
       [lang, quality] ->
         quality_value =
@@ -206,16 +276,23 @@ defmodule AshPhoenixTranslations.LocaleResolver do
         parsed_lang =
           lang |> String.trim() |> String.split("-") |> List.first() |> String.downcase()
 
-        {parsed_lang, quality_value}
+        case LocaleValidator.validate_locale(parsed_lang) do
+          {:ok, locale} -> {locale, quality_value}
+          {:error, _} -> nil
+        end
+
+      _ ->
+        nil
     end
   end
 
   defp find_supported_locale([]), do: nil
 
   defp find_supported_locale([locale | rest]) do
-    # This could be enhanced to check against actually supported locales
-    # For now, we'll accept common locale codes
-    if locale in ["en", "es", "fr", "de", "it", "pt", "ja", "zh", "ko", "ar", "ru"] do
+    # Locale is already validated by parse_language_tag, just check if supported
+    supported = LocaleValidator.get_supported_locales()
+
+    if locale in supported do
       locale
     else
       find_supported_locale(rest)
@@ -233,4 +310,17 @@ defmodule AshPhoenixTranslations.LocaleResolver do
   end
 
   defp supported?(_locale, _supported), do: true
+
+  defp get_client_ip(conn) do
+    case get_req_header(conn, "x-forwarded-for") do
+      [ip | _] ->
+        ip
+
+      [] ->
+        case :inet.ntoa(conn.remote_ip) do
+          {:error, _} -> "unknown"
+          ip_charlist -> to_string(ip_charlist)
+        end
+    end
+  end
 end

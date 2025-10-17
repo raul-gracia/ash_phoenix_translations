@@ -134,10 +134,27 @@ defmodule AshPhoenixTranslations.Helpers do
   def raw_t(resource, field, opts \\ []) do
     content = t(resource, field, opts)
 
+    # SECURITY: Sanitize HTML to prevent XSS attacks
+    sanitized =
+      if Code.ensure_loaded?(HtmlSanitizeEx) do
+        HtmlSanitizeEx.basic_html(content)
+      else
+        Logger.warning(
+          "HtmlSanitizeEx not available - raw content may be unsafe. Install html_sanitize_ex package."
+        )
+
+        # Fallback to escaping if HtmlSanitizeEx not available
+        if @phoenix_html_available do
+          content |> HTML.html_escape() |> HTML.safe_to_string()
+        else
+          content
+        end
+      end
+
     if @phoenix_html_available do
-      HTML.raw(content)
+      HTML.raw(sanitized)
     else
-      content
+      sanitized
     end
   end
 

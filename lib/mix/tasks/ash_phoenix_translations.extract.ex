@@ -125,10 +125,19 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Extract do
   end
 
   defp build_config(opts) do
+    format =
+      case opts[:format] || "pot" do
+        format when format in ["pot", "po", "both"] ->
+          String.to_existing_atom(format)
+
+        invalid ->
+          Mix.raise("Invalid format: #{invalid}. Allowed: pot, po, both")
+      end
+
     %{
       output_dir: opts[:output] || @default_output,
       verbose: opts[:verbose] || false,
-      format: String.to_atom(opts[:format] || "pot")
+      format: format
     }
   end
 
