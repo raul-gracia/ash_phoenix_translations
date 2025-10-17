@@ -124,14 +124,25 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Import do
       file_path
       |> File.stream!()
       |> CSV.decode!(headers: true)
-      |> Enum.map(fn row ->
-        %{
-          resource_id: row["resource_id"],
-          field: String.to_atom(row["field"]),
-          locale: String.to_atom(row["locale"] || default_locale),
-          value: row["value"]
-        }
+      |> Enum.reduce([], fn row, acc ->
+        # SECURITY: Validate field and locale to prevent atom exhaustion
+        with {:ok, field_atom} <- safe_to_atom(row["field"], "field"),
+             {:ok, locale_atom} <- safe_to_atom(row["locale"] || default_locale, "locale") do
+          translation = %{
+            resource_id: row["resource_id"],
+            field: field_atom,
+            locale: locale_atom,
+            value: row["value"]
+          }
+
+          [translation | acc]
+        else
+          {:error, reason} ->
+            Logger.warning("Skipping invalid CSV row", reason: reason, row: inspect(row))
+            acc
+        end
       end)
+      |> Enum.reverse()
     else
       raise "CSV library is required for CSV imports. Add {:csv, \"~> 3.0\"} to your dependencies."
     end
@@ -142,14 +153,25 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Import do
     |> File.read!()
     |> Jason.decode!()
     |> Map.get("translations", [])
-    |> Enum.map(fn t ->
-      %{
-        resource_id: t["resource_id"],
-        field: String.to_atom(t["field"]),
-        locale: String.to_atom(t["locale"] || default_locale),
-        value: t["value"]
-      }
+    |> Enum.reduce([], fn t, acc ->
+      # SECURITY: Validate field and locale to prevent atom exhaustion
+      with {:ok, field_atom} <- safe_to_atom(t["field"], "field"),
+           {:ok, locale_atom} <- safe_to_atom(t["locale"] || default_locale, "locale") do
+        translation = %{
+          resource_id: t["resource_id"],
+          field: field_atom,
+          locale: locale_atom,
+          value: t["value"]
+        }
+
+        [translation | acc]
+      else
+        {:error, reason} ->
+          Logger.warning("Skipping invalid JSON translation", reason: reason, data: inspect(t))
+          acc
+      end
     end)
+    |> Enum.reverse()
   end
 
   defp parse_file(_file_path, "xliff", _default_locale) do
@@ -161,6 +183,36 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Import do
 
   defp parse_file(_file_path, format, _default_locale) do
     Mix.raise("Unsupported format: #{format}")
+  end
+
+  # SECURITY: Safe atom conversion using String.to_existing_atom/1
+  # This prevents atom exhaustion attacks from malicious import files
+  defp safe_to_atom(value, field_type) when is_binary(value) do
+    trimmed = String.trim(value)
+
+    case field_type do
+      "locale" ->
+        # Use LocaleValidator for locale validation
+        AshPhoenixTranslations.LocaleValidator.validate_locale(trimmed)
+
+      "field" ->
+        # For fields, only convert existing atoms
+        try do
+          atom = String.to_existing_atom(trimmed)
+          {:ok, atom}
+        rescue
+          ArgumentError ->
+            {:error, "Field '#{trimmed}' is not a valid field (atom does not exist)"}
+        end
+    end
+  end
+
+  defp safe_to_atom(value, _field_type) when is_atom(value) do
+    {:ok, value}
+  end
+
+  defp safe_to_atom(value, field_type) do
+    {:error, "Invalid #{field_type}: #{inspect(value)}"}
   end
 
   defp import_translations(resource, translations, dry_run, replace) do
