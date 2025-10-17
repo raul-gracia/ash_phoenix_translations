@@ -13,6 +13,23 @@ defmodule AshPhoenixTranslations.Calculations.AllTranslations do
   end
 
   @impl true
+  def load(_query, opts, _context) do
+    # Tell Ash to load the storage field for database backend
+    attribute_name = Keyword.fetch!(opts, :attribute_name)
+    backend = Keyword.fetch!(opts, :backend)
+
+    case backend do
+      :database ->
+        storage_field = :"#{attribute_name}_translations"
+        [storage_field]
+
+      :gettext ->
+        # Gettext doesn't need any preloaded fields
+        []
+    end
+  end
+
+  @impl true
   def calculate(records, opts, _context) do
     attribute_name = Keyword.fetch!(opts, :attribute_name)
     backend = Keyword.fetch!(opts, :backend)
