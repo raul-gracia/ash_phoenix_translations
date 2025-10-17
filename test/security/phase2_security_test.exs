@@ -140,8 +140,8 @@ defmodule AshPhoenixTranslations.Phase2SecurityTest do
     end
 
     test "denies access with untrusted custom policy module" do
-      actor = %{id: 1, role: :admin}
-      action = %{name: :read, resource: TestProduct, arguments: %{}}
+      _actor = %{id: 1, role: :admin}
+      _action = %{name: :read, resource: TestProduct, arguments: %{}}
 
       # Try to use custom policy without whitelist configuration
       # The check_view_policy will call valid_policy_module? which checks whitelist
@@ -360,6 +360,7 @@ defmodule AshPhoenixTranslations.Phase2SecurityTest do
   # Helper modules for tests - TestProduct must be defined before TestDomain
   defmodule TestProduct do
     use Ash.Resource,
+      domain: AshPhoenixTranslations.Phase2SecurityTest.TestDomain,
       data_layer: Ash.DataLayer.Ets,
       extensions: [AshPhoenixTranslations]
 

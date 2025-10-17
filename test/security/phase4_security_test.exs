@@ -224,6 +224,7 @@ defmodule AshPhoenixTranslations.Phase4SecurityTest do
     @moduledoc false
 
     use Ash.Resource,
+      domain: AshPhoenixTranslations.Phase4SecurityTest.TestDomain,
       data_layer: Ash.DataLayer.Ets,
       extensions: [AshPhoenixTranslations],
       validate_domain_inclusion?: false
