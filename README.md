@@ -16,7 +16,7 @@ Policy-aware translation extension for [Ash Framework](https://ash-hq.org/) with
 
 - 🌍 **Multi-locale Support** - Manage translations for unlimited locales per field
 - 🔐 **Policy-aware** - Leverage Ash policies for translation access control
-- 💾 **Multiple Storage Backends** - Database (JSONB ✅), Gettext (✅)
+- 💾 **Multiple Storage Backends** - Database (JSONB ✅), Gettext (✅), Redis (✅)
 - ⚡ **Performance Optimized** - Built-in caching with TTL and invalidation
 - 🔄 **LiveView Integration** - Real-time locale switching and updates
 - 📦 **Import/Export** - CSV, JSON, and XLIFF format support
@@ -40,6 +40,21 @@ def deps do
   ]
 end
 ```
+
+**Optional Dependencies:**
+
+For Redis backend support, you must add Redix to your dependencies:
+
+```elixir
+def deps do
+  [
+    {:ash_phoenix_translations, "~> 1.0.0"},
+    {:redix, "~> 1.5"}  # Required only for Redis backend
+  ]
+end
+```
+
+> **Note**: The Redis backend is fully implemented but requires the optional `redix` dependency. Database and Gettext backends work out of the box without additional dependencies.
 
 Run the installation task:
 
@@ -71,7 +86,7 @@ defmodule MyApp.Product do
       locales: [:en, :es, :fr],
       translate: true  # Auto-translate via calculation
     
-    backend :database  # :database | :gettext
+    backend :database  # :database | :gettext | :redis
     cache_ttl 3600
     audit_changes true
   end
@@ -257,6 +272,68 @@ When using Gettext backend:
 - Message IDs are formatted as `"resource_name.attribute_name"`
 - Editing is managed through .po files, not the UI
 
+### Redis Backend
+
+Uses Redis for distributed translation storage with high performance:
+
+```elixir
+translations do
+  backend :redis
+
+  translatable_attribute :name, :string do
+    locales [:en, :es, :fr]
+  end
+end
+```
+
+**Redis Setup:**
+
+> **Important**: The Redis backend requires the `redix` package. Add `{:redix, "~> 1.5"}` to your `mix.exs` dependencies before proceeding.
+
+```bash
+# 1. Add Redix to mix.exs dependencies (see Installation section)
+# 2. Install dependencies
+mix deps.get
+
+# 3. Install with Redis backend
+mix ash_phoenix_translations.install --backend redis
+```
+
+**Configuration:**
+```elixir
+# config/config.exs
+config :ash_phoenix_translations,
+  redis_url: "redis://localhost:6379",
+  redis_pool_size: 10
+```
+
+**Key Features:**
+- **Distributed Storage**: Translations stored in Redis for multi-server deployments
+- **High Performance**: Redis's in-memory storage provides fast translation lookups
+- **Local Caching**: Automatic local cache to reduce Redis round trips
+- **TTL Support**: Optional expiration for translation cache keys
+- **Pattern-based Keys**: `translations:{resource}:{id}:{field}:{locale}`
+
+**Storage Pattern:**
+```
+Key: translations:Product:123:name:en
+Value: "Laptop"
+
+Key: translations:Product:123:name:es
+Value: "Portátil"
+```
+
+**Local Cache Attributes:**
+- Each translatable field gets a `{field}_cache` attribute for local caching
+- Cache reduces Redis calls after initial load
+- Automatically managed by calculation module
+
+**Use Cases:**
+- Multi-server deployments requiring shared translation state
+- High-traffic applications needing fast translation lookups
+- Applications with frequent translation updates
+- Microservices architectures with centralized translation service
+
 ## Mix Tasks
 
 The package includes several Mix tasks for managing translations:
@@ -269,8 +346,111 @@ mix ash_phoenix_translations.install
 # Install with gettext backend
 mix ash_phoenix_translations.install --backend gettext
 
+# Install with Redis backend
+mix ash_phoenix_translations.install --backend redis
+
 # Skip migration generation
 mix ash_phoenix_translations.install --no-migration
+```
+
+### Redis Backend Tasks
+
+The Redis backend includes specialized Mix tasks for managing translations:
+
+#### Export from Redis
+```bash
+# Export all translations to CSV
+mix ash_phoenix_translations.export.redis output.csv --resource MyApp.Product
+
+# Export to JSON format
+mix ash_phoenix_translations.export.redis translations.json --format json --resource MyApp.Product
+
+# Export specific locale
+mix ash_phoenix_translations.export.redis spanish.csv --resource MyApp.Product --locale es
+
+# Export specific fields
+mix ash_phoenix_translations.export.redis names.csv --resource MyApp.Product --field name,description
+
+# Export all resources
+mix ash_phoenix_translations.export.redis all.json --all-resources --format json
+```
+
+#### Import to Redis
+```bash
+# Import from CSV
+mix ash_phoenix_translations.import.redis translations.csv
+
+# Import from JSON
+mix ash_phoenix_translations.import.redis data.json --format json
+
+# Dry run (preview changes)
+mix ash_phoenix_translations.import.redis data.csv --dry-run
+
+# Import with TTL
+mix ash_phoenix_translations.import.redis data.csv --ttl 3600
+
+# Overwrite existing translations
+mix ash_phoenix_translations.import.redis data.csv --overwrite
+```
+
+#### Sync Between Backends
+```bash
+# Sync from database to Redis
+mix ash_phoenix_translations.sync.redis --from database --to redis --resource MyApp.Product
+
+# Sync from Redis to database
+mix ash_phoenix_translations.sync.redis --from redis --to database --resource MyApp.Product
+
+# Bidirectional sync (keep both in sync)
+mix ash_phoenix_translations.sync.redis --bidirectional --resource MyApp.Product
+
+# Dry run
+mix ash_phoenix_translations.sync.redis --from database --to redis --resource MyApp.Product --dry-run
+```
+
+#### Clear Redis Translations
+```bash
+# Clear all translations for a resource
+mix ash_phoenix_translations.clear.redis --resource MyApp.Product --confirm
+
+# Clear specific field
+mix ash_phoenix_translations.clear.redis --resource MyApp.Product --field name --confirm
+
+# Clear specific locale
+mix ash_phoenix_translations.clear.redis --resource MyApp.Product --locale es --confirm
+
+# Preview deletions (dry run)
+mix ash_phoenix_translations.clear.redis --resource MyApp.Product --dry-run
+
+# Clear all translations (use with caution!)
+mix ash_phoenix_translations.clear.redis --all --confirm
+```
+
+#### Redis Information
+```bash
+# Show Redis statistics
+mix ash_phoenix_translations.info.redis
+
+# Show resource-specific info
+mix ash_phoenix_translations.info.redis --resource MyApp.Product
+
+# Detailed breakdown
+mix ash_phoenix_translations.info.redis --resource MyApp.Product --detailed
+```
+
+#### Validate Redis Translations
+```bash
+# Validate all translations
+mix ash_phoenix_translations.validate.redis --resource MyApp.Product
+
+# Validate specific locale
+mix ash_phoenix_translations.validate.redis --resource MyApp.Product --locale es
+
+# Strict mode (fail on warnings)
+mix ash_phoenix_translations.validate.redis --resource MyApp.Product --strict
+
+# Check for orphaned keys
+mix ash_phoenix_translations.validate.redis --resource MyApp.Product --check-orphaned
 ```
 
 ## GraphQL Integration
@@ -593,6 +773,11 @@ config :ash_phoenix_translations,
   default_locales: [:en, :es, :fr, :de],
   default_locale: :en,
   cache_ttl: 3600
+
+# Configure Redis backend (optional)
+config :ash_phoenix_translations,
+  redis_url: "redis://localhost:6379",
+  redis_pool_size: 10
 
 # Configure cache (optional)
 config :ash_phoenix_translations, AshPhoenixTranslations.Cache,

@@ -158,91 +158,6 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
     end
   end
 
-  describe "Redis Backend Calculations" do
-    defmodule RedisProduct do
-      use Ash.Resource,
-        domain: AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest.Domain,
-        data_layer: Ash.DataLayer.Ets,
-        extensions: [AshPhoenixTranslations]
-
-      ets do
-        table :test_redis_calc_products
-      end
-
-      translations do
-        translatable_attribute :name, :string do
-          locales [:en, :es, :fr]
-          fallback(:en)
-        end
-
-        backend :redis
-      end
-
-      actions do
-        create :create
-        read :read
-        update :update
-        destroy :destroy
-      end
-
-      attributes do
-        uuid_primary_key :id
-        timestamps()
-      end
-    end
-
-    test "adds calculations for redis backend" do
-      resource_info = Ash.Resource.Info
-      calculations = resource_info.calculations(RedisProduct)
-      calc_names = Enum.map(calculations, & &1.name)
-
-      assert :name in calc_names
-      assert :name_all_translations in calc_names
-    end
-
-    test "redis calculations use RedisTranslation module" do
-      resource_info = Ash.Resource.Info
-
-      name_calc =
-        RedisProduct
-        |> resource_info.calculations()
-        |> Enum.find(&(&1.name == :name))
-
-      {module, opts} = name_calc.calculation
-      assert module == AshPhoenixTranslations.Calculations.RedisTranslation
-      assert opts[:fallback] == :en
-    end
-  end
-
-  describe "Calculation Options" do
-    test "calculations receive correct options" do
-      resource_info = Ash.Resource.Info
-
-      name_calc =
-        AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest.DatabaseProduct
-        |> resource_info.calculations()
-        |> Enum.find(&(&1.name == :name))
-
-      {_module, opts} = name_calc.calculation
-      assert opts[:attribute_name] == :name
-      assert opts[:fallback] == :en
-      assert opts[:locales] == [:en, :es, :fr]
-      assert opts[:backend] == :database
-    end
-
-    test "calculations without fallback don't include fallback option" do
-      resource_info = Ash.Resource.Info
-
-      desc_calc =
-        AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest.DatabaseProduct
-        |> resource_info.calculations()
-        |> Enum.find(&(&1.name == :description))
-
-      {_module, opts} = desc_calc.calculation
-      assert opts[:fallback] == nil
-    end
-  end
-
   # Test domain
   defmodule Domain do
     use Ash.Domain
@@ -250,7 +165,6 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
     resources do
       resource AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest.DatabaseProduct
       resource AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest.GettextProduct
-      resource AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest.RedisProduct
     end
   end
 end

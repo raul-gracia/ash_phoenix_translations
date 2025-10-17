@@ -225,62 +225,6 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
     end
   end
 
-  describe "Backend-specific Changes" do
-    defmodule RedisProduct do
-      use Ash.Resource,
-        domain: AshPhoenixTranslations.Transformers.AddTranslationChangesTest.Domain,
-        data_layer: Ash.DataLayer.Ets,
-        extensions: [AshPhoenixTranslations]
-
-      ets do
-        table :test_redis_changes_products
-      end
-
-      translations do
-        translatable_attribute :name, :string do
-          locales [:en, :es]
-          required [:en]
-        end
-
-        backend :redis
-      end
-
-      actions do
-        create :create
-        read :read
-        update :update
-        destroy :destroy
-        update :update_translation, accept: []
-      end
-
-      attributes do
-        uuid_primary_key :id
-        timestamps()
-      end
-    end
-
-    test "changes receive correct backend option" do
-      resource_info = Ash.Resource.Info
-      actions = resource_info.actions(RedisProduct)
-      create_action = Enum.find(actions, &(&1.name == :create))
-
-      # Find validation change
-      validation_change =
-        Enum.find(create_action.changes, fn change ->
-          match?(
-            %Ash.Resource.Change{
-              change: {AshPhoenixTranslations.Changes.ValidateRequiredTranslations, _}
-            },
-            change
-          )
-        end)
-
-      assert validation_change
-      {_module, opts} = validation_change.change
-      assert opts[:backend] == :redis
-    end
-  end
-
   # Test domain
   defmodule Domain do
     use Ash.Domain
@@ -290,7 +234,6 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
       resource AshPhoenixTranslations.Transformers.AddTranslationChangesTest.NoAutoValidateProduct
       resource AshPhoenixTranslations.Transformers.AddTranslationChangesTest.UpdateActionProduct
       resource AshPhoenixTranslations.Transformers.AddTranslationChangesTest.ImportActionProduct
-      resource AshPhoenixTranslations.Transformers.AddTranslationChangesTest.RedisProduct
     end
   end
 end

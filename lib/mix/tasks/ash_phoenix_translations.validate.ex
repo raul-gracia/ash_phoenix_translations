@@ -111,9 +111,24 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
         locales =
           opts[:locale]
           |> String.split(",")
-          |> Enum.map(&String.to_atom/1)
+          |> Enum.map(fn locale_str ->
+            case AshPhoenixTranslations.LocaleValidator.validate_locale(String.trim(locale_str)) do
+              {:ok, locale_atom} ->
+                locale_atom
 
-        Map.put(filters, :locales, locales)
+              {:error, _} ->
+                Mix.shell().error("Skipping invalid locale: #{locale_str}")
+                nil
+            end
+          end)
+          |> Enum.reject(&is_nil/1)
+
+        if Enum.empty?(locales) do
+          Mix.shell().error("No valid locales found")
+          filters
+        else
+          Map.put(filters, :locales, locales)
+        end
       else
         filters
       end
@@ -123,9 +138,25 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
         fields =
           opts[:field]
           |> String.split(",")
-          |> Enum.map(&String.to_atom/1)
+          |> Enum.map(fn field_str ->
+            trimmed = String.trim(field_str)
 
-        Map.put(filters, :fields, fields)
+            try do
+              String.to_existing_atom(trimmed)
+            rescue
+              ArgumentError ->
+                Mix.shell().error("Skipping invalid field: #{field_str}")
+                nil
+            end
+          end)
+          |> Enum.reject(&is_nil/1)
+
+        if Enum.empty?(fields) do
+          Mix.shell().error("No valid fields found")
+          filters
+        else
+          Map.put(filters, :fields, fields)
+        end
       else
         filters
       end

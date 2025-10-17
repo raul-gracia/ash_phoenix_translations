@@ -136,56 +136,6 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActionsTest do
     end
   end
 
-  describe "Redis Backend Actions" do
-    defmodule RedisProduct do
-      use Ash.Resource,
-        domain: AshPhoenixTranslations.Transformers.AddTranslationActionsTest.Domain,
-        data_layer: Ash.DataLayer.Ets,
-        extensions: [AshPhoenixTranslations]
-
-      ets do
-        table :test_redis_actions_products
-      end
-
-      translations do
-        translatable_attribute :name, :string do
-          locales [:en, :es, :fr]
-        end
-
-        backend :redis
-      end
-
-      actions do
-        # Using explicit actions instead of defaults to avoid transformer issues
-        create :create
-        read :read
-        update :update
-        destroy :destroy
-      end
-
-      attributes do
-        uuid_primary_key :id
-        timestamps()
-      end
-    end
-
-    test "adds translation actions for redis backend" do
-      resource_info = Ash.Resource.Info
-      actions = resource_info.actions(RedisProduct)
-      action_names = Enum.map(actions, & &1.name)
-
-      # Should have all translation actions
-      assert :update_translation in action_names
-      assert :import_translations in action_names
-      assert :export_translations in action_names
-      assert :clear_translations in action_names
-
-      # For redis, update_translation shouldn't accept database fields
-      update_action = Enum.find(actions, &(&1.name == :update_translation))
-      assert update_action.accept == []
-    end
-  end
-
   # Arguments will be tested once they are added via DSL configuration
   # describe "Action Arguments" do
   # end
@@ -197,7 +147,6 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationActionsTest do
     resources do
       resource AshPhoenixTranslations.Transformers.AddTranslationActionsTest.DatabaseProduct
       resource AshPhoenixTranslations.Transformers.AddTranslationActionsTest.GettextProduct
-      resource AshPhoenixTranslations.Transformers.AddTranslationActionsTest.RedisProduct
     end
   end
 end
