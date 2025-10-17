@@ -55,11 +55,15 @@ defmodule AshPhoenixTranslations.MixProject do
 
       # Optional backend dependencies
       {:gettext, "~> 0.20", optional: true},
+      {:redix, "~> 1.5", optional: true},
       {:absinthe, "~> 1.7", optional: true},
       {:dataloader, "~> 2.0", optional: true},
 
       # Required for import/export functionality
       {:csv, "~> 3.0"},
+
+      # Security dependencies
+      {:html_sanitize_ex, "~> 1.4", optional: true},
 
       # Development and test dependencies
       {:ex_doc, "~> 0.29", only: [:dev, :test], runtime: false},

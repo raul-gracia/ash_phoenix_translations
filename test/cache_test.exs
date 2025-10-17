@@ -7,6 +7,9 @@ defmodule AshPhoenixTranslations.CacheTest do
     # Start cache for each test
     {:ok, _pid} = Cache.start_link()
 
+    # Wait a bit for GenServer to fully initialize
+    Process.sleep(10)
+
     # Clear cache before each test
     Cache.clear()
 
