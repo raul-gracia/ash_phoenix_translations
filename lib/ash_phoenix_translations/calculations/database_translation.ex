@@ -13,6 +13,14 @@ defmodule AshPhoenixTranslations.Calculations.DatabaseTranslation do
   end
 
   @impl true
+  def load(_query, opts, _context) do
+    # Tell Ash to load the storage field before running the calculation
+    attribute_name = Keyword.fetch!(opts, :attribute_name)
+    storage_field = :"#{attribute_name}_translations"
+    [storage_field]
+  end
+
+  @impl true
   def calculate(records, opts, context) do
     attribute_name = Keyword.fetch!(opts, :attribute_name)
     fallback = Keyword.get(opts, :fallback)
@@ -37,32 +45,16 @@ defmodule AshPhoenixTranslations.Calculations.DatabaseTranslation do
 
   @impl true
   def expression(opts, context) do
+    # For SQL data layers, we can express this as a JSON extraction
+    # This prevents N+1 queries by executing in SQL
     attribute_name = Keyword.fetch!(opts, :attribute_name)
-    fallback = Keyword.get(opts, :fallback)
+    storage_field = :"#{attribute_name}_translations"
     locale = get_locale(context)
 
-    storage_field = :"#{attribute_name}_translations"
+    require Ash.Expr
 
-    # Build the expression to get the translation
-    if fallback do
-      # With fallback: translations[locale] || translations[fallback]
-      require Ash.Expr
-
-      Ash.Expr.expr(
-        fragment(
-          "COALESCE((?)::jsonb->>?, (?)::jsonb->>?)",
-          ^ref(storage_field),
-          ^to_string(locale),
-          ^ref(storage_field),
-          ^to_string(fallback)
-        )
-      )
-    else
-      # Without fallback: translations[locale]
-      require Ash.Expr
-
-      Ash.Expr.expr(fragment("(?)::jsonb->>?", ^ref(storage_field), ^to_string(locale)))
-    end
+    # Generate SQL fragment: name_translations->>'en'
+    Ash.Expr.expr(fragment("?->>?", field(^storage_field), ^to_string(locale)))
   end
 
   defp get_locale(context) when is_map(context) do

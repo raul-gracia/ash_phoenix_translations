@@ -48,7 +48,6 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculations do
       case backend do
         :database -> AshPhoenixTranslations.Calculations.DatabaseTranslation
         :gettext -> AshPhoenixTranslations.Calculations.GettextTranslation
-        :redis -> AshPhoenixTranslations.Calculations.RedisTranslation
       end
 
     # Get the resource name for Gettext message IDs
@@ -77,6 +76,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculations do
         end
       end)
 
+    # Note: load/3 callback in calculation module handles loading storage field
     {:ok, dsl_state} =
       Builder.add_new_calculation(
         dsl_state,
@@ -94,6 +94,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculations do
   defp add_all_translations_calculation(dsl_state, attr, backend) do
     all_calc_name = :"#{attr.name}_all_translations"
 
+    # Note: load/3 callback in AllTranslations module handles loading storage field
     {:ok, dsl_state} =
       Builder.add_new_calculation(
         dsl_state,

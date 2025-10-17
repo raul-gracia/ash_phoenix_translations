@@ -11,8 +11,21 @@ defmodule AshPhoenixTranslations.Calculations.GettextTranslation do
   end
 
   @impl true
+  def load(_query, opts, _context) do
+    # Load storage field in case fallback to database storage is needed
+    # This happens when Gettext translation is not found
+    attribute_name = Keyword.fetch!(opts, :attribute_name)
+    storage_field = :"#{attribute_name}_translations"
+    [storage_field]
+  rescue
+    # If storage field doesn't exist (pure Gettext without database fallback), return empty
+    KeyError -> []
+  end
+
+  @impl true
   def calculate(records, opts, context) do
-    field = opts[:field]
+    # Fixed: was opts[:field]
+    field = opts[:attribute_name]
     locale = context[:locale] || :en
     gettext_module = opts[:gettext_module]
 
