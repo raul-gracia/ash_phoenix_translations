@@ -87,9 +87,13 @@ defmodule AshPhoenixTranslations.JsonApi do
 
     defp extract_locale(conn) do
       # Priority: query param > Accept-Language header > default
+      # SECURITY: All locale conversions validated to prevent atom exhaustion
       cond do
         locale = conn.params["locale"] ->
-          String.to_atom(locale)
+          case AshPhoenixTranslations.LocaleValidator.validate_locale(locale) do
+            {:ok, valid_locale} -> valid_locale
+            {:error, _} -> Application.get_env(:ash_phoenix_translations, :default_locale, :en)
+          end
 
         locale = get_accept_language(conn) ->
           locale
@@ -112,26 +116,61 @@ defmodule AshPhoenixTranslations.JsonApi do
       header
       |> String.split(",")
       |> Enum.map(&parse_language_tag/1)
+      # Filter out invalid language tags
+      |> Enum.reject(&is_nil/1)
       |> Enum.sort_by(fn {_lang, quality} -> quality end, :desc)
       |> Enum.map(fn {lang, _quality} -> lang end)
     end
 
     defp parse_language_tag(tag) do
+      # SECURITY: Sanitize Accept-Language header to prevent atom exhaustion
       case String.split(tag, ";") do
         [lang] ->
-          parsed_lang =
-            lang |> String.trim() |> String.split("-") |> List.first() |> String.to_atom()
-
-          {parsed_lang, 1.0}
+          case safe_parse_language(lang) do
+            {:ok, parsed_lang} -> {parsed_lang, 1.0}
+            {:error, _} -> nil
+          end
 
         [lang, "q=" <> quality] ->
-          quality_value = String.to_float(quality)
+          with {:ok, quality_value} <- safe_parse_quality(quality),
+               {:ok, parsed_lang} <- safe_parse_language(lang) do
+            {parsed_lang, quality_value}
+          else
+            _ -> nil
+          end
 
-          parsed_lang =
-            lang |> String.trim() |> String.split("-") |> List.first() |> String.to_atom()
-
-          {parsed_lang, quality_value}
+        _ ->
+          nil
       end
+    end
+
+    # SECURITY: Safe language code parsing with validation
+    defp safe_parse_language(lang) do
+      # Extract language code (e.g., "en-US" -> "en")
+      lang_code =
+        lang
+        |> String.trim()
+        |> String.downcase()
+        |> String.split("-")
+        |> List.first()
+        # Limit length
+        |> String.slice(0, 10)
+
+      # Only convert to atom if it's a valid locale
+      case AshPhoenixTranslations.LocaleValidator.validate_locale(lang_code) do
+        {:ok, locale_atom} -> {:ok, locale_atom}
+        {:error, _} -> {:error, :invalid_locale}
+      end
+    end
+
+    # SECURITY: Safe quality value parsing
+    defp safe_parse_quality(quality_str) do
+      case Float.parse(quality_str) do
+        {value, _} when value >= 0.0 and value <= 1.0 -> {:ok, value}
+        _ -> {:error, :invalid_quality}
+      end
+    rescue
+      _ -> {:error, :invalid_quality}
     end
 
     defp find_supported_locale(nil), do: nil
@@ -176,34 +215,89 @@ defmodule AshPhoenixTranslations.JsonApi do
     translatable_attrs = AshPhoenixTranslations.Info.translatable_attributes(resource_module)
 
     Enum.reduce(params, %{}, fn {key, value}, acc ->
-      key_atom = String.to_atom(key)
+      # SECURITY: Safe atom conversion for field names
+      case safe_field_atom(key) do
+        {:ok, key_atom} ->
+          if attr = Enum.find(translatable_attrs, &(&1.name == key_atom)) do
+            # Handle translation format
+            case value do
+              %{"translations" => translations} when is_map(translations) ->
+                # Multiple locales provided - validate locale keys
+                storage_field = :"#{attr.name}_translations"
 
-      if attr = Enum.find(translatable_attrs, &(&1.name == key_atom)) do
-        # Handle translation format
-        case value do
-          %{"translations" => translations} when is_map(translations) ->
-            # Multiple locales provided
-            storage_field = :"#{attr.name}_translations"
-            Map.put(acc, storage_field, atomize_keys(translations))
+                case safe_atomize_locale_keys(translations) do
+                  {:ok, valid_translations} ->
+                    Map.put(acc, storage_field, valid_translations)
 
-          %{"locale" => locale, "value" => translation_value} ->
-            # Single locale update
-            storage_field = :"#{attr.name}_translations"
-            locale_atom = String.to_atom(locale)
-            Map.put(acc, storage_field, %{locale_atom => translation_value})
+                  {:error, _reason} ->
+                    # Skip invalid translations
+                    acc
+                end
 
-          _ when is_binary(value) ->
-            # Default locale update
+              %{"locale" => locale, "value" => translation_value} ->
+                # Single locale update - validate locale
+                case AshPhoenixTranslations.LocaleValidator.validate_locale(locale) do
+                  {:ok, locale_atom} ->
+                    storage_field = :"#{attr.name}_translations"
+                    Map.put(acc, storage_field, %{locale_atom => translation_value})
+
+                  {:error, _} ->
+                    # Skip invalid locale
+                    acc
+                end
+
+              _ when is_binary(value) ->
+                # Default locale update
+                Map.put(acc, key_atom, value)
+
+              _ ->
+                acc
+            end
+          else
+            # Non-translatable field
             Map.put(acc, key_atom, value)
+          end
 
-          _ ->
-            acc
-        end
-      else
-        # Non-translatable field
-        Map.put(acc, key_atom, value)
+        {:error, _reason} ->
+          # Skip invalid field names
+          acc
       end
     end)
+  end
+
+  # SECURITY: Safe field name atom conversion
+  defp safe_field_atom(field_name) when is_binary(field_name) do
+    try do
+      atom = String.to_existing_atom(field_name)
+      {:ok, atom}
+    rescue
+      ArgumentError ->
+        require Logger
+        Logger.warning("JSON API: rejecting non-existent field atom", field: field_name)
+        {:error, :invalid_field}
+    end
+  end
+
+  defp safe_field_atom(field_name) when is_atom(field_name), do: {:ok, field_name}
+  defp safe_field_atom(_), do: {:error, :invalid_field}
+
+  # SECURITY: Safe locale key atomization with validation
+  defp safe_atomize_locale_keys(map) when is_map(map) do
+    result =
+      Enum.reduce_while(map, {:ok, %{}}, fn {k, v}, {:ok, acc} ->
+        case AshPhoenixTranslations.LocaleValidator.validate_locale(k) do
+          {:ok, locale_atom} ->
+            {:cont, {:ok, Map.put(acc, locale_atom, v)}}
+
+          {:error, _} ->
+            {:halt, {:error, :invalid_locale}}
+        end
+      end)
+
+    case result do
+      {:ok, valid_map} -> {:ok, valid_map}
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   @doc """
@@ -327,21 +421,5 @@ defmodule AshPhoenixTranslations.JsonApi do
         Enum.sum(completeness_scores) / length(completeness_scores)
       end
     end
-  end
-
-  defp atomize_keys(map) when is_map(map) do
-    Map.new(map, fn {k, v} ->
-      atom_key =
-        try do
-          String.to_existing_atom(k)
-        rescue
-          ArgumentError ->
-            reraise ArgumentError,
-                    "Invalid key: #{inspect(k)}. Only predefined keys are allowed in translation updates.",
-                    __STACKTRACE__
-        end
-
-      {atom_key, v}
-    end)
   end
 end

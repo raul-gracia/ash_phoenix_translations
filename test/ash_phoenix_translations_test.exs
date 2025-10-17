@@ -35,12 +35,13 @@ defmodule AshPhoenixTranslationsTest do
 
       create :create do
         primary? true
-        accept [:sku, :price]
+        accept [:sku, :price, :name_translations, :description_translations]
       end
 
       update :update do
         primary? true
-        accept [:sku, :price]
+        accept [:sku, :price, :name_translations, :description_translations]
+        require_atomic? false
       end
     end
 
@@ -111,41 +112,74 @@ defmodule AshPhoenixTranslationsTest do
 
   describe "Helper Functions" do
     setup do
-      # Clean ETS table before each test
-      :ets.delete_all_objects(:test_products)
+      # Clean ETS table before each test - only if it exists
+      if :ets.whereis(:test_products) != :undefined do
+        :ets.delete_all_objects(:test_products)
+      end
+
       :ok
     end
 
     test "translate/2 with locale atom" do
-      # This would require the transformers to be implemented
-      # For now, we just test that the function exists and handles different inputs
-      product = %Product{id: Ash.UUID.generate()}
+      # Create a real product to test translation
+      {:ok, product} =
+        Product
+        |> Ash.Changeset.for_create(:create, %{
+          sku: "TEST-001",
+          price: Decimal.new("19.99"),
+          name_translations: %{en: "English", es: "Español"}
+        })
+        |> Ash.create()
 
       # Test with atom locale
       result = AshPhoenixTranslations.translate(product, :en)
-      assert result
+      assert result.name == "English"
     end
 
     test "translate/2 with Plug.Conn" do
-      product = %Product{id: Ash.UUID.generate()}
+      {:ok, product} =
+        Product
+        |> Ash.Changeset.for_create(:create, %{
+          sku: "TEST-002",
+          price: Decimal.new("29.99"),
+          name_translations: %{en: "English", es: "Español"}
+        })
+        |> Ash.create()
 
-      # Mock a Plug.Conn
+      # Mock a Plug.Conn with locale in assigns (not session)
+      # The get_locale/1 function checks assigns first, so we don't need to fetch session
       conn = %Plug.Conn{
-        assigns: %{locale: :es}
+        assigns: %{locale: :es},
+        private: %{}
       }
 
       result = AshPhoenixTranslations.translate(product, conn)
-      assert result
+      assert result.name == "Español"
     end
 
     test "translate_all/2 with multiple resources" do
-      products = [
-        %Product{id: Ash.UUID.generate()},
-        %Product{id: Ash.UUID.generate()}
-      ]
+      {:ok, p1} =
+        Product
+        |> Ash.Changeset.for_create(:create, %{
+          sku: "TEST-003",
+          price: Decimal.new("39.99"),
+          name_translations: %{en: "Product 1"}
+        })
+        |> Ash.create()
 
-      results = AshPhoenixTranslations.translate_all(products, :en)
+      {:ok, p2} =
+        Product
+        |> Ash.Changeset.for_create(:create, %{
+          sku: "TEST-004",
+          price: Decimal.new("49.99"),
+          name_translations: %{en: "Product 2"}
+        })
+        |> Ash.create()
+
+      results = AshPhoenixTranslations.translate_all([p1, p2], :en)
       assert length(results) == 2
+      assert Enum.at(results, 0).name == "Product 1"
+      assert Enum.at(results, 1).name == "Product 2"
     end
   end
 

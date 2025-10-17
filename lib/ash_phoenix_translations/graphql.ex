@@ -307,9 +307,19 @@ defmodule AshPhoenixTranslations.Graphql do
   defp graphql_type_for_ash_type(:datetime), do: :datetime
   defp graphql_type_for_ash_type(_), do: :string
 
+  # SECURITY: Use LocaleValidator to prevent atom exhaustion
   defp validate_locale(locale) when is_binary(locale) do
-    if locale =~ ~r/^[a-z]{2}(-[A-Z]{2})?$/ do
-      {:ok, String.to_atom(locale)}
+    # First check basic format (accepts both hyphen and underscore)
+    if locale =~ ~r/^[a-z]{2}([-_][A-Z]{2})?$/ do
+      # Normalize: replace hyphens with underscores for storage consistency
+      # e.g., "en-US" becomes "en_us" (lowercase) for internal use
+      normalized = locale |> String.downcase() |> String.replace("-", "_")
+
+      # Then validate with LocaleValidator
+      case AshPhoenixTranslations.LocaleValidator.validate_locale(normalized) do
+        {:ok, locale_atom} -> {:ok, locale_atom}
+        {:error, _} -> :error
+      end
     else
       :error
     end
