@@ -6,7 +6,76 @@ This guide covers how to configure policy-based access control for translations 
 
 AshPhoenixTranslations integrates seamlessly with Ash's policy system to provide fine-grained control over who can view, edit, and manage translations. This enables you to implement complex translation workflows with role-based access control.
 
+## ⚠️ Important: How the Policy System Works
+
+**The translation policy configuration is metadata-only.** The `policy` option in the `translations` block stores policy metadata but **does not automatically generate Ash Policy rules**. You must implement the actual Ash policies yourself using the standard `policies` block.
+
+### What the Transformer Does
+
+```elixir
+translations do
+  translatable_attribute :name, locales: [:en, :es, :fr]
+
+  # This STORES METADATA but does NOT create actual policies
+  policy view: :public, edit: :translator
+end
+```
+
+The transformer:
+1. ✅ Enables `Ash.Policy.Authorizer` extension
+2. ✅ Stores policy configuration as metadata (accessible via `AshPhoenixTranslations.Info`)
+3. ❌ **Does NOT generate policy rules automatically**
+
+### What You Must Implement
+
+You must add the actual policy rules in the `policies` block:
+
+```elixir
+policies do
+  # YOU must implement these based on the metadata configuration
+  policy action_type(:read) do
+    authorize_if always()  # Because view: :public
+  end
+
+  policy action_type([:create, :update]) do
+    authorize_if actor_attribute_equals(:role, :translator)  # Because edit: :translator
+  end
+end
+```
+
+### Why This Design?
+
+Ash policies are extremely flexible and context-dependent. Rather than generating limited, opinionated policies automatically, AshPhoenixTranslations provides:
+
+1. **Policy metadata** - Stores your intended policy configuration
+2. **PolicyCheck module** - Provides helper functions for common authorization patterns
+3. **Complete flexibility** - You write policies that match your exact requirements
+
+### Using the PolicyCheck Module
+
+AshPhoenixTranslations provides `AshPhoenixTranslations.PolicyCheck` with helper functions:
+
+```elixir
+alias AshPhoenixTranslations.PolicyCheck
+
+policies do
+  policy action_type(:read) do
+    # Use the helper to check if actor can view translations
+    authorize_if PolicyCheck.can_view_translations()
+  end
+
+  policy action_type([:create, :update]) do
+    # Use the helper to check if actor can edit translations
+    authorize_if PolicyCheck.can_edit_translations()
+  end
+end
+```
+
+The `PolicyCheck` module reads the metadata you configured and implements common authorization patterns. See the examples below for detailed usage.
+
 ## Basic Policy Configuration
+
+**Note**: All examples below show both the metadata configuration (`policy` in `translations do`) and the actual policy implementation (`policies do`). Remember: the metadata stores your intent, but you must write the policy rules yourself.
 
 ### Simple Role-Based Access
 
