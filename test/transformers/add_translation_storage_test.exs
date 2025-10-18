@@ -114,7 +114,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorageTest do
 
   # Test domain
   defmodule Domain do
-    use Ash.Domain
+    use Ash.Domain,
+      validate_config_inclusion?: false
 
     resources do
       resource AshPhoenixTranslations.Transformers.AddTranslationStorageTest.DatabaseProduct
