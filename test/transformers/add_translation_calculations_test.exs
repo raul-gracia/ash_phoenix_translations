@@ -160,7 +160,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
 
   # Test domain
   defmodule Domain do
-    use Ash.Domain
+    use Ash.Domain,
+      validate_config_inclusion?: false
 
     resources do
       resource AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest.DatabaseProduct
