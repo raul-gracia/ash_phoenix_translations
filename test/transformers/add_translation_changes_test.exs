@@ -227,7 +227,8 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
 
   # Test domain
   defmodule Domain do
-    use Ash.Domain
+    use Ash.Domain,
+      validate_config_inclusion?: false
 
     resources do
       resource AshPhoenixTranslations.Transformers.AddTranslationChangesTest.ValidatedProduct
