@@ -19,15 +19,25 @@
           ~r"/_build/",
           ~r"/deps/",
           ~r"/node_modules/",
-          
+
           # Generated files
           ~r"/priv/static/",
           ~r"/priv/gettext/",
-          
+
           # Mix tasks and test support files that might be noisy
           ~r"/test/support/factory.ex",
           ~r"/test/support/data_case.ex",
           ~r"/test/support/conn_case.ex",
+
+          # Redis backend (deferred to future release)
+          ~r"/lib/ash_phoenix_translations/redis_",
+          ~r"/lib/mix/tasks/ash_phoenix_translations\.(import|export|sync|clear|info)\.redis\.ex",
+          ~r"/lib/ash_phoenix_translations/calculations/redis_translation\.ex",
+
+          # Redis tests
+          ~r"/test/redis_",
+          ~r"/test/calculations/redis_translation_test\.exs",
+          ~r"/test/mix/redis_mix_tasks_test\.exs"
         ]
       },
       
