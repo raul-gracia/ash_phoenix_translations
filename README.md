@@ -766,27 +766,1136 @@ end
 
 ## Configuration
 
+### Basic Configuration
+
+The simplest configuration using default settings:
+
 ```elixir
 # config/config.exs
 config :ash_phoenix_translations,
   default_backend: :database,
-  default_locales: [:en, :es, :fr, :de],
-  default_locale: :en,
-  cache_ttl: 3600
+  default_locales: [:en, :es, :fr],
+  default_locale: :en
+```
 
-# Configure Redis backend (optional)
+### Complete Configuration Reference
+
+```elixir
+# config/config.exs
 config :ash_phoenix_translations,
-  redis_url: "redis://localhost:6379",
+  # Backend Settings
+  default_backend: :database,        # :database | :gettext | :redis
+  default_locales: [:en, :es, :fr, :de, :it, :pt, :ja, :zh],
+  default_locale: :en,
+
+  # Caching Configuration
+  cache_ttl: 3600,                   # Cache TTL in seconds (1 hour)
+  cache_enabled: true,               # Enable/disable caching globally
+
+  # Security Configuration
+  supported_locales: [:en, :es, :fr, :de, :it, :pt, :ja, :zh, :ko, :ar, :ru],
+  cache_secret: :crypto.strong_rand_bytes(32),  # HMAC signing secret
+
+  # LiveView PubSub (optional)
+  pubsub_server: MyApp.PubSub,
+
+  # Audit Configuration (optional)
+  audit_enabled: true,
+  audit_retention_days: 90
+
+# Redis Backend Configuration (if using Redis)
+config :ash_phoenix_translations,
+  redis_url: System.get_env("REDIS_URL") || "redis://localhost:6379",
+  redis_pool_size: 10,
+  redis_connection_opts: [
+    socket_opts: [:inet6],
+    ssl: true,
+    timeout: 5000
+  ]
+
+# Cache Settings (fine-tuning)
+config :ash_phoenix_translations, AshPhoenixTranslations.Cache,
+  ttl: 3600,                         # Default TTL for cache entries
+  max_size: 10_000,                  # Maximum number of cache entries
+  cleanup_interval: 300,             # Cleanup expired entries every 5 minutes
+  enable_stats: true                 # Track cache statistics
+```
+
+### Configuration by Environment
+
+#### Development Environment
+
+```elixir
+# config/dev.exs
+import Config
+
+config :ash_phoenix_translations,
+  default_backend: :database,
+  default_locales: [:en, :es],      # Fewer locales for faster dev
+  cache_ttl: 60,                     # Short cache for live reloading
+  cache_enabled: false               # Disable cache to see changes immediately
+```
+
+#### Test Environment
+
+```elixir
+# config/test.exs
+import Config
+
+config :ash_phoenix_translations,
+  default_backend: :database,
+  default_locales: [:en, :es, :fr],
+  cache_enabled: false,              # No caching in tests for predictability
+  audit_enabled: false               # Disable audit for faster tests
+```
+
+#### Production Environment
+
+```elixir
+# config/runtime.exs
+import Config
+
+if config_env() == :prod do
+  config :ash_phoenix_translations,
+    default_backend: :redis,         # Redis for distributed deployments
+    redis_url: System.fetch_env!("REDIS_URL"),
+    redis_pool_size: String.to_integer(System.get_env("REDIS_POOL_SIZE", "20")),
+    cache_ttl: 7200,                 # Longer cache in production (2 hours)
+    cache_enabled: true,
+    audit_enabled: true,
+    cache_secret: System.fetch_env!("CACHE_SECRET")
+end
+```
+
+### Configuration Scenarios
+
+#### Scenario 1: Small Application (Single Server)
+
+**Use Case**: Small Phoenix app running on a single server with moderate traffic.
+
+```elixir
+# config/config.exs
+config :ash_phoenix_translations,
+  default_backend: :database,        # Simple database storage
+  default_locales: [:en, :es, :fr],
+  cache_ttl: 3600,                   # 1-hour cache is sufficient
+  audit_enabled: false               # Skip audit for simplicity
+
+# In your resource
+translations do
+  translatable_attribute :name, :string, locales: [:en, :es, :fr]
+  backend :database
+  cache_ttl 3600
+end
+```
+
+#### Scenario 2: Multi-Server Deployment
+
+**Use Case**: Phoenix app deployed across multiple servers, needs shared translation state.
+
+```elixir
+# config/runtime.exs
+config :ash_phoenix_translations,
+  default_backend: :redis,           # Shared state across servers
+  redis_url: System.fetch_env!("REDIS_URL"),
+  redis_pool_size: 20,
+  cache_ttl: 7200,                   # 2-hour cache
+  pubsub_server: MyApp.PubSub        # Coordinate LiveView updates
+
+# In your resource
+translations do
+  translatable_attribute :name, :string, locales: [:en, :es, :fr, :de]
+  backend :redis
+  cache_ttl 7200
+end
+```
+
+#### Scenario 3: Content Management System
+
+**Use Case**: CMS with frequent translation updates, need audit trail.
+
+```elixir
+# config/config.exs
+config :ash_phoenix_translations,
+  default_backend: :database,
+  cache_ttl: 300,                    # Short cache (5 min) for fresh content
+  audit_enabled: true,
+  audit_retention_days: 365          # Keep audit trail for 1 year
+
+# In your resource
+translations do
+  translatable_attribute :title, :string, locales: [:en, :es, :fr, :de, :it]
+  translatable_attribute :content, :text, locales: [:en, :es, :fr, :de, :it]
+
+  backend :database
+  cache_ttl 300
+  audit_changes true
+  audit_actor_field :editor_id      # Track who made changes
+end
+```
+
+#### Scenario 4: Gettext Integration
+
+**Use Case**: Existing Phoenix app using Gettext, want to integrate with Ash resources.
+
+```elixir
+# config/config.exs
+config :ash_phoenix_translations,
+  default_backend: :gettext,
+  default_locales: [:en, :es, :fr]
+
+# In your resource
+translations do
+  translatable_attribute :name, :string, locales: [:en, :es, :fr]
+  translatable_attribute :description, :text, locales: [:en, :es, :fr]
+
+  backend :gettext
+  gettext_module MyAppWeb.Gettext   # Required for Gettext backend
+  gettext_domain "resources"        # Optional, defaults to "resources"
+end
+```
+
+#### Scenario 5: High-Performance E-commerce
+
+**Use Case**: E-commerce platform with high traffic, need maximum performance.
+
+```elixir
+# config/runtime.exs
+config :ash_phoenix_translations,
+  default_backend: :redis,
+  redis_url: System.fetch_env!("REDIS_URL"),
+  redis_pool_size: 50,               # Large pool for high concurrency
+  cache_ttl: 14400,                  # 4-hour cache for stable content
+  cache_enabled: true
+
+# Additional cache tuning
+config :ash_phoenix_translations, AshPhoenixTranslations.Cache,
+  ttl: 14400,
+  max_size: 100_000,                 # Large cache for product catalog
+  cleanup_interval: 600,
+  enable_stats: true
+
+# In your Product resource
+translations do
+  translatable_attribute :name, :string,
+    locales: [:en, :es, :fr, :de, :it, :pt, :ja, :zh],
+    required: [:en]
+
+  translatable_attribute :description, :text,
+    locales: [:en, :es, :fr, :de, :it, :pt, :ja, :zh]
+
+  backend :redis
+  cache_ttl 14400                    # Match global cache
+end
+```
+
+### Backend-Specific Configuration
+
+#### Database Backend Configuration
+
+```elixir
+# config/config.exs
+config :ash_phoenix_translations,
+  default_backend: :database
+
+# Run migration after installation
+# mix ash_phoenix_translations.install --backend database
+# mix ecto.migrate
+
+# In your resource
+translations do
+  translatable_attribute :name, :string, locales: [:en, :es, :fr]
+
+  backend :database
+  # Translations stored in {field}_translations JSONB columns
+  cache_ttl 3600
+  audit_changes true  # Optional: track translation changes
+end
+```
+
+**Database Schema Example:**
+```sql
+CREATE TABLE products (
+  id UUID PRIMARY KEY,
+  sku VARCHAR(255),
+  name_translations JSONB,           -- Stores: {"en": "Product", "es": "Producto"}
+  description_translations JSONB,    -- Stores: {"en": "Description", "es": "Descripción"}
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+
+CREATE INDEX idx_products_name_translations ON products USING GIN (name_translations);
+```
+
+#### Gettext Backend Configuration
+
+```elixir
+# config/config.exs
+config :ash_phoenix_translations,
+  default_backend: :gettext
+
+# Install Gettext directories
+# mix ash_phoenix_translations.install --backend gettext
+
+# In your resource
+translations do
+  translatable_attribute :name, :string, locales: [:en, :es, :fr]
+
+  backend :gettext
+  gettext_module MyAppWeb.Gettext   # REQUIRED for Gettext
+  gettext_domain "resources"        # Optional, defaults to "resources"
+end
+
+# Extract strings to .pot files
+# mix ash_phoenix_translations.extract --locales en,es,fr
+# mix gettext.merge priv/gettext
+```
+
+**Gettext File Structure:**
+```
+priv/gettext/
+├── default.pot
+├── resources.pot              # Extracted resource translations
+├── en/
+│   └── LC_MESSAGES/
+│       ├── default.po
+│       └── resources.po       # Product.name, Product.description
+├── es/
+│   └── LC_MESSAGES/
+│       ├── default.po
+│       └── resources.po
+└── fr/
+    └── LC_MESSAGES/
+        ├── default.po
+        └── resources.po
+```
+
+#### Redis Backend Configuration
+
+```elixir
+# config/runtime.exs
+config :ash_phoenix_translations,
+  default_backend: :redis,
+  redis_url: System.get_env("REDIS_URL", "redis://localhost:6379"),
   redis_pool_size: 10
 
-# Configure cache (optional)
-config :ash_phoenix_translations, AshPhoenixTranslations.Cache,
-  ttl: 3600,
-  max_size: 10000
+# Ensure Redix dependency is added to mix.exs
+# {:redix, "~> 1.5"}
 
-# Configure PubSub for LiveView (optional)
+# In your resource
+translations do
+  translatable_attribute :name, :string, locales: [:en, :es, :fr]
+
+  backend :redis
+  cache_ttl 7200  # Local cache reduces Redis calls
+end
+
+# Sync existing database translations to Redis
+# mix ash_phoenix_translations.sync.redis --from database --to redis --resource MyApp.Product
+```
+
+**Redis Key Structure:**
+```
+translations:Product:123e4567:name:en → "Product Name"
+translations:Product:123e4567:name:es → "Nombre del Producto"
+translations:Product:123e4567:description:en → "Product Description"
+```
+
+### Security Configuration
+
+```elixir
+# config/config.exs
 config :ash_phoenix_translations,
-  pubsub_server: MyApp.PubSub
+  # Locale Validation - Prevent atom exhaustion attacks
+  supported_locales: [:en, :es, :fr, :de, :it, :pt, :ja, :zh, :ko, :ar, :ru],
+
+  # Cache Security - HMAC signing for cached values
+  cache_secret: System.get_env("CACHE_SECRET") || :crypto.strong_rand_bytes(32),
+
+  # XSS Protection - All helpers escape HTML by default
+  # Use t_raw/2 only with trusted content
+
+  # Input Sanitization - Enabled by default
+  sanitize_input: true,
+
+  # Rate Limiting (optional, requires separate package)
+  # rate_limit: [
+  #   translation_updates: {10, :per_minute},
+  #   import_operations: {5, :per_hour}
+  # ]
+
+# Production: Use environment variables for secrets
+# config/runtime.exs
+if config_env() == :prod do
+  config :ash_phoenix_translations,
+    cache_secret: System.fetch_env!("CACHE_SECRET"),  # 32+ bytes
+    redis_url: System.fetch_env!("REDIS_URL")
+end
+```
+
+### Performance Tuning Configuration
+
+```elixir
+# config/config.exs
+config :ash_phoenix_translations,
+  # Cache Configuration
+  cache_ttl: 7200,                   # 2 hours
+  cache_enabled: true,
+
+# Advanced cache settings
+config :ash_phoenix_translations, AshPhoenixTranslations.Cache,
+  ttl: 7200,
+  max_size: 50_000,                  # Adjust based on dataset size
+  cleanup_interval: 300,             # Cleanup every 5 minutes
+  enable_stats: true,                # Monitor cache performance
+  eviction_policy: :lru              # Least Recently Used eviction
+
+# Redis connection tuning
+config :ash_phoenix_translations,
+  redis_pool_size: 20,               # Match your load
+  redis_connection_opts: [
+    timeout: 5000,
+    socket_opts: [:inet6],
+    keepalive: true
+  ]
+
+# Database query optimization
+config :my_app, MyApp.Repo,
+  pool_size: 20,
+  queue_target: 50,
+  queue_interval: 1000
+
+# In your resources - per-resource cache tuning
+translations do
+  translatable_attribute :name, :string, locales: [:en, :es, :fr]
+
+  backend :database
+  cache_ttl 14400  # 4 hours for stable content like product names
+end
+
+translations do
+  translatable_attribute :price, :decimal, locales: [:en, :es, :fr]
+
+  backend :database
+  cache_ttl 300    # 5 minutes for dynamic content like prices
+end
+```
+
+## Real-World Examples
+
+This section provides complete, production-ready examples for common use cases.
+
+### Example 1: E-commerce Product Catalog
+
+**Scenario**: Multi-language e-commerce platform with products, categories, and reviews.
+
+#### Step 1: Define the Product Resource
+
+```elixir
+# lib/my_shop/catalog/resources/product.ex
+defmodule MyShop.Catalog.Product do
+  use Ash.Resource,
+    domain: MyShop.Catalog,
+    data_layer: AshPostgres.DataLayer,
+    extensions: [AshPhoenixTranslations]
+
+  postgres do
+    table "products"
+    repo MyShop.Repo
+  end
+
+  translations do
+    # Product name in multiple languages
+    translatable_attribute :name, :string do
+      locales [:en, :es, :fr, :de, :it, :pt, :ja, :zh]
+      required [:en]  # English is mandatory
+    end
+
+    # Product description with markdown support
+    translatable_attribute :description, :text do
+      locales [:en, :es, :fr, :de, :it, :pt, :ja, :zh]
+      markdown true
+    end
+
+    # Short marketing tagline
+    translatable_attribute :tagline, :string do
+      locales [:en, :es, :fr, :de, :it, :pt, :ja, :zh]
+    end
+
+    # SEO-friendly slug
+    translatable_attribute :slug, :string do
+      locales [:en, :es, :fr, :de, :it, :pt, :ja, :zh]
+    end
+
+    backend :database
+    cache_ttl 3600
+    audit_changes true
+  end
+
+  attributes do
+    uuid_primary_key :id
+    attribute :sku, :string, allow_nil?: false
+    attribute :price, :decimal, allow_nil?: false
+    attribute :stock_quantity, :integer, default: 0
+    attribute :active, :boolean, default: true
+    timestamps()
+  end
+
+  actions do
+    defaults [:read, :destroy]
+
+    create :create do
+      accept [:sku, :price, :stock_quantity, :active]
+      accept [:name_translations, :description_translations, :tagline_translations, :slug_translations]
+    end
+
+    update :update do
+      accept [:sku, :price, :stock_quantity, :active]
+      accept [:name_translations, :description_translations, :tagline_translations, :slug_translations]
+    end
+
+    # Custom action for bulk translation updates
+    update :update_translations do
+      accept [:name_translations, :description_translations, :tagline_translations]
+
+      change fn changeset, _context ->
+        # Automatically update slug when name changes
+        if Ash.Changeset.changing_attribute?(changeset, :name_translations) do
+          name_trans = Ash.Changeset.get_attribute(changeset, :name_translations)
+          slug_trans = Enum.map(name_trans, fn {locale, name} ->
+            {locale, Slug.slugify(name)}
+          end) |> Enum.into(%{})
+
+          Ash.Changeset.force_change_attribute(changeset, :slug_translations, slug_trans)
+        else
+          changeset
+        end
+      end
+    end
+  end
+
+  relationships do
+    belongs_to :category, MyShop.Catalog.Category
+    has_many :reviews, MyShop.Catalog.Review
+  end
+end
+```
+
+#### Step 2: Phoenix Controller Integration
+
+```elixir
+# lib/my_shop_web/controllers/product_controller.ex
+defmodule MyShopWeb.ProductController do
+  use MyShopWeb, :controller
+
+  alias MyShop.Catalog.Product
+
+  def index(conn, _params) do
+    # Get current locale from conn (set by SetLocale plug)
+    locale = conn.assigns.locale
+
+    # Load products and translate them
+    products =
+      Product
+      |> Ash.read!()
+      |> Enum.map(&AshPhoenixTranslations.translate(&1, locale))
+
+    render(conn, "index.html", products: products, locale: locale)
+  end
+
+  def show(conn, %{"id" => id}) do
+    locale = conn.assigns.locale
+
+    product =
+      Product
+      |> Ash.get!(id)
+      |> AshPhoenixTranslations.translate(locale)
+
+    # Calculate translation completeness for admin display
+    completeness = AshPhoenixTranslations.translation_completeness(product)
+
+    render(conn, "show.html",
+      product: product,
+      locale: locale,
+      completeness: completeness
+    )
+  end
+
+  def edit(conn, %{"id" => id}) do
+    product = Ash.get!(Product, id)
+    changeset = Ash.Changeset.for_update(product, :update_translations)
+
+    render(conn, "edit.html",
+      product: product,
+      changeset: changeset,
+      locales: [:en, :es, :fr, :de]
+    )
+  end
+
+  def update(conn, %{"id" => id, "product" => product_params}) do
+    product = Ash.get!(Product, id)
+
+    case Ash.update(product, :update_translations, product_params) do
+      {:ok, updated_product} ->
+        conn
+        |> put_flash(:info, "Product translations updated successfully")
+        |> redirect(to: ~p"/products/#{updated_product.id}")
+
+      {:error, changeset} ->
+        render(conn, "edit.html",
+          product: product,
+          changeset: changeset,
+          locales: [:en, :es, :fr, :de]
+        )
+    end
+  end
+end
+```
+
+#### Step 3: Phoenix Templates with Translation Helpers
+
+```elixir
+# lib/my_shop_web/controllers/product_html/index.html.heex
+<div class="products-grid">
+  <div class="language-switcher">
+    <%= language_switcher(@conn, Product) %>
+  </div>
+
+  <div class="products">
+    <%= for product <- @products do %>
+      <article class="product-card">
+        <h2><%= t(product, :name) %></h2>
+        <p class="tagline"><%= t(product, :tagline, fallback: "New Product") %></p>
+        <div class="price">$<%= product.price %></div>
+        <%= link "View Details", to: ~p"/products/#{product.id}" %>
+      </article>
+    <% end %>
+  </div>
+</div>
+
+# lib/my_shop_web/controllers/product_html/show.html.heex
+<div class="product-detail">
+  <h1><%= t(@product, :name) %></h1>
+
+  <%= if @conn.assigns.current_user && @conn.assigns.current_user.role == :admin do %>
+    <div class="admin-info">
+      <span>Translation Completeness: <%= @completeness %>%</span>
+      <%= translation_status(@product, :description) %>
+    </div>
+  <% end %>
+
+  <div class="description">
+    <%= t_raw(@product, :description) |> markdown_to_html() %>
+  </div>
+
+  <div class="meta">
+    <span>SKU: <%= @product.sku %></span>
+    <span>Stock: <%= @product.stock_quantity %></span>
+  </div>
+</div>
+
+# lib/my_shop_web/controllers/product_html/edit.html.heex
+<div class="translation-editor">
+  <.form :let={f} for={@changeset} action={~p"/products/#{@product.id}"}>
+
+    <!-- Translation tabs for each locale -->
+    <div class="locale-tabs">
+      <%= for locale <- @locales do %>
+        <button type="button" data-locale={locale} class="tab">
+          <%= locale |> to_string |> String.upcase %>
+          <%= translation_status_badge(@product, :name, locale) %>
+        </button>
+      <% end %>
+    </div>
+
+    <!-- Name translations -->
+    <div class="form-group">
+      <label>Product Name</label>
+      <%= for locale <- @locales do %>
+        <div class="locale-input" data-locale={locale}>
+          <%= text_input f, :"name_translations_#{locale}",
+              value: get_in(@product.name_translations, [locale]),
+              placeholder: "Product name in #{locale}" %>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Description translations -->
+    <div class="form-group">
+      <label>Description</label>
+      <%= for locale <- @locales do %>
+        <div class="locale-input" data-locale={locale}>
+          <%= textarea f, :"description_translations_#{locale}",
+              value: get_in(@product.description_translations, [locale]),
+              placeholder: "Description in #{locale}",
+              rows: 10 %>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Translation progress indicator -->
+    <div class="progress">
+      <.translation_progress resource={@product} />
+    </div>
+
+    <div class="actions">
+      <%= submit "Save Translations", class: "btn-primary" %>
+      <%= link "Cancel", to: ~p"/products/#{@product.id}", class: "btn-secondary" %>
+    </div>
+  </.form>
+</div>
+```
+
+#### Step 4: LiveView Real-time Translation Editor
+
+```elixir
+# lib/my_shop_web/live/product_live/translation_editor.ex
+defmodule MyShopWeb.ProductLive.TranslationEditor do
+  use MyShopWeb, :live_view
+  use AshPhoenixTranslations.LiveView
+
+  alias MyShop.Catalog.Product
+
+  def mount(%{"id" => id}, _session, socket) do
+    product = Ash.get!(Product, id)
+
+    socket =
+      socket
+      |> assign(:product, product)
+      |> assign(:locales, [:en, :es, :fr, :de, :it])
+      |> assign(:current_locale, :en)
+      |> assign(:unsaved_changes, %{})
+      |> assign_translation_progress(product)
+
+    {:ok, socket}
+  end
+
+  def handle_event("change_locale", %{"locale" => locale}, socket) do
+    {:noreply, assign(socket, :current_locale, String.to_existing_atom(locale))}
+  end
+
+  def handle_event("update_translation", %{"field" => field, "locale" => locale, "value" => value}, socket) do
+    field_atom = String.to_existing_atom(field)
+    locale_atom = String.to_existing_atom(locale)
+
+    # Track unsaved changes
+    unsaved =
+      socket.assigns.unsaved_changes
+      |> Map.put({field_atom, locale_atom}, value)
+
+    # Update progress calculation
+    socket =
+      socket
+      |> assign(:unsaved_changes, unsaved)
+      |> assign_translation_progress(socket.assigns.product, unsaved)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("save_all", _params, socket) do
+    product = socket.assigns.product
+    changes = build_translation_changes(socket.assigns.unsaved_changes)
+
+    case Ash.update(product, :update_translations, changes) do
+      {:ok, updated_product} ->
+        socket =
+          socket
+          |> assign(:product, updated_product)
+          |> assign(:unsaved_changes, %{})
+          |> put_flash(:info, "Translations saved successfully")
+
+        {:noreply, socket}
+
+      {:error, changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to save: #{inspect(changeset.errors)}")}
+    end
+  end
+
+  defp assign_translation_progress(socket, product, changes \\ %{}) do
+    # Calculate progress with unsaved changes
+    completeness = calculate_progress_with_changes(product, changes)
+    assign(socket, :translation_progress, completeness)
+  end
+
+  defp build_translation_changes(unsaved) do
+    Enum.reduce(unsaved, %{}, fn {{field, locale}, value}, acc ->
+      field_key = :"#{field}_translations"
+      translations = Map.get(acc, field_key, %{})
+      Map.put(acc, field_key, Map.put(translations, locale, value))
+    end)
+  end
+end
+```
+
+### Example 2: Content Management System
+
+**Scenario**: Blog/CMS with articles, pages, and custom content blocks.
+
+#### Resource Definition
+
+```elixir
+# lib/my_cms/content/resources/article.ex
+defmodule MyCMS.Content.Article do
+  use Ash.Resource,
+    domain: MyCMS.Content,
+    data_layer: AshPostgres.DataLayer,
+    extensions: [AshPhoenixTranslations]
+
+  postgres do
+    table "articles"
+    repo MyCMS.Repo
+  end
+
+  translations do
+    translatable_attribute :title, :string do
+      locales [:en, :es, :fr, :de]
+      required [:en]
+    end
+
+    translatable_attribute :content, :text do
+      locales [:en, :es, :fr, :de]
+      markdown true
+      required [:en]
+    end
+
+    translatable_attribute :excerpt, :text do
+      locales [:en, :es, :fr, :de]
+    end
+
+    translatable_attribute :meta_description, :string do
+      locales [:en, :es, :fr, :de]
+    end
+
+    backend :database
+    cache_ttl 300  # 5 minutes - content changes frequently
+    audit_changes true
+    audit_actor_field :author_id
+  end
+
+  attributes do
+    uuid_primary_key :id
+    attribute :slug, :string, allow_nil?: false
+    attribute :published, :boolean, default: false
+    attribute :published_at, :utc_datetime
+    attribute :featured, :boolean, default: false
+    timestamps()
+  end
+
+  actions do
+    defaults [:read, :destroy]
+
+    create :create do
+      accept [:slug, :published, :featured]
+      accept [:title_translations, :content_translations, :excerpt_translations, :meta_description_translations]
+
+      change fn changeset, _context ->
+        # Auto-generate excerpt from content if not provided
+        if !Ash.Changeset.changing_attribute?(changeset, :excerpt_translations) do
+          content_trans = Ash.Changeset.get_attribute(changeset, :content_translations) || %{}
+          excerpt_trans = Enum.map(content_trans, fn {locale, content} ->
+            excerpt = content |> String.slice(0, 200) |> Kernel.<>("...")
+            {locale, excerpt}
+          end) |> Enum.into(%{})
+
+          Ash.Changeset.force_change_attribute(changeset, :excerpt_translations, excerpt_trans)
+        else
+          changeset
+        end
+      end
+    end
+
+    update :update do
+      accept [:slug, :published, :featured, :published_at]
+      accept [:title_translations, :content_translations, :excerpt_translations, :meta_description_translations]
+    end
+
+    update :publish do
+      change set_attribute(:published, true)
+      change set_attribute(:published_at, &DateTime.utc_now/0)
+    end
+
+    update :unpublish do
+      change set_attribute(:published, false)
+    end
+  end
+
+  relationships do
+    belongs_to :author, MyCMS.Accounts.User
+    many_to_many :tags, MyCMS.Content.Tag do
+      through MyCMS.Content.ArticleTag
+      source_attribute_on_join_resource :article_id
+      destination_attribute_on_join_resource :tag_id
+    end
+  end
+
+  policies do
+    # Public can read published articles
+    policy action_type(:read) do
+      authorize_if expr(published == true)
+    end
+
+    # Authors can manage their own articles
+    policy action_type([:create, :update]) do
+      authorize_if expr(author_id == ^actor(:id))
+    end
+
+    # Editors can manage all articles
+    policy action_type(:update) do
+      authorize_if actor_attribute_equals(:role, :editor)
+    end
+  end
+end
+```
+
+#### Translation Workflow for Editors
+
+```elixir
+# lib/my_cms_web/live/article_live/edit.ex
+defmodule MyCMSWeb.ArticleLive.Edit do
+  use MyCMSWeb, :live_view
+  use AshPhoenixTranslations.LiveView
+
+  alias MyCMS.Content.Article
+
+  def mount(%{"id" => id}, _session, socket) do
+    article = Ash.get!(Article, id)
+
+    socket =
+      socket
+      |> assign(:article, article)
+      |> assign(:locales, [:en, :es, :fr, :de])
+      |> assign(:current_locale, :en)
+      |> assign(:preview_mode, false)
+      |> assign_translation_status()
+
+    {:ok, socket}
+  end
+
+  def handle_event("switch_locale", %{"locale" => locale}, socket) do
+    {:noreply, assign(socket, :current_locale, String.to_existing_atom(locale))}
+  end
+
+  def handle_event("toggle_preview", _params, socket) do
+    {:noreply, update(socket, :preview_mode, &(!&1))}
+  end
+
+  def handle_event("save_translation", params, socket) do
+    article = socket.assigns.article
+    locale = socket.assigns.current_locale
+
+    # Build update params for current locale only
+    updates = %{
+      "title_translations" => Map.put(article.title_translations || %{}, locale, params["title"]),
+      "content_translations" => Map.put(article.content_translations || %{}, locale, params["content"]),
+      "excerpt_translations" => Map.put(article.excerpt_translations || %{}, locale, params["excerpt"])
+    }
+
+    case Ash.update(article, :update, updates) do
+      {:ok, updated_article} ->
+        socket =
+          socket
+          |> assign(:article, updated_article)
+          |> assign_translation_status()
+          |> put_flash(:info, "Translation saved for #{locale}")
+
+        {:noreply, socket}
+
+      {:error, changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to save: #{format_errors(changeset)}")}
+    end
+  end
+
+  defp assign_translation_status(socket) do
+    article = socket.assigns.article
+
+    status =
+      Enum.map(socket.assigns.locales, fn locale ->
+        completeness = AshPhoenixTranslations.Helpers.translation_completeness(article, locales: [locale])
+        {locale, completeness}
+      end)
+      |> Enum.into(%{})
+
+    assign(socket, :translation_status, status)
+  end
+end
+```
+
+### Example 3: Multi-tenant SaaS Application
+
+**Scenario**: SaaS platform where each tenant can manage their own translations.
+
+```elixir
+# lib/my_saas/core/resources/company.ex
+defmodule MySaaS.Core.Company do
+  use Ash.Resource,
+    domain: MySaaS.Core,
+    data_layer: AshPostgres.DataLayer,
+    extensions: [AshPhoenixTranslations]
+
+  postgres do
+    table "companies"
+    repo MySaaS.Repo
+  end
+
+  multitenancy do
+    strategy :attribute
+    attribute :tenant_id
+  end
+
+  translations do
+    translatable_attribute :name, :string do
+      locales [:en, :es, :fr, :de, :pt]
+      required [:en]
+    end
+
+    translatable_attribute :description, :text do
+      locales [:en, :es, :fr, :de, :pt]
+    end
+
+    backend :redis  # Use Redis for multi-tenant scalability
+    cache_ttl 7200
+  end
+
+  attributes do
+    uuid_primary_key :id
+    attribute :tenant_id, :uuid
+    attribute :domain, :string
+    timestamps()
+  end
+
+  actions do
+    defaults [:read, :destroy]
+
+    create :create do
+      accept [:tenant_id, :domain, :name_translations, :description_translations]
+    end
+
+    update :update do
+      accept [:domain, :name_translations, :description_translations]
+    end
+  end
+end
+
+# Access with tenant context
+defmodule MySaaSWeb.CompanyController do
+  use MySaaSWeb, :controller
+
+  def show(conn, %{"id" => id}) do
+    # Get tenant from current user
+    tenant_id = conn.assigns.current_user.tenant_id
+    locale = conn.assigns.locale
+
+    company =
+      MySaaS.Core.Company
+      |> Ash.Query.filter(tenant_id == ^tenant_id)
+      |> Ash.get!(id)
+      |> AshPhoenixTranslations.translate(locale)
+
+    render(conn, "show.html", company: company)
+  end
+end
+```
+
+### Example 4: Import/Export Workflow
+
+**Scenario**: Regular translation import/export for external translation services.
+
+```bash
+# Export current translations for translation service
+mix ash_phoenix_translations.export translations_export.csv \
+  --resource MyApp.Product \
+  --missing-only
+
+# External service fills in translations
+# translations_import.csv now has completed translations
+
+# Preview changes before importing
+mix ash_phoenix_translations.import translations_import.csv \
+  --resource MyApp.Product \
+  --dry-run
+
+# Import with validation
+mix ash_phoenix_translations.import translations_import.csv \
+  --resource MyApp.Product
+
+# Validate translation quality
+mix ash_phoenix_translations.validate \
+  --resource MyApp.Product \
+  --strict \
+  --output validation_report.json \
+  --format json
+```
+
+### Example 5: GraphQL API with Translations
+
+```elixir
+# lib/my_app/catalog/resources/product.ex
+defmodule MyApp.Catalog.Product do
+  use Ash.Resource,
+    domain: MyApp.Catalog,
+    extensions: [AshPhoenixTranslations, AshGraphql.Resource]
+
+  graphql do
+    type :product
+
+    queries do
+      get :product, :read
+      list :products, :read
+    end
+
+    mutations do
+      create :create_product, :create
+      update :update_product, :update
+    end
+  end
+
+  translations do
+    translatable_attribute :name, :string, locales: [:en, :es, :fr]
+    translatable_attribute :description, :text, locales: [:en, :es, :fr]
+
+    backend :database
+    graphql_translations true  # Expose translations in GraphQL
+  end
+end
+
+# GraphQL queries with locale
+"""
+query GetProduct($id: ID!, $locale: String!) {
+  product(id: $id, locale: $locale) {
+    id
+    name        # Automatically translated to requested locale
+    description
+
+    # Access all translations
+    nameTranslations {
+      locale
+      value
+    }
+  }
+}
+
+query ListProducts($locale: String!) {
+  products(locale: $locale) {
+    id
+    name
+    description
+  }
+}
+
+mutation UpdateProductTranslations($id: ID!, $translations: ProductTranslationsInput!) {
+  updateProduct(id: $id, input: {
+    nameTranslations: $translations.name
+    descriptionTranslations: $translations.description
+  }) {
+    id
+    name
+    nameTranslations {
+      locale
+      value
+    }
+  }
+}
+"""
 ```
 
 ## Testing
