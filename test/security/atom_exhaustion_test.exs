@@ -9,6 +9,7 @@ defmodule AshPhoenixTranslations.Security.AtomExhaustionTest do
   use ExUnit.Case, async: true
 
   alias AshPhoenixTranslations.LocaleValidator
+  alias AshPhoenixTranslations.JsonApi.LocalePlug
 
   describe "LocaleValidator.validate_locale/1" do
     test "accepts valid predefined locales" do
@@ -103,7 +104,7 @@ defmodule AshPhoenixTranslations.Security.AtomExhaustionTest do
       }
 
       # Should fall back to default locale
-      result = AshPhoenixTranslations.JsonApi.LocalePlug.call(conn, [])
+      result = LocalePlug.call(conn, [])
 
       # Should use default locale :en, not create atom from malicious input
       assert result.assigns[:locale] == :en
@@ -166,7 +167,7 @@ defmodule AshPhoenixTranslations.Security.AtomExhaustionTest do
         }
 
         # Should handle gracefully
-        result = AshPhoenixTranslations.JsonApi.LocalePlug.call(conn, [])
+        result = LocalePlug.call(conn, [])
 
         # Should fall back to default locale
         assert result.assigns[:locale] == :en
@@ -181,7 +182,7 @@ defmodule AshPhoenixTranslations.Security.AtomExhaustionTest do
         assigns: %{}
       }
 
-      result = AshPhoenixTranslations.JsonApi.LocalePlug.call(conn, [])
+      result = LocalePlug.call(conn, [])
 
       # Should extract :es as highest priority
       assert result.assigns[:locale] == :es
