@@ -1,38 +1,393 @@
 defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
   @moduledoc """
-  Validates translations for completeness and quality.
+  Validates translations for completeness, quality, and security.
 
-  ## Usage
+  This task performs comprehensive validation of translations across your Ash resources,
+  checking for missing translations, quality issues, and potential security vulnerabilities.
+  Essential for maintaining translation quality in production environments.
 
+  ## Features
+
+  - **Completeness Checks**: Identify missing and incomplete translations
+  - **Quality Validation**: Check encoding, length constraints, and content safety
+  - **Security Scanning**: Detect potential XSS vectors and injection attempts
+  - **Flexible Reporting**: Output in text, JSON, or CSV formats
+  - **CI/CD Integration**: Strict mode for automated quality gates
+  - **Performance**: Fast validation using parallel processing
+  - **Localized Scope**: Validate specific locales, fields, or resources
+
+  ## Basic Usage
+
+      # Validate all translations for a single resource
       mix ash_phoenix_translations.validate --resource MyApp.Product
+
+      # Validate all resources with translations
       mix ash_phoenix_translations.validate --all
+
+      # Validate specific locale
       mix ash_phoenix_translations.validate --resource MyApp.Product --locale es
+
+      # Validate specific fields
+      mix ash_phoenix_translations.validate --resource MyApp.Product --field name,description
 
   ## Options
 
-    * `--resource` - Specific resource to validate
-    * `--all` - Validate all resources with translations
-    * `--locale` - Validate only specific locale(s), comma-separated
-    * `--field` - Validate only specific field(s), comma-separated
-    * `--strict` - Fail on any missing translations (exit code 1)
+    * `--resource` - Specific resource module to validate (e.g., MyApp.Product)
+    * `--all` - Validate all resources with translations extension
+    * `--locale` - Comma-separated list of locales to validate (e.g., es,fr)
+    * `--field` - Comma-separated list of fields to validate (e.g., name,description)
+    * `--strict` - Fail build on any missing translations (exit code 1)
     * `--format` - Output format: text, json, or csv (default: text)
-    * `--output` - Output file path (default: stdout)
+    * `--output` - Output file path for report (default: stdout)
 
   ## Validation Checks
 
-    * Missing translations (empty or nil values)
-    * Incomplete locales (not all required locales present)
-    * Invalid locale codes
-    * Duplicate translations
-    * Character encoding issues
-    * Length constraints (if defined)
-    * HTML/unsafe content (if restricted)
+  ### Completeness Checks
+  - **Missing translations**: Detects nil or empty string values
+  - **Incomplete locales**: Identifies resources missing required locales
+  - **Invalid locale codes**: Validates locale format and configuration
+
+  ### Quality Checks
+  - **Character encoding**: Ensures valid UTF-8 encoding
+  - **Length constraints**: Validates min_length and max_length if configured
+  - **HTML content**: Detects HTML when no_html flag is set
+  - **Duplicate detection**: Identifies identical values across locales
+
+  ### Security Checks
+  - **XSS vectors**: Scans for `<script>`, `javascript:`, event handlers
+  - **Template injection**: Detects `\${`, `<%`, and similar patterns
+  - **Control characters**: Identifies suspicious control characters
+  - **SQL injection patterns**: Basic SQL injection detection
+
+  ## Output Formats
+
+  ### Text Format (Default)
+
+      Resource: MyApp.Product
+      ------------------------------------
+      Total translations: 150
+      Missing: 12
+      Completeness: 92.0%
+      Issues found: 15
+
+      Issues:
+        Missing: abc-123 - name[es]
+        Too short: def-456 - description[fr] (5 chars, min: 10)
+        Contains HTML: ghi-789 - description[de]
+
+  ### JSON Format
+
+      {
+        "resource": "MyApp.Product",
+        "issues": [
+          {
+            "type": "missing",
+            "resource_id": "abc-123",
+            "field": "name",
+            "locale": "es"
+          }
+        ],
+        "stats": {
+          "total_translations": 150,
+          "missing_translations": 12,
+          "completeness": 92.0
+        }
+      }
+
+  ### CSV Format
+
+      resource,issue_type,resource_id,field,locale,details
+      MyApp.Product,missing,abc-123,name,es,
+      MyApp.Product,too_short,def-456,description,fr,"5 chars, min: 10"
+
+  ## CI/CD Integration
+
+  ### GitHub Actions
+
+      # .github/workflows/translations.yml
+      name: Validate Translations
+
+      on: [push, pull_request]
+
+      jobs:
+        validate:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v3
+            - uses: erlef/setup-beam@v1
+              with:
+                elixir-version: '1.17'
+                otp-version: '27'
+
+            - name: Install dependencies
+              run: mix deps.get
+
+            - name: Validate translations
+              run: |
+                mix ash_phoenix_translations.validate \\
+                  --all \\
+                  --strict \\
+                  --format json \\
+                  --output validation-report.json
+
+            - name: Upload validation report
+              if: failure()
+              uses: actions/upload-artifact@v3
+              with:
+                name: translation-validation
+                path: validation-report.json
+
+  ### GitLab CI
+
+      # .gitlab-ci.yml
+      validate_translations:
+        stage: test
+        script:
+          - mix deps.get
+          - mix ash_phoenix_translations.validate --all --strict
+        artifacts:
+          when: on_failure
+          paths:
+            - validation-report.json
+        rules:
+          - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+  ### Pre-commit Hook
+
+      # .git/hooks/pre-commit
+      #!/bin/sh
+
+      echo "Validating translations..."
+      mix ash_phoenix_translations.validate --all --strict
+
+      if [ $? -ne 0 ]; then
+        echo "Translation validation failed. Commit aborted."
+        echo "Run 'mix ash_phoenix_translations.validate --all' to see issues"
+        exit 1
+      fi
+
+  ## Workflow Examples
+
+  ### Development Workflow
+
+      # 1. Make translation changes
+      # 2. Validate locally before committing
+      mix ash_phoenix_translations.validate --resource MyApp.Product
+
+      # 3. If issues found, export for review
+      mix ash_phoenix_translations.export missing.csv \\
+        --resource MyApp.Product \\
+        --missing-only
+
+      # 4. After fixing, validate again
+      mix ash_phoenix_translations.validate --resource MyApp.Product --strict
+
+  ### Release Workflow
+
+      # Pre-release validation checklist
+
+      # 1. Validate all resources
+      mix ash_phoenix_translations.validate --all --strict
+
+      # 2. Generate completeness report
+      mix ash_phoenix_translations.validate \\
+        --all \\
+        --format csv \\
+        --output reports/translation-status.csv
+
+      # 3. Check specific locale readiness
+      mix ash_phoenix_translations.validate \\
+        --all \\
+        --locale es \\
+        --strict
+
+  ### Quality Gate Pattern
+
+      defmodule MyApp.Release do
+        def check_translation_quality do
+          # Run validation
+          {output, exit_code} =
+            System.cmd("mix", [
+              "ash_phoenix_translations.validate",
+              "--all",
+              "--format", "json",
+              "--output", "validation.json"
+            ])
+
+          case exit_code do
+            0 ->
+              IO.puts("✅ Translation validation passed")
+              :ok
+
+            1 ->
+              IO.puts("❌ Translation validation failed")
+              report = File.read!("validation.json") |> Jason.decode!()
+
+              IO.puts("Issues found:")
+              for issue <- report["issues"] do
+                IO.puts("  - \#{issue["type"]}: \#{issue["field"]}[\#{issue["locale"]}]")
+              end
+
+              {:error, :validation_failed}
+
+            _ ->
+              IO.puts("⚠️  Validation error occurred")
+              {:error, :validation_error}
+          end
+        end
+      end
+
+  ## Continuous Monitoring
+
+  ### Translation Health Dashboard
+
+      # Run periodic validation and track metrics
+      defmodule MyApp.TranslationHealthChecker do
+        use GenServer
+
+        def start_link(_) do
+          GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
+        end
+
+        def init(state) do
+          # Check translation health every hour
+          schedule_check()
+          {:ok, state}
+        end
+
+        def handle_info(:check_health, state) do
+          run_validation()
+          schedule_check()
+          {:noreply, state}
+        end
+
+        defp schedule_check do
+          Process.send_after(self(), :check_health, :timer.hours(1))
+        end
+
+        defp run_validation do
+          {output, exit_code} =
+            System.cmd("mix", [
+              "ash_phoenix_translations.validate",
+              "--all",
+              "--format", "json"
+            ])
+
+          if exit_code == 0 do
+            Logger.info("Translation health check passed")
+          else
+            Logger.warning("Translation health check found issues",
+              output: output
+            )
+
+            # Send alert to monitoring system
+            send_alert(output)
+          end
+        end
+
+        defp send_alert(report) do
+          # Integration with monitoring tools
+          # MyApp.Monitoring.send_alert(:translation_quality, report)
+        end
+      end
+
+  ### Metrics Collection
+
+      # Collect validation metrics over time
+      def collect_translation_metrics do
+        {output, _} =
+          System.cmd("mix", [
+            "ash_phoenix_translations.validate",
+            "--all",
+            "--format", "json",
+            "--output", "metrics.json"
+          ])
+
+        metrics = File.read!("metrics.json") |> Jason.decode!()
+
+        # Track metrics in your monitoring system
+        MyApp.Metrics.gauge("translations.completeness",
+          metrics["stats"]["completeness"]
+        )
+
+        MyApp.Metrics.gauge("translations.missing_count",
+          metrics["stats"]["missing_translations"]
+        )
+      end
 
   ## Exit Codes
 
-    * 0 - All validations passed
-    * 1 - Validation failures found (with --strict)
-    * 2 - Configuration or resource errors
+    * `0` - All validations passed successfully
+    * `1` - Validation failures found (only when using --strict)
+    * `2` - Configuration errors or missing resources
+
+  ## Performance Considerations
+
+  - **Parallel Processing**: Validation runs in parallel across resources
+  - **Resource Usage**: Memory usage scales with number of translations
+  - **Large Datasets**: For 100k+ translations, consider validating by resource
+  - **CI Optimization**: Use `--resource` to validate only changed resources
+
+  ## Troubleshooting
+
+  ### "Resource not found" Error
+
+      # Ensure the resource module exists and is compiled
+      mix compile
+      mix ash_phoenix_translations.validate --resource MyApp.Product
+
+  ### "No resources found" with --all
+
+      # Verify resources have the translations extension
+      # In your resource:
+      use Ash.Resource,
+        extensions: [AshPhoenixTranslations]
+
+  ### High Memory Usage
+
+      # Validate resources individually instead of --all
+      for resource in [MyApp.Product, MyApp.Category] do
+        mix ash_phoenix_translations.validate --resource \#{resource}
+      end
+
+  ## Security Considerations
+
+  This task helps identify security issues in translations:
+
+  - **XSS Prevention**: Detects potential cross-site scripting vectors
+  - **Injection Detection**: Identifies template and SQL injection patterns
+  - **Content Safety**: Validates HTML content when restrictions are configured
+  - **Encoding Issues**: Ensures proper UTF-8 encoding to prevent display issues
+
+  ## Related Tasks
+
+  - `mix ash_phoenix_translations.export` - Export translations for review
+  - `mix ash_phoenix_translations.import` - Import corrected translations
+  - `mix ash_phoenix_translations.extract` - Extract translatable strings
+
+  ## Examples
+
+      # Development: Quick validation
+      mix ash_phoenix_translations.validate --resource MyApp.Product
+
+      # Production: Comprehensive validation with report
+      mix ash_phoenix_translations.validate \\
+        --all \\
+        --strict \\
+        --format json \\
+        --output production-validation.json
+
+      # CI/CD: Validate specific locale for release
+      mix ash_phoenix_translations.validate \\
+        --all \\
+        --locale es,fr \\
+        --strict
+
+      # Quality assurance: Generate CSV report for review
+      mix ash_phoenix_translations.validate \\
+        --all \\
+        --format csv \\
+        --output translation-issues.csv
   """
 
   use Mix.Task
@@ -108,26 +463,32 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
 
     filters =
       if opts[:locale] do
-        locales =
+        # Process locales and collect validation results
+        {valid_locales, invalid_locales} =
           opts[:locale]
           |> String.split(",")
-          |> Enum.map(fn locale_str ->
-            case AshPhoenixTranslations.LocaleValidator.validate_locale(String.trim(locale_str)) do
+          |> Enum.map(&String.trim/1)
+          |> Enum.reduce({[], []}, fn locale_str, {valid, invalid} ->
+            case AshPhoenixTranslations.LocaleValidator.validate_locale(locale_str) do
               {:ok, locale_atom} ->
-                locale_atom
+                {[locale_atom | valid], invalid}
 
               {:error, _} ->
-                Mix.shell().error("Skipping invalid locale: #{locale_str}")
-                nil
+                {valid, [locale_str | invalid]}
             end
           end)
-          |> Enum.reject(&is_nil/1)
 
-        if Enum.empty?(locales) do
+        # Report invalid locales as a single aggregated message (SECURITY: Prevent atom exhaustion from logging)
+        unless Enum.empty?(invalid_locales) do
+          count = length(invalid_locales)
+          Mix.shell().error("Skipping #{count} invalid locale(s)")
+        end
+
+        if Enum.empty?(valid_locales) do
           Mix.shell().error("No valid locales found")
           filters
         else
-          Map.put(filters, :locales, locales)
+          Map.put(filters, :locales, Enum.reverse(valid_locales))
         end
       else
         filters
@@ -135,27 +496,32 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
 
     filters =
       if opts[:field] do
-        fields =
+        # Process fields and collect validation results
+        {valid_fields, invalid_fields} =
           opts[:field]
           |> String.split(",")
-          |> Enum.map(fn field_str ->
-            trimmed = String.trim(field_str)
-
+          |> Enum.map(&String.trim/1)
+          |> Enum.reduce({[], []}, fn field_str, {valid, invalid} ->
             try do
-              String.to_existing_atom(trimmed)
+              field_atom = String.to_existing_atom(field_str)
+              {[field_atom | valid], invalid}
             rescue
               ArgumentError ->
-                Mix.shell().error("Skipping invalid field: #{field_str}")
-                nil
+                {valid, [field_str | invalid]}
             end
           end)
-          |> Enum.reject(&is_nil/1)
 
-        if Enum.empty?(fields) do
+        # Report invalid fields as a single aggregated message (SECURITY: Prevent atom exhaustion from logging)
+        unless Enum.empty?(invalid_fields) do
+          count = length(invalid_fields)
+          Mix.shell().error("Skipping #{count} invalid field(s)")
+        end
+
+        if Enum.empty?(valid_fields) do
           Mix.shell().error("No valid fields found")
           filters
         else
-          Map.put(filters, :fields, fields)
+          Map.put(filters, :fields, Enum.reverse(valid_fields))
         end
       else
         filters

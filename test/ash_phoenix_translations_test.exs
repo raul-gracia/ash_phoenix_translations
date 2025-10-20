@@ -1,4 +1,113 @@
 defmodule AshPhoenixTranslationsTest do
+  @moduledoc """
+  Core integration tests for AshPhoenixTranslations extension.
+
+  This test module verifies the fundamental functionality of the AshPhoenixTranslations
+  extension when applied to Ash resources. It covers extension configuration, DSL
+  validation, and helper function behavior.
+
+  ## Test Coverage
+
+  ### Extension Structure
+  - Extension loading and registration with Spark
+  - Translatable attribute configuration (types, locales, options)
+  - Backend selection (database vs gettext)
+  - Cache TTL and audit configuration
+  - Locale support and resource marking
+  - Storage field name generation
+
+  ### Helper Functions
+  - `translate/2` with locale atoms and Plug.Conn
+  - `translate_all/2` for batch resource translation
+  - Locale extraction from connection assigns
+
+  ### DSL Validation
+  - Required locale validation (must be in supported locales)
+  - Fallback locale validation (must be in supported locales)
+  - Configuration error handling with Spark.Error.DslError
+
+  ## Test Resource
+
+  The `Product` test resource demonstrates a typical translation configuration:
+
+      defmodule Product do
+        use Ash.Resource,
+          extensions: [AshPhoenixTranslations]
+
+        translations do
+          translatable_attribute :name, :string do
+            locales [:en, :es, :fr]
+            required [:en]
+          end
+
+          translatable_attribute :description, :text do
+            locales [:en, :es, :fr]
+            fallback(:en)
+            markdown(true)
+          end
+
+          backend :database
+          cache_ttl 3600
+          audit_changes false
+        end
+
+        attributes do
+          uuid_primary_key :id
+          attribute :sku, :string
+          attribute :price, :decimal
+        end
+      end
+
+  ## Running Tests
+
+      # Run all tests in this file
+      mix test test/ash_phoenix_translations_test.exs
+
+      # Run specific test
+      mix test test/ash_phoenix_translations_test.exs:67
+
+      # Run with detailed output
+      mix test test/ash_phoenix_translations_test.exs --trace
+
+  ## Key Patterns
+
+  ### ETS Table Cleanup
+  Tests use `setup` blocks to clean ETS tables before each test to ensure test isolation:
+
+      setup do
+        if :ets.whereis(:test_products) != :undefined do
+          :ets.delete_all_objects(:test_products)
+        end
+        :ok
+      end
+
+  ### Resource Creation
+  Tests create resources using Ash changesets and actions:
+
+      {:ok, product} =
+        Product
+        |> Ash.Changeset.for_create(:create, %{
+          sku: "TEST-001",
+          price: Decimal.new("19.99"),
+          name_translations: %{en: "English", es: "Español"}
+        })
+        |> Ash.create()
+
+  ### Mock Plug.Conn
+  Tests mock Plug.Conn structs for locale testing:
+
+      conn = %Plug.Conn{
+        assigns: %{locale: :es},
+        private: %{}
+      }
+
+  ## Related Tests
+
+  - `cache_test.exs` - ETS caching functionality
+  - `transformers/` - Individual transformer behavior
+  - `security/` - Atom exhaustion prevention
+  - `graphql_test.exs` - GraphQL integration
+  """
   use ExUnit.Case
   doctest AshPhoenixTranslations
 
