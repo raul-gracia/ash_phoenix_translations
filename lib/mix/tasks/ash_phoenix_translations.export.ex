@@ -1,35 +1,450 @@
 defmodule Mix.Tasks.AshPhoenixTranslations.Export do
   @moduledoc """
-  Exports translations to CSV, JSON, or XLIFF files.
+  Exports translations to CSV, JSON, or XLIFF files for external editing and translation workflows.
 
-  ## Usage
+  This task enables integration with professional translation management systems, external
+  translators, and review workflows by exporting translation data in industry-standard formats.
+  Essential for managing large-scale translation projects and maintaining translation quality.
 
-      mix ash_phoenix_translations.export output.csv --resource MyApp.Product
-      mix ash_phoenix_translations.export translations.json --format json --locale es
-      mix ash_phoenix_translations.export messages.xliff --format xliff
+  ## Features
+
+  - **Multiple Formats**: Export to CSV, JSON, or XLIFF formats
+  - **Flexible Filtering**: Export specific locales, fields, or translation states
+  - **Security Hardening**: Prevents atom exhaustion from malicious locale/field inputs
+  - **Translation Workflows**: Support for missing-only and complete-only exports
+  - **Professional Integration**: Compatible with CAT tools and TMS platforms
+  - **Batch Operations**: Export multiple resources efficiently
+  - **UTF-8 Support**: Proper encoding for international characters
+
+  ## Basic Usage
+
+      # Export all translations to CSV
+      mix ash_phoenix_translations.export products.csv --resource MyApp.Product
+
+      # Export specific locale to JSON
+      mix ash_phoenix_translations.export es.json --resource MyApp.Product --locale es
+
+      # Export missing translations for review
+      mix ash_phoenix_translations.export missing.csv --resource MyApp.Product --missing-only
+
+      # Export to XLIFF for CAT tools
+      mix ash_phoenix_translations.export translations.xliff --resource MyApp.Product
 
   ## Options
 
-    * `--resource` - The resource module to export translations from (required)
-    * `--format` - Output format: csv, json, or xliff (auto-detected if not specified)
-    * `--locale` - Export only specific locale(s), comma-separated
-    * `--field` - Export only specific field(s), comma-separated
-    * `--missing-only` - Export only missing translations
-    * `--complete-only` - Export only complete translations
+    * `--resource` - Resource module to export (e.g., MyApp.Product) **[Required]**
+    * `--format` - Output format: `csv`, `json`, or `xliff` (auto-detected from extension)
+    * `--locale` - Comma-separated locales to export (e.g., `es,fr,de`)
+    * `--field` - Comma-separated fields to export (e.g., `name,description`)
+    * `--missing-only` - Export only translations with nil or empty values
+    * `--complete-only` - Export only translations with values present
+
+  ## File Formats
+
+  ### CSV Format
+
+  Standard comma-separated values with UTF-8 encoding:
+
+      resource_id,field,locale,value
+      550e8400-e29b-41d4-a716-446655440000,name,en,Premium Coffee Beans
+      550e8400-e29b-41d4-a716-446655440000,name,es,Granos de Café Premium
+      550e8400-e29b-41d4-a716-446655440000,description,en,High-quality arabica beans
+      550e8400-e29b-41d4-a716-446655440000,description,es,Granos de arabica de alta calidad
+
+  **CSV Features**:
+  - Proper escaping of commas, quotes, and newlines
+  - UTF-8 encoding for international characters
+  - Excel-compatible format
+  - Git-friendly line endings
+
+  ### JSON Format
+
+  Structured JSON with metadata:
+
+      {
+        "metadata": {
+          "exported_at": "2024-10-19T10:30:00Z",
+          "total": 150
+        },
+        "translations": [
+          {
+            "resource_id": "550e8400-e29b-41d4-a716-446655440000",
+            "field": "name",
+            "locale": "en",
+            "value": "Premium Coffee Beans"
+          },
+          {
+            "resource_id": "550e8400-e29b-41d4-a716-446655440000",
+            "field": "name",
+            "locale": "es",
+            "value": "Granos de Café Premium"
+          }
+        ]
+      }
+
+  **JSON Features**:
+  - Pretty-printed for readability
+  - Metadata includes export timestamp
+  - Easy programmatic processing
+  - Compatible with most TMS platforms
+
+  ### XLIFF Format
+
+  Industry-standard XML Localization Interchange File Format:
+
+      <?xml version="1.0" encoding="UTF-8"?>
+      <xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+        <file source-language="en" target-language="es" datatype="plaintext">
+          <body>
+            <trans-unit id="550e8400_name">
+              <source>name</source>
+              <target>Granos de Café Premium</target>
+            </trans-unit>
+            <trans-unit id="550e8400_description">
+              <source>description</source>
+              <target>Granos de arabica de alta calidad</target>
+            </trans-unit>
+          </body>
+        </file>
+      </xliff>
+
+  **XLIFF Features**:
+  - Compatible with CAT tools (memoQ, Trados, Smartcat)
+  - Supports translation memory integration
+  - Preserves context and metadata
+  - Professional translator workflow support
+
+  ## Workflow Examples
+
+  ### Translation Review Workflow
+
+      # 1. Export missing translations for review
+      mix ash_phoenix_translations.export missing_es.csv \\
+        --resource MyApp.Product \\
+        --locale es \\
+        --missing-only
+
+      # 2. Send to translator or review team
+      # 3. After receiving corrections, import back
+      mix ash_phoenix_translations.import missing_es_corrected.csv \\
+        --resource MyApp.Product
+
+      # 4. Validate imported translations
+      mix ash_phoenix_translations.validate --resource MyApp.Product --locale es
+
+  ### CAT Tool Integration
+
+      # 1. Export to XLIFF for translation memory systems
+      mix ash_phoenix_translations.export project.xliff \\
+        --resource MyApp.Product \\
+        --locale es,fr,de
+
+      # 2. Import into CAT tool (memoQ, Trados, etc.)
+      # 3. Translators work with translation memory support
+      # 4. Export from CAT tool and import back
+      mix ash_phoenix_translations.import translated.xliff \\
+        --resource MyApp.Product
+
+  ### Backup and Version Control
+
+      # Create timestamped backups before major changes
+      #!/bin/bash
+      TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+      mix ash_phoenix_translations.export \\
+        "backups/translations_\${TIMESTAMP}.json" \\
+        --resource MyApp.Product \\
+        --format json
+
+      # Commit to version control
+      git add "backups/translations_\${TIMESTAMP}.json"
+      git commit -m "Backup translations before bulk update"
+
+  ### Quality Assurance Workflow
+
+      # 1. Export complete translations for QA review
+      mix ash_phoenix_translations.export qa_review.csv \\
+        --resource MyApp.Product \\
+        --complete-only
+
+      # 2. QA team reviews in spreadsheet
+      # 3. Export issues found during QA
+      # 4. Re-import corrected versions
+
+  ### Locale Launch Workflow
+
+      # Before launching new locale (e.g., German)
+
+      # 1. Export all translatable strings
+      mix ash_phoenix_translations.export de_template.csv \\
+        --resource MyApp.Product \\
+        --locale de
+
+      # 2. Send to translation agency
+      # 3. Import completed translations
+      mix ash_phoenix_translations.import de_completed.csv \\
+        --resource MyApp.Product
+
+      # 4. Validate completeness
+      mix ash_phoenix_translations.validate \\
+        --resource MyApp.Product \\
+        --locale de \\
+        --strict
+
+      # 5. Export final review copy
+      mix ash_phoenix_translations.export de_final_review.csv \\
+        --resource MyApp.Product \\
+        --locale de \\
+        --complete-only
+
+  ## CI/CD Integration
+
+  ### Automated Export on Release
+
+      # .github/workflows/export-translations.yml
+      name: Export Translations on Release
+
+      on:
+        release:
+          types: [published]
+
+      jobs:
+        export:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v3
+            - uses: erlef/setup-beam@v1
+              with:
+                elixir-version: '1.17'
+                otp-version: '27'
+
+            - name: Install dependencies
+              run: mix deps.get
+
+            - name: Export translations
+              run: |
+                mkdir -p exports
+                mix ash_phoenix_translations.export \\
+                  "exports/translations_\${{ github.ref_name }}.json" \\
+                  --resource MyApp.Product \\
+                  --format json
+
+            - name: Upload to release
+              uses: softprops/action-gh-release@v1
+              with:
+                files: exports/translations_*.json
+
+  ### Daily Translation Backup
+
+      # Daily cron job to backup translations
+      # .github/workflows/backup-translations.yml
+      name: Daily Translation Backup
+
+      on:
+        schedule:
+          - cron: '0 2 * * *'  # 2 AM daily
+        workflow_dispatch:
+
+      jobs:
+        backup:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v3
+            - name: Export current translations
+              run: |
+                DATE=$(date +%Y-%m-%d)
+                mix ash_phoenix_translations.export \\
+                  "backups/translations_\${DATE}.json" \\
+                  --resource MyApp.Product
+
+            - name: Commit backup
+              run: |
+                git config user.name "Translation Bot"
+                git config user.email "bot@example.com"
+                git add backups/
+                git commit -m "Automated translation backup \${DATE}" || echo "No changes"
+                git push
+
+  ## Professional Translation Management
+
+  ### Integration with Smartcat
+
+      # 1. Export to XLIFF
+      mix ash_phoenix_translations.export smartcat_import.xliff \\
+        --resource MyApp.Product \\
+        --locale es,fr,de
+
+      # 2. Upload to Smartcat via API or web interface
+      # 3. Translators work in Smartcat with TM support
+      # 4. Download completed XLIFF from Smartcat
+      # 5. Import back
+      mix ash_phoenix_translations.import smartcat_export.xliff \\
+        --resource MyApp.Product
+
+  ### Integration with Crowdin
+
+      # Using Crowdin CLI
+      # 1. Export source strings
+      mix ash_phoenix_translations.export crowdin_source.json \\
+        --resource MyApp.Product \\
+        --locale en
+
+      # 2. Upload to Crowdin
+      crowdin upload sources
+
+      # 3. Download translations after completion
+      crowdin download
+
+      # 4. Import translations
+      mix ash_phoenix_translations.import crowdin_translations.json \\
+        --resource MyApp.Product
+
+  ## Advanced Use Cases
+
+  ### Export for Machine Translation
+
+      # Export untranslated strings for machine translation
+      mix ash_phoenix_translations.export mt_input.json \\
+        --resource MyApp.Product \\
+        --locale es \\
+        --missing-only
+
+      # Process with MT service (Google Translate API, DeepL, etc.)
+      # Then import results for human review
+
+  ### Audit and Compliance
+
+      # Export all translations with timestamp for compliance
+      defmodule MyApp.TranslationAudit do
+        def export_for_audit(date) do
+          System.cmd("mix", [
+            "ash_phoenix_translations.export",
+            "audit/translations_\#{date}.csv",
+            "--resource", "MyApp.Product",
+            "--format", "csv"
+          ])
+
+          # Add to audit log
+          MyApp.AuditLog.create(%{
+            event: "translation_export",
+            timestamp: DateTime.utc_now(),
+            file: "translations_\#{date}.csv"
+          })
+        end
+      end
+
+  ### Multi-Resource Export
+
+      # Export all resources for comprehensive backup
+      defmodule MyApp.TranslationExporter do
+        @resources [
+          MyApp.Product,
+          MyApp.Category,
+          MyApp.Brand
+        ]
+
+        def export_all do
+          timestamp = DateTime.utc_now() |> DateTime.to_unix()
+
+          Enum.each(@resources, fn resource ->
+            resource_name =
+              resource
+              |> Module.split()
+              |> List.last()
+              |> Macro.underscore()
+
+            filename = "exports/\#{resource_name}_\#{timestamp}.json"
+
+            System.cmd("mix", [
+              "ash_phoenix_translations.export",
+              filename,
+              "--resource", inspect(resource),
+              "--format", "json"
+            ])
+          end)
+        end
+      end
+
+  ## Security Considerations
+
+  ### Atom Exhaustion Prevention
+
+  This task uses `AshPhoenixTranslations.LocaleValidator` and `String.to_existing_atom/1`
+  to prevent atom exhaustion attacks:
+
+  - Locale inputs are validated against configured supported locales
+  - Field inputs must match existing resource attributes
+  - Invalid inputs are aggregated and reported without creating atoms
+  - Protection against malicious bulk operations
+
+  ### Data Privacy
+
+  - Exported files may contain sensitive product information
+  - Store exports securely, not in public repositories
+  - Use encryption for files transmitted to external translators
+  - Consider GDPR and data residency requirements
+
+  ## Performance Optimization
+
+  - **Batch Size**: Export processes all translations in memory
+  - **Large Datasets**: For 100k+ translations, consider field filtering
+  - **Parallel Exports**: Export different resources in parallel
+  - **File Size**: JSON format creates larger files than CSV
+
+  ## Troubleshooting
+
+  ### "No translations found" Error
+
+      # Ensure resource has translation data
+      # Check if records exist:
+      MyApp.Product |> Ash.read!()
+
+      # Verify resource has translations extension
+      AshPhoenixTranslations.Info.translatable_attributes(MyApp.Product)
+
+  ### "Skipping N invalid locale(s)" Warning
+
+      # Locales must be configured in application config
+      config :ash_phoenix_translations,
+        supported_locales: [:en, :es, :fr, :de]
+
+      # Or in resource definition
+      translations do
+        translatable_attribute :name, locales: [:en, :es, :fr]
+      end
+
+  ### CSV Excel Opening Issues
+
+      # Excel may not detect UTF-8 encoding automatically
+      # Open with "Import Data" instead of double-clicking
+      # Or use Google Sheets which handles UTF-8 correctly
+
+  ## Related Tasks
+
+  - `mix ash_phoenix_translations.import` - Import translated files back
+  - `mix ash_phoenix_translations.validate` - Validate exported translations
+  - `mix ash_phoenix_translations.extract` - Extract translatable strings
 
   ## Examples
 
-      # Export all translations for a resource to CSV
-      mix ash_phoenix_translations.export products.csv --resource MyApp.Product
-      
-      # Export only Spanish translations to JSON
-      mix ash_phoenix_translations.export es.json --resource MyApp.Product --locale es
-      
-      # Export only missing translations
-      mix ash_phoenix_translations.export missing.csv --resource MyApp.Product --missing-only
-      
-      # Export specific fields
-      mix ash_phoenix_translations.export names.csv --resource MyApp.Product --field name,description
+      # Development: Export for local review
+      mix ash_phoenix_translations.export review.csv --resource MyApp.Product
+
+      # Production: Full export with timestamp
+      mix ash_phoenix_translations.export "exports/prod_$(date +%Y%m%d).json" \\
+        --resource MyApp.Product \\
+        --format json
+
+      # Translation agency: Missing Spanish strings
+      mix ash_phoenix_translations.export spanish_todo.xliff \\
+        --resource MyApp.Product \\
+        --locale es \\
+        --missing-only
+
+      # Quality assurance: Complete translations only
+      mix ash_phoenix_translations.export qa_review.csv \\
+        --resource MyApp.Product \\
+        --complete-only
   """
 
   use Mix.Task
@@ -106,26 +521,32 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Export do
 
     filters =
       if opts[:locale] do
-        locales =
+        # Process locales and collect validation results
+        {valid_locales, invalid_locales} =
           opts[:locale]
           |> String.split(",")
-          |> Enum.map(fn locale_str ->
-            case AshPhoenixTranslations.LocaleValidator.validate_locale(String.trim(locale_str)) do
+          |> Enum.map(&String.trim/1)
+          |> Enum.reduce({[], []}, fn locale_str, {valid, invalid} ->
+            case AshPhoenixTranslations.LocaleValidator.validate_locale(locale_str) do
               {:ok, locale_atom} ->
-                locale_atom
+                {[locale_atom | valid], invalid}
 
               {:error, _} ->
-                Mix.shell().error("Skipping invalid locale: #{locale_str}")
-                nil
+                {valid, [locale_str | invalid]}
             end
           end)
-          |> Enum.reject(&is_nil/1)
 
-        if Enum.empty?(locales) do
+        # Report invalid locales as a single aggregated message (SECURITY: Prevent atom exhaustion from logging)
+        unless Enum.empty?(invalid_locales) do
+          count = length(invalid_locales)
+          Mix.shell().error("Skipping #{count} invalid locale(s)")
+        end
+
+        if Enum.empty?(valid_locales) do
           Mix.shell().error("No valid locales found")
           filters
         else
-          Map.put(filters, :locales, locales)
+          Map.put(filters, :locales, Enum.reverse(valid_locales))
         end
       else
         filters
@@ -133,27 +554,32 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Export do
 
     filters =
       if opts[:field] do
-        fields =
+        # Process fields and collect validation results
+        {valid_fields, invalid_fields} =
           opts[:field]
           |> String.split(",")
-          |> Enum.map(fn field_str ->
-            trimmed = String.trim(field_str)
-
+          |> Enum.map(&String.trim/1)
+          |> Enum.reduce({[], []}, fn field_str, {valid, invalid} ->
             try do
-              String.to_existing_atom(trimmed)
+              field_atom = String.to_existing_atom(field_str)
+              {[field_atom | valid], invalid}
             rescue
               ArgumentError ->
-                Mix.shell().error("Skipping invalid field: #{field_str}")
-                nil
+                {valid, [field_str | invalid]}
             end
           end)
-          |> Enum.reject(&is_nil/1)
 
-        if Enum.empty?(fields) do
+        # Report invalid fields as a single aggregated message (SECURITY: Prevent atom exhaustion from logging)
+        unless Enum.empty?(invalid_fields) do
+          count = length(invalid_fields)
+          Mix.shell().error("Skipping #{count} invalid field(s)")
+        end
+
+        if Enum.empty?(valid_fields) do
           Mix.shell().error("No valid fields found")
           filters
         else
-          Map.put(filters, :fields, fields)
+          Map.put(filters, :fields, Enum.reverse(valid_fields))
         end
       else
         filters
@@ -228,10 +654,26 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Export do
   end
 
   defp extract_field_name(storage_field) do
-    storage_field
-    |> to_string()
-    |> String.replace_suffix("_translations", "")
-    |> String.to_atom()
+    field_str =
+      storage_field
+      |> to_string()
+      |> String.replace_suffix("_translations", "")
+
+    # SECURITY: Use String.to_existing_atom to prevent atom exhaustion
+    # Field names should already exist as atoms if they're valid resource attributes
+    try do
+      String.to_existing_atom(field_str)
+    rescue
+      ArgumentError ->
+        # If atom doesn't exist, storage_field is already an atom from database record keys
+        # This is safe because it came from the database schema, not user input
+        if is_atom(storage_field) do
+          storage_field
+        else
+          # This should never happen in practice, but handle it safely
+          :unknown_field
+        end
+    end
   end
 
   defp should_include_translation?(field, locale, value, filters) do
