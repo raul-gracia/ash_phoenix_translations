@@ -168,6 +168,11 @@ defmodule AshPhoenixTranslations.AtomExhaustionMixTest do
 
   @moduletag :security
 
+  # Aliases for Mix tasks to avoid Credo nested module warnings
+  alias Mix.Tasks.AshPhoenixTranslations.Export
+  alias Mix.Tasks.AshPhoenixTranslations.Validate
+  alias Mix.Tasks.AshPhoenixTranslations.Extract
+
   # Test domain definition
   defmodule TestDomain do
     use Ash.Domain,
@@ -213,7 +218,7 @@ defmodule AshPhoenixTranslations.AtomExhaustionMixTest do
     # Run a simple task to initialize Mix.Task infrastructure and Ash resource
     # This ensures the first test doesn't incur ~1200 atoms of initialization overhead
     ExUnit.CaptureIO.capture_io(:stderr, fn ->
-      Mix.Tasks.AshPhoenixTranslations.Export.run([
+      Export.run([
         "warmup_test.csv",
         "--resource",
         "AshPhoenixTranslations.AtomExhaustionMixTest.TestProduct",
@@ -246,7 +251,7 @@ defmodule AshPhoenixTranslations.AtomExhaustionMixTest do
       output =
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
           # This should NOT create 100 new atoms
-          Mix.Tasks.AshPhoenixTranslations.Export.run([
+          Export.run([
             "test_output.csv",
             "--resource",
             "AshPhoenixTranslations.AtomExhaustionMixTest.TestProduct",
@@ -280,7 +285,7 @@ defmodule AshPhoenixTranslations.AtomExhaustionMixTest do
       output =
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
           # This should NOT create 100 new atoms
-          Mix.Tasks.AshPhoenixTranslations.Validate.run([
+          Validate.run([
             "--resource",
             "AshPhoenixTranslations.AtomExhaustionMixTest.TestProduct",
             "--field",
@@ -306,7 +311,7 @@ defmodule AshPhoenixTranslations.AtomExhaustionMixTest do
       malicious_format = "malicious_format_#{:rand.uniform(1_000_000)}"
 
       assert_raise Mix.Error, ~r/Invalid format/, fn ->
-        Mix.Tasks.AshPhoenixTranslations.Extract.run([
+        Extract.run([
           "--format",
           malicious_format
         ])
@@ -324,7 +329,7 @@ defmodule AshPhoenixTranslations.AtomExhaustionMixTest do
       # Valid locales should work normally
       output =
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Mix.Tasks.AshPhoenixTranslations.Export.run([
+          Export.run([
             "test_valid.csv",
             "--resource",
             "AshPhoenixTranslations.AtomExhaustionMixTest.TestProduct",
@@ -342,7 +347,7 @@ defmodule AshPhoenixTranslations.AtomExhaustionMixTest do
       # Valid fields (that exist as atoms) should work
       output =
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Mix.Tasks.AshPhoenixTranslations.Validate.run([
+          Validate.run([
             "--resource",
             "AshPhoenixTranslations.AtomExhaustionMixTest.TestProduct",
             "--field",
@@ -362,7 +367,7 @@ defmodule AshPhoenixTranslations.AtomExhaustionMixTest do
       # Test 'pot' format - should not raise on format validation
       catch_exit do
         ExUnit.CaptureIO.capture_io(fn ->
-          Mix.Tasks.AshPhoenixTranslations.Extract.run([
+          Extract.run([
             "--format",
             "pot"
           ])
@@ -372,7 +377,7 @@ defmodule AshPhoenixTranslations.AtomExhaustionMixTest do
       # Test 'po' format - should not raise on format validation
       catch_exit do
         ExUnit.CaptureIO.capture_io(fn ->
-          Mix.Tasks.AshPhoenixTranslations.Extract.run([
+          Extract.run([
             "--format",
             "po"
           ])
@@ -391,7 +396,7 @@ defmodule AshPhoenixTranslations.AtomExhaustionMixTest do
 
       output =
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Mix.Tasks.AshPhoenixTranslations.Export.run([
+          Export.run([
             "test_mixed.csv",
             "--resource",
             "AshPhoenixTranslations.AtomExhaustionMixTest.TestProduct",
@@ -425,7 +430,7 @@ defmodule AshPhoenixTranslations.AtomExhaustionMixTest do
 
       output =
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Mix.Tasks.AshPhoenixTranslations.Export.run([
+          Export.run([
             "attack_test.csv",
             "--resource",
             "AshPhoenixTranslations.AtomExhaustionMixTest.TestProduct",
@@ -455,7 +460,7 @@ defmodule AshPhoenixTranslations.AtomExhaustionMixTest do
 
       output =
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Mix.Tasks.AshPhoenixTranslations.Validate.run([
+          Validate.run([
             "--resource",
             "AshPhoenixTranslations.AtomExhaustionMixTest.TestProduct",
             "--field",
