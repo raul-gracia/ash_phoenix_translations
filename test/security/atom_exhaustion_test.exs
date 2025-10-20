@@ -8,8 +8,8 @@ defmodule AshPhoenixTranslations.Security.AtomExhaustionTest do
 
   use ExUnit.Case, async: true
 
-  alias AshPhoenixTranslations.LocaleValidator
   alias AshPhoenixTranslations.JsonApi.LocalePlug
+  alias AshPhoenixTranslations.LocaleValidator
 
   describe "LocaleValidator.validate_locale/1" do
     test "accepts valid predefined locales" do
@@ -151,7 +151,7 @@ defmodule AshPhoenixTranslations.Security.AtomExhaustionTest do
   describe "Accept-Language header parsing" do
     test "rejects malicious accept-language values" do
       malicious_headers = [
-        String.duplicate("x", 10000),
+        String.duplicate("x", 10_000),
         "en-US,xx-XX,yy-YY,zz-ZZ," <> String.duplicate("aa-AA,", 1000),
         "<script>alert('xss')</script>",
         "../../../../etc/passwd"
