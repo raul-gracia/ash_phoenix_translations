@@ -170,8 +170,8 @@ defmodule AshPhoenixTranslations.AtomExhaustionMixTest do
 
   # Aliases for Mix tasks to avoid Credo nested module warnings
   alias Mix.Tasks.AshPhoenixTranslations.Export
-  alias Mix.Tasks.AshPhoenixTranslations.Validate
   alias Mix.Tasks.AshPhoenixTranslations.Extract
+  alias Mix.Tasks.AshPhoenixTranslations.Validate
 
   # Test domain definition
   defmodule TestDomain do
