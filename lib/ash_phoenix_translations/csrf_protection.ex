@@ -11,11 +11,6 @@ defmodule AshPhoenixTranslations.CsrfProtection do
   import Plug.Conn
   require Logger
 
-  # Conditional alias for Phoenix.HTML.Tag to avoid Credo nested module warnings
-  if Code.ensure_loaded?(Phoenix.HTML.Tag) do
-    alias Phoenix.HTML.Tag
-  end
-
   @doc """
   Plug for CSRF protection on translation update endpoints.
 
@@ -164,6 +159,8 @@ defmodule AshPhoenixTranslations.CsrfProtection do
   end
 
   if Code.ensure_loaded?(Phoenix.HTML.Tag) do
+    alias Phoenix.HTML.Tag
+
     @doc """
     Helper for including CSRF token in forms.
 
