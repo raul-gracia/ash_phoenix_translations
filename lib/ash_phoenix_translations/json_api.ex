@@ -253,7 +253,12 @@ defmodule AshPhoenixTranslations.JsonApi do
     end
   end
 
-  defp process_translatable_value(attr, _key_atom, %{"locale" => locale, "value" => translation_value}, acc) do
+  defp process_translatable_value(
+         attr,
+         _key_atom,
+         %{"locale" => locale, "value" => translation_value},
+         acc
+       ) do
     # Single locale update - validate locale
     case AshPhoenixTranslations.LocaleValidator.validate_locale(locale) do
       {:ok, locale_atom} ->
