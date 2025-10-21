@@ -3,9 +3,10 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorage do
   Adds storage attributes for translations based on the configured backend.
   This is the first transformer that runs.
 
-  Supports two backends:
+  Supports three backends:
   - Database: Uses JSONB/Map columns for storing translations
   - Gettext: No storage needed, relies on PO files
+  - Redis: No storage needed, uses external Redis store
   """
 
   use Spark.Dsl.Transformer
@@ -76,6 +77,13 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorage do
   defp add_storage_for_attribute(dsl_state, _attr, :gettext) do
     # Gettext doesn't need storage attributes - it uses PO files
     # We might add a virtual attribute for caching purposes later
+    {:ok, dsl_state}
+  end
+
+  defp add_storage_for_attribute(dsl_state, _attr, :redis) do
+    # Redis doesn't need storage attributes - it uses external Redis store
+    # All translation data is stored in Redis with the pattern:
+    # translations:{resource}:{record_id}:{field}:{locale}
     {:ok, dsl_state}
   end
 
