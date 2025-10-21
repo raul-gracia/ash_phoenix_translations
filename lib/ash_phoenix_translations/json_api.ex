@@ -218,45 +218,7 @@ defmodule AshPhoenixTranslations.JsonApi do
       # SECURITY: Safe atom conversion for field names
       case safe_field_atom(key) do
         {:ok, key_atom} ->
-          if attr = Enum.find(translatable_attrs, &(&1.name == key_atom)) do
-            # Handle translation format
-            case value do
-              %{"translations" => translations} when is_map(translations) ->
-                # Multiple locales provided - validate locale keys
-                storage_field = :"#{attr.name}_translations"
-
-                case safe_atomize_locale_keys(translations) do
-                  {:ok, valid_translations} ->
-                    Map.put(acc, storage_field, valid_translations)
-
-                  {:error, _reason} ->
-                    # Skip invalid translations
-                    acc
-                end
-
-              %{"locale" => locale, "value" => translation_value} ->
-                # Single locale update - validate locale
-                case AshPhoenixTranslations.LocaleValidator.validate_locale(locale) do
-                  {:ok, locale_atom} ->
-                    storage_field = :"#{attr.name}_translations"
-                    Map.put(acc, storage_field, %{locale_atom => translation_value})
-
-                  {:error, _} ->
-                    # Skip invalid locale
-                    acc
-                end
-
-              _ when is_binary(value) ->
-                # Default locale update
-                Map.put(acc, key_atom, value)
-
-              _ ->
-                acc
-            end
-          else
-            # Non-translatable field
-            Map.put(acc, key_atom, value)
-          end
+          process_field_value(key_atom, value, translatable_attrs, acc)
 
         {:error, _reason} ->
           # Skip invalid field names
@@ -265,17 +227,64 @@ defmodule AshPhoenixTranslations.JsonApi do
     end)
   end
 
+  defp process_field_value(key_atom, value, translatable_attrs, acc) do
+    case Enum.find(translatable_attrs, &(&1.name == key_atom)) do
+      nil ->
+        # Non-translatable field
+        Map.put(acc, key_atom, value)
+
+      attr ->
+        # Translatable field - process translation format
+        process_translatable_value(attr, key_atom, value, acc)
+    end
+  end
+
+  defp process_translatable_value(attr, _key_atom, %{"translations" => translations}, acc)
+       when is_map(translations) do
+    # Multiple locales provided - validate locale keys
+    case safe_atomize_locale_keys(translations) do
+      {:ok, valid_translations} ->
+        storage_field = :"#{attr.name}_translations"
+        Map.put(acc, storage_field, valid_translations)
+
+      {:error, _reason} ->
+        # Skip invalid translations
+        acc
+    end
+  end
+
+  defp process_translatable_value(attr, _key_atom, %{"locale" => locale, "value" => translation_value}, acc) do
+    # Single locale update - validate locale
+    case AshPhoenixTranslations.LocaleValidator.validate_locale(locale) do
+      {:ok, locale_atom} ->
+        storage_field = :"#{attr.name}_translations"
+        Map.put(acc, storage_field, %{locale_atom => translation_value})
+
+      {:error, _} ->
+        # Skip invalid locale
+        acc
+    end
+  end
+
+  defp process_translatable_value(_attr, key_atom, value, acc) when is_binary(value) do
+    # Default locale update
+    Map.put(acc, key_atom, value)
+  end
+
+  defp process_translatable_value(_attr, _key_atom, _value, acc) do
+    # Unrecognized format - skip
+    acc
+  end
+
   # SECURITY: Safe field name atom conversion
   defp safe_field_atom(field_name) when is_binary(field_name) do
-    try do
-      atom = String.to_existing_atom(field_name)
-      {:ok, atom}
-    rescue
-      ArgumentError ->
-        require Logger
-        Logger.warning("JSON API: rejecting non-existent field atom", field: field_name)
-        {:error, :invalid_field}
-    end
+    atom = String.to_existing_atom(field_name)
+    {:ok, atom}
+  rescue
+    ArgumentError ->
+      require Logger
+      Logger.warning("JSON API: rejecting non-existent field atom", field: field_name)
+      {:error, :invalid_field}
   end
 
   defp safe_field_atom(field_name) when is_atom(field_name), do: {:ok, field_name}

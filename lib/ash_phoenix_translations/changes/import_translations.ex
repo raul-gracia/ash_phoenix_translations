@@ -103,17 +103,15 @@ defmodule AshPhoenixTranslations.Changes.ImportTranslations do
 
   # Helper to validate field atoms safely
   defp validate_field_atom(field_name) when is_binary(field_name) do
-    try do
-      # Only convert if the atom already exists
-      # This prevents atom exhaustion from malicious CSV files
-      atom = String.to_existing_atom(field_name)
-      {:ok, atom}
-    rescue
-      ArgumentError ->
-        require Logger
-        Logger.warning("CSV import: rejecting non-existent field atom", field: field_name)
-        {:error, :invalid_field}
-    end
+    # Only convert if the atom already exists
+    # This prevents atom exhaustion from malicious CSV files
+    atom = String.to_existing_atom(field_name)
+    {:ok, atom}
+  rescue
+    ArgumentError ->
+      require Logger
+      Logger.warning("CSV import: rejecting non-existent field atom", field: field_name)
+      {:error, :invalid_field}
   end
 
   defp import_database_translations(changeset, parsed_translations, merge) do
