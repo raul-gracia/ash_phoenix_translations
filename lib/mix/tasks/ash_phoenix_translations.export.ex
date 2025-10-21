@@ -517,90 +517,91 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Export do
   end
 
   defp build_filters(opts) do
-    filters = %{}
-
-    filters =
-      if opts[:locale] do
-        # Process locales and collect validation results
-        {valid_locales, invalid_locales} =
-          opts[:locale]
-          |> String.split(",")
-          |> Enum.map(&String.trim/1)
-          |> Enum.reduce({[], []}, fn locale_str, {valid, invalid} ->
-            case AshPhoenixTranslations.LocaleValidator.validate_locale(locale_str) do
-              {:ok, locale_atom} ->
-                {[locale_atom | valid], invalid}
-
-              {:error, _} ->
-                {valid, [locale_str | invalid]}
-            end
-          end)
-
-        # Report invalid locales as a single aggregated message (SECURITY: Prevent atom exhaustion from logging)
-        unless Enum.empty?(invalid_locales) do
-          count = length(invalid_locales)
-          Mix.shell().error("Skipping #{count} invalid locale(s)")
-        end
-
-        if Enum.empty?(valid_locales) do
-          Mix.shell().error("No valid locales found")
-          filters
-        else
-          Map.put(filters, :locales, Enum.reverse(valid_locales))
-        end
-      else
-        filters
-      end
-
-    filters =
-      if opts[:field] do
-        # Process fields and collect validation results
-        {valid_fields, invalid_fields} =
-          opts[:field]
-          |> String.split(",")
-          |> Enum.map(&String.trim/1)
-          |> Enum.reduce({[], []}, fn field_str, {valid, invalid} ->
-            try do
-              field_atom = String.to_existing_atom(field_str)
-              {[field_atom | valid], invalid}
-            rescue
-              ArgumentError ->
-                {valid, [field_str | invalid]}
-            end
-          end)
-
-        # Report invalid fields as a single aggregated message (SECURITY: Prevent atom exhaustion from logging)
-        unless Enum.empty?(invalid_fields) do
-          count = length(invalid_fields)
-          Mix.shell().error("Skipping #{count} invalid field(s)")
-        end
-
-        if Enum.empty?(valid_fields) do
-          Mix.shell().error("No valid fields found")
-          filters
-        else
-          Map.put(filters, :fields, Enum.reverse(valid_fields))
-        end
-      else
-        filters
-      end
-
-    filters =
-      if opts[:missing_only] do
-        Map.put(filters, :missing_only, true)
-      else
-        filters
-      end
-
-    filters =
-      if opts[:complete_only] do
-        Map.put(filters, :complete_only, true)
-      else
-        filters
-      end
-
-    filters
+    %{}
+    |> maybe_add_locale_filter(opts)
+    |> maybe_add_field_filter(opts)
+    |> maybe_add_boolean_filters(opts)
   end
+
+  defp maybe_add_locale_filter(filters, opts) do
+    case opts[:locale] do
+      nil ->
+        filters
+
+      locale_string ->
+        case process_validated_items(
+               locale_string,
+               &AshPhoenixTranslations.LocaleValidator.validate_locale/1,
+               "locale"
+             ) do
+          {:ok, locales} -> Map.put(filters, :locales, locales)
+          :error -> filters
+        end
+    end
+  end
+
+  defp maybe_add_field_filter(filters, opts) do
+    case opts[:field] do
+      nil ->
+        filters
+
+      field_string ->
+        case process_validated_items(field_string, &validate_field_atom/1, "field") do
+          {:ok, fields} -> Map.put(filters, :fields, fields)
+          :error -> filters
+        end
+    end
+  end
+
+  defp process_validated_items(input_string, validator_fn, item_name) do
+    # Process items and collect validation results
+    {valid, invalid} =
+      input_string
+      |> String.split(",")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reduce({[], []}, fn item_str, {valid_acc, invalid_acc} ->
+        case validator_fn.(item_str) do
+          {:ok, atom_value} -> {[atom_value | valid_acc], invalid_acc}
+          {:error, _} -> {valid_acc, [item_str | invalid_acc]}
+        end
+      end)
+
+    # Report invalid items (SECURITY: Prevent atom exhaustion from logging)
+    report_invalid_items(invalid, item_name)
+
+    # Return result
+    if Enum.empty?(valid) do
+      Mix.shell().error("No valid #{item_name}s found")
+      :error
+    else
+      {:ok, Enum.reverse(valid)}
+    end
+  end
+
+  defp report_invalid_items([], _item_name), do: :ok
+
+  defp report_invalid_items(invalid, item_name) do
+    count = length(invalid)
+    Mix.shell().error("Skipping #{count} invalid #{item_name}(s)")
+  end
+
+  defp validate_field_atom(field_str) do
+    field_atom = String.to_existing_atom(field_str)
+    {:ok, field_atom}
+  rescue
+    ArgumentError ->
+      {:error, :invalid_field}
+  end
+
+  defp maybe_add_boolean_filters(filters, opts) do
+    filters
+    |> maybe_put_flag(:missing_only, opts[:missing_only])
+    |> maybe_put_flag(:complete_only, opts[:complete_only])
+  end
+
+  defp maybe_put_flag(map, _key, nil), do: map
+  defp maybe_put_flag(map, _key, false), do: map
+  defp maybe_put_flag(map, key, true), do: Map.put(map, key, true)
 
   defp fetch_translations(resource, filters) do
     {:ok, resources} = Ash.read(resource)

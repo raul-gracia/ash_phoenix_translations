@@ -214,28 +214,27 @@ defmodule AshPhoenixTranslations.LocaleValidator do
   end
 
   defp get_translatable_fields(resource_module) do
-    try do
-      resource_module
-      |> AshPhoenixTranslations.Info.translatable_attributes()
-      |> Enum.map(& &1.name)
-    rescue
-      _ ->
-        # If resource doesn't use translations extension, return empty list
-        []
-    end
+    resource_module
+    |> AshPhoenixTranslations.Info.translatable_attributes()
+    |> Enum.map(& &1.name)
+  rescue
+    _ ->
+      # If resource doesn't use translations extension, return empty list
+      []
   end
 
-  defp log_rejection(type, value, reason) do
-    # Sanitize value for logging to prevent log injection
-    sanitized_value =
-      value
-      |> inspect()
-      |> String.slice(0, 100)
+  defp log_rejection(_type, _value, _reason) do
+    # SECURITY: Disabled verbose logging to prevent atom exhaustion from Logger metadata
+    # Individual rejections are now logged at the caller level (Mix tasks, API endpoints)
+    # This prevents creating atoms when processing bulk invalid inputs
+    :ok
 
-    Logger.warning("Translation input rejected",
-      type: type,
-      value: sanitized_value,
-      reason: reason
-    )
+    # Original implementation (disabled):
+    # sanitized_value = value |> inspect() |> String.slice(0, 100)
+    # Logger.warning("Translation input rejected",
+    #   type: type,
+    #   value: sanitized_value,
+    #   reason: reason
+    # )
   end
 end

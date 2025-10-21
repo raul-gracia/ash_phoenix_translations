@@ -625,11 +625,9 @@ defmodule AshPhoenixTranslations.Cache do
       # => 42
   """
   def size do
-    try do
-      :ets.info(@table_name, :size)
-    rescue
-      ArgumentError -> 0
-    end
+    :ets.info(@table_name, :size)
+  rescue
+    ArgumentError -> 0
   end
 
   @doc """
@@ -651,12 +649,10 @@ defmodule AshPhoenixTranslations.Cache do
   Clears the entire cache.
   """
   def clear do
-    try do
-      :ets.delete_all_objects(@table_name)
-      :ok
-    rescue
-      ArgumentError -> :ok
-    end
+    :ets.delete_all_objects(@table_name)
+    :ok
+  rescue
+    ArgumentError -> :ok
   end
 
   @doc """
@@ -809,19 +805,17 @@ defmodule AshPhoenixTranslations.Cache do
   end
 
   defp delete_pattern_impl(pattern) when is_tuple(pattern) do
-    try do
-      # Convert pattern to match spec
-      match_spec = build_match_spec(pattern)
-      entries = :ets.select(@table_name, match_spec)
-      # Extract keys from entries (first element of tuple)
-      keys = Enum.map(entries, fn {key, _value, _expiry} -> key end)
-      Enum.each(keys, &:ets.delete(@table_name, &1))
-      length(keys)
-    rescue
-      ArgumentError ->
-        # Table doesn't exist
-        0
-    end
+    # Convert pattern to match spec
+    match_spec = build_match_spec(pattern)
+    entries = :ets.select(@table_name, match_spec)
+    # Extract keys from entries (first element of tuple)
+    keys = Enum.map(entries, fn {key, _value, _expiry} -> key end)
+    Enum.each(keys, &:ets.delete(@table_name, &1))
+    length(keys)
+  rescue
+    ArgumentError ->
+      # Table doesn't exist
+      0
   end
 
   defp build_match_spec(pattern) when is_tuple(pattern) do
@@ -1006,40 +1000,36 @@ defmodule AshPhoenixTranslations.Cache do
   # SECURITY: Value signing (VULN-012 - Secure deserialization)
 
   defp sign_value(value) do
-    try do
-      # Serialize value
-      serialized = :erlang.term_to_binary(value)
+    # Serialize value
+    serialized = :erlang.term_to_binary(value)
 
-      # Generate HMAC signature
-      signature = :crypto.mac(:hmac, :sha256, @cache_secret, serialized)
+    # Generate HMAC signature
+    signature = :crypto.mac(:hmac, :sha256, @cache_secret, serialized)
 
-      # Return signed structure
-      {:ok, {serialized, signature}}
-    rescue
-      error ->
-        Logger.error("Failed to sign cache value", error: inspect(error))
-        {:error, :signing_failed}
-    end
+    # Return signed structure
+    {:ok, {serialized, signature}}
+  rescue
+    error ->
+      Logger.error("Failed to sign cache value", error: inspect(error))
+      {:error, :signing_failed}
   end
 
   defp verify_signed_value({serialized, signature}) when is_binary(serialized) do
-    try do
-      # Verify signature
-      expected_signature = :crypto.mac(:hmac, :sha256, @cache_secret, serialized)
+    # Verify signature
+    expected_signature = :crypto.mac(:hmac, :sha256, @cache_secret, serialized)
 
-      if :crypto.hash_equals(signature, expected_signature) do
-        # Signature valid, deserialize value
-        value = :erlang.binary_to_term(serialized, [:safe])
-        {:ok, value}
-      else
-        Logger.warning("Cache signature verification failed - potential tampering detected")
-        {:error, :invalid_signature}
-      end
-    rescue
-      error ->
-        Logger.error("Failed to verify cache signature", error: inspect(error))
-        {:error, :verification_failed}
+    if :crypto.hash_equals(signature, expected_signature) do
+      # Signature valid, deserialize value
+      value = :erlang.binary_to_term(serialized, [:safe])
+      {:ok, value}
+    else
+      Logger.warning("Cache signature verification failed - potential tampering detected")
+      {:error, :invalid_signature}
     end
+  rescue
+    error ->
+      Logger.error("Failed to verify cache signature", error: inspect(error))
+      {:error, :verification_failed}
   end
 
   defp verify_signed_value(_) do
