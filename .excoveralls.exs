@@ -1,11 +1,10 @@
 # ExCoveralls configuration
 # Exclude Redis backend files from coverage since they're deferred to a future release
+# Threshold set to 32% to match CI bash script check (see .github/workflows/ci.yml:91)
 
-%{
-  coverage_options: %{
-    minimum_coverage: 50.0,
-    treat_no_relevant_lines_as_covered: true
-  },
+[
+  minimum_coverage: 32.0,
+  treat_no_relevant_lines_as_covered: true,
   skip_files: [
     # Redis backend files (deferred to future release)
     "lib/ash_phoenix_translations/redis_connection.ex",
@@ -26,4 +25,4 @@
     # Test support files
     "test/support"
   ]
-}
+]

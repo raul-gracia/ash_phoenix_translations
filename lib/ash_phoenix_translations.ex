@@ -2004,13 +2004,7 @@ defmodule AshPhoenixTranslations do
 
           present =
             attr.locales
-            |> Enum.count(fn locale ->
-              case Map.get(translations, locale) do
-                nil -> false
-                "" -> false
-                _ -> true
-              end
-            end)
+            |> Enum.count(&has_translation?(translations, &1))
 
           acc + present
         end)
@@ -2020,6 +2014,15 @@ defmodule AshPhoenixTranslations do
       else
         present_translations / total_translations * 100.0
       end
+    end
+  end
+
+  # Helper function to reduce nesting depth in translation_completeness/1
+  defp has_translation?(translations, locale) do
+    case Map.get(translations, locale) do
+      nil -> false
+      "" -> false
+      _ -> true
     end
   end
 
