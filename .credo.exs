@@ -37,7 +37,10 @@
           # Redis tests
           ~r"/test/redis_",
           ~r"/test/calculations/redis_translation_test\.exs",
-          ~r"/test/mix/redis_mix_tasks_test\.exs"
+          ~r"/test/mix/redis_mix_tasks_test\.exs",
+
+          # CSRF protection - uses nested modules within optional dependency check
+          ~r"/lib/ash_phoenix_translations/csrf_protection\.ex"
         ]
       },
       
