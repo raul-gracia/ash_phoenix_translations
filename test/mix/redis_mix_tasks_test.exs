@@ -192,9 +192,11 @@ defmodule AshPhoenixTranslations.RedisMixTasksTest do
 
   describe "export.redis task - basic validation" do
     test "requires resource or all-resources option" do
-      assert_raise Mix.Error, ~r/Either --resource, --all-resources, or --pattern option is required/, fn ->
-        AshPhoenixTranslations.Export.Redis.run(["output.csv"])
-      end
+      assert_raise Mix.Error,
+                   ~r/Either --resource, --all-resources, or --pattern option is required/,
+                   fn ->
+                     AshPhoenixTranslations.Export.Redis.run(["output.csv"])
+                   end
     end
 
     test "requires output file" do
@@ -282,7 +284,8 @@ defmodule AshPhoenixTranslations.RedisMixTasksTest do
           end
         end)
 
-      assert output =~ "Pattern: translations:AshPhoenixTranslations.AtomExhaustionMixTest.TestProduct:*:*:*"
+      assert output =~
+               "Pattern: translations:AshPhoenixTranslations.AtomExhaustionMixTest.TestProduct:*:*:*"
     end
 
     @tag :tmp_dir
