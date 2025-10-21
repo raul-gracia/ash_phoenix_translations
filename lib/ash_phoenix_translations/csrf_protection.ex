@@ -159,9 +159,6 @@ defmodule AshPhoenixTranslations.CsrfProtection do
   end
 
   if Code.ensure_loaded?(Phoenix.HTML.Tag) do
-    # Alias within conditional block to satisfy Credo without triggering unused alias warning
-    alias Phoenix.HTML.Tag
-
     @doc """
     Helper for including CSRF token in forms.
 
@@ -175,7 +172,7 @@ defmodule AshPhoenixTranslations.CsrfProtection do
       token = get_token(conn)
 
       if token do
-        Tag.tag(:input,
+        Phoenix.HTML.Tag.tag(:input,
           type: "hidden",
           name: "_csrf_token",
           value: token
@@ -207,7 +204,7 @@ defmodule AshPhoenixTranslations.CsrfProtection do
       token = get_token(conn)
 
       if token do
-        Tag.tag(:meta, name: "csrf-token", content: token)
+        Phoenix.HTML.Tag.tag(:meta, name: "csrf-token", content: token)
       else
         ""
       end

@@ -3,10 +3,10 @@ defmodule AshPhoenixTranslations.Phase3SecurityTest do
 
   alias AshPhoenixTranslations.{
     Cache,
-    RateLimiter,
+    CsrfProtection,
     ErrorSanitizer,
     InputValidator,
-    CsrfProtection
+    RateLimiter
   }
 
   setup do
