@@ -2,10 +2,10 @@ defmodule AshPhoenixTranslations.Phase2SecurityTest do
   use ExUnit.Case, async: true
 
   alias AshPhoenixTranslations.Helpers
-  alias AshPhoenixTranslations.PolicyCheck
-  alias AshPhoenixTranslations.PathValidator
   alias AshPhoenixTranslations.LocaleResolver
   alias AshPhoenixTranslations.LocaleValidator
+  alias AshPhoenixTranslations.PathValidator
+  alias AshPhoenixTranslations.PolicyCheck
 
   # Helper function to extract string from Phoenix.HTML safe tuples
   defp extract_safe_string({:safe, content}) when is_binary(content), do: content
