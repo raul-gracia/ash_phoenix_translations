@@ -4,7 +4,7 @@ defmodule AshPhoenixTranslations do
   in Phoenix applications with policy-aware, multi-backend support.
 
   This extension provides a complete translation solution for Ash resources, including:
-  - Multiple storage backends (Database JSONB, Gettext .po files, Redis)
+  - Multiple storage backends (Database JSONB, Gettext .po files)
   - Policy-based access control for viewing and editing translations
   - ETS-based caching with TTL support
   - LiveView integration with reactive locale switching
@@ -155,7 +155,6 @@ defmodule AshPhoenixTranslations do
   Choose where translations are stored:
   - `:database` - Store in JSONB columns (PostgreSQL recommended)
   - `:gettext` - Integrate with Phoenix's Gettext system (.po files)
-  - `:redis` - Store in Redis (for multi-server deployments)
 
   **Default:** `:database`
 
@@ -171,12 +170,6 @@ defmodule AshPhoenixTranslations do
       translations do
         backend :gettext
         gettext_module MyAppWeb.Gettext
-        translatable_attribute :name, :string, locales: [:en, :es, :fr]
-      end
-
-      # Redis backend (multi-server deployments)
-      translations do
-        backend :redis
         translatable_attribute :name, :string, locales: [:en, :es, :fr]
       end
 
@@ -515,30 +508,6 @@ defmodule AshPhoenixTranslations do
       msgid "product_name_%{id}"
       msgstr "Mi Producto"
 
-  ### Redis Backend
-
-  **Pros:**
-  - Shared state across multiple servers
-  - Fast in-memory access
-  - Built-in TTL support
-  - Pub/sub for cache invalidation
-
-  **Cons:**
-  - Additional infrastructure (Redis server)
-  - Eventual consistency
-  - More complex setup
-
-  **Best for:**
-  - Multi-server deployments
-  - High-traffic applications
-  - When you need cross-server cache invalidation
-
-  **Example Configuration:**
-
-      config :ash_phoenix_translations,
-        backend: :redis,
-        redis_url: "redis://localhost:6379/0",
-        redis_pool_size: 10
 
   ## LiveView Integration
 
@@ -788,8 +757,7 @@ defmodule AshPhoenixTranslations do
   **Solutions:**
   1. Enable caching with appropriate TTL
   2. Add database indexes on JSONB columns
-  3. Use Redis backend for multi-server deployments
-  4. Lazy-load translations (don't load all locales at once)
+  3. Lazy-load translations (don't load all locales at once)
 
   ## Additional Resources
 
@@ -817,9 +785,9 @@ defmodule AshPhoenixTranslations do
         describe: "Configure translation behavior for the resource",
         schema: [
           backend: [
-            type: {:in, [:database, :gettext, :redis]},
+            type: {:in, [:database, :gettext]},
             default: :database,
-            doc: "The backend to use for storing translations (database, gettext, or redis)"
+            doc: "The backend to use for storing translations (database or gettext)"
           ],
           gettext_module: [
             type: :atom,

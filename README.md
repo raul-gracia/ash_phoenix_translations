@@ -16,7 +16,7 @@ Policy-aware translation extension for [Ash Framework](https://ash-hq.org/) with
 
 - 🌍 **Multi-locale Support** - Manage translations for unlimited locales per field
 - 🔐 **Policy-aware** - Leverage Ash policies for translation access control
-- 💾 **Multiple Storage Backends** - Database (JSONB ✅), Gettext (✅), Redis (✅)
+- 💾 **Multiple Storage Backends** - Database (JSONB ✅), Gettext (✅)
 - ⚡ **Performance Optimized** - Built-in caching with TTL and invalidation
 - 🔄 **LiveView Integration** - Real-time locale switching and updates
 - 📦 **Import/Export** - CSV, JSON, and XLIFF format support
@@ -40,21 +40,6 @@ def deps do
   ]
 end
 ```
-
-**Optional Dependencies:**
-
-For Redis backend support, you must add Redix to your dependencies:
-
-```elixir
-def deps do
-  [
-    {:ash_phoenix_translations, "~> 1.0.0"},
-    {:redix, "~> 1.5"}  # Required only for Redis backend
-  ]
-end
-```
-
-> **Note**: The Redis backend is fully implemented but requires the optional `redix` dependency. Database and Gettext backends work out of the box without additional dependencies.
 
 Run the installation task:
 
@@ -86,7 +71,7 @@ defmodule MyApp.Product do
       locales: [:en, :es, :fr],
       translate: true  # Auto-translate via calculation
     
-    backend :database  # :database | :gettext | :redis
+    backend :database  # :database | :gettext
     cache_ttl 3600
     audit_changes true
   end
@@ -272,68 +257,6 @@ When using Gettext backend:
 - Message IDs are formatted as `"resource_name.attribute_name"`
 - Editing is managed through .po files, not the UI
 
-### Redis Backend
-
-Uses Redis for distributed translation storage with high performance:
-
-```elixir
-translations do
-  backend :redis
-
-  translatable_attribute :name, :string do
-    locales [:en, :es, :fr]
-  end
-end
-```
-
-**Redis Setup:**
-
-> **Important**: The Redis backend requires the `redix` package. Add `{:redix, "~> 1.5"}` to your `mix.exs` dependencies before proceeding.
-
-```bash
-# 1. Add Redix to mix.exs dependencies (see Installation section)
-# 2. Install dependencies
-mix deps.get
-
-# 3. Install with Redis backend
-mix ash_phoenix_translations.install --backend redis
-```
-
-**Configuration:**
-```elixir
-# config/config.exs
-config :ash_phoenix_translations,
-  redis_url: "redis://localhost:6379",
-  redis_pool_size: 10
-```
-
-**Key Features:**
-- **Distributed Storage**: Translations stored in Redis for multi-server deployments
-- **High Performance**: Redis's in-memory storage provides fast translation lookups
-- **Local Caching**: Automatic local cache to reduce Redis round trips
-- **TTL Support**: Optional expiration for translation cache keys
-- **Pattern-based Keys**: `translations:{resource}:{id}:{field}:{locale}`
-
-**Storage Pattern:**
-```
-Key: translations:Product:123:name:en
-Value: "Laptop"
-
-Key: translations:Product:123:name:es
-Value: "Portátil"
-```
-
-**Local Cache Attributes:**
-- Each translatable field gets a `{field}_cache` attribute for local caching
-- Cache reduces Redis calls after initial load
-- Automatically managed by calculation module
-
-**Use Cases:**
-- Multi-server deployments requiring shared translation state
-- High-traffic applications needing fast translation lookups
-- Applications with frequent translation updates
-- Microservices architectures with centralized translation service
-
 ## Mix Tasks
 
 The package includes several Mix tasks for managing translations:
@@ -346,111 +269,8 @@ mix ash_phoenix_translations.install
 # Install with gettext backend
 mix ash_phoenix_translations.install --backend gettext
 
-# Install with Redis backend
-mix ash_phoenix_translations.install --backend redis
-
 # Skip migration generation
 mix ash_phoenix_translations.install --no-migration
-```
-
-### Redis Backend Tasks
-
-The Redis backend includes specialized Mix tasks for managing translations:
-
-#### Export from Redis
-```bash
-# Export all translations to CSV
-mix ash_phoenix_translations.export.redis output.csv --resource MyApp.Product
-
-# Export to JSON format
-mix ash_phoenix_translations.export.redis translations.json --format json --resource MyApp.Product
-
-# Export specific locale
-mix ash_phoenix_translations.export.redis spanish.csv --resource MyApp.Product --locale es
-
-# Export specific fields
-mix ash_phoenix_translations.export.redis names.csv --resource MyApp.Product --field name,description
-
-# Export all resources
-mix ash_phoenix_translations.export.redis all.json --all-resources --format json
-```
-
-#### Import to Redis
-```bash
-# Import from CSV
-mix ash_phoenix_translations.import.redis translations.csv
-
-# Import from JSON
-mix ash_phoenix_translations.import.redis data.json --format json
-
-# Dry run (preview changes)
-mix ash_phoenix_translations.import.redis data.csv --dry-run
-
-# Import with TTL
-mix ash_phoenix_translations.import.redis data.csv --ttl 3600
-
-# Overwrite existing translations
-mix ash_phoenix_translations.import.redis data.csv --overwrite
-```
-
-#### Sync Between Backends
-```bash
-# Sync from database to Redis
-mix ash_phoenix_translations.sync.redis --from database --to redis --resource MyApp.Product
-
-# Sync from Redis to database
-mix ash_phoenix_translations.sync.redis --from redis --to database --resource MyApp.Product
-
-# Bidirectional sync (keep both in sync)
-mix ash_phoenix_translations.sync.redis --bidirectional --resource MyApp.Product
-
-# Dry run
-mix ash_phoenix_translations.sync.redis --from database --to redis --resource MyApp.Product --dry-run
-```
-
-#### Clear Redis Translations
-```bash
-# Clear all translations for a resource
-mix ash_phoenix_translations.clear.redis --resource MyApp.Product --confirm
-
-# Clear specific field
-mix ash_phoenix_translations.clear.redis --resource MyApp.Product --field name --confirm
-
-# Clear specific locale
-mix ash_phoenix_translations.clear.redis --resource MyApp.Product --locale es --confirm
-
-# Preview deletions (dry run)
-mix ash_phoenix_translations.clear.redis --resource MyApp.Product --dry-run
-
-# Clear all translations (use with caution!)
-mix ash_phoenix_translations.clear.redis --all --confirm
-```
-
-#### Redis Information
-```bash
-# Show Redis statistics
-mix ash_phoenix_translations.info.redis
-
-# Show resource-specific info
-mix ash_phoenix_translations.info.redis --resource MyApp.Product
-
-# Detailed breakdown
-mix ash_phoenix_translations.info.redis --resource MyApp.Product --detailed
-```
-
-#### Validate Redis Translations
-```bash
-# Validate all translations
-mix ash_phoenix_translations.validate.redis --resource MyApp.Product
-
-# Validate specific locale
-mix ash_phoenix_translations.validate.redis --resource MyApp.Product --locale es
-
-# Strict mode (fail on warnings)
-mix ash_phoenix_translations.validate.redis --resource MyApp.Product --strict
-
-# Check for orphaned keys
-mix ash_phoenix_translations.validate.redis --resource MyApp.Product --check-orphaned
 ```
 
 ## GraphQL Integration
@@ -784,7 +604,7 @@ config :ash_phoenix_translations,
 # config/config.exs
 config :ash_phoenix_translations,
   # Backend Settings
-  default_backend: :database,        # :database | :gettext | :redis
+  default_backend: :database,        # :database | :gettext
   default_locales: [:en, :es, :fr, :de, :it, :pt, :ja, :zh],
   default_locale: :en,
 
@@ -802,16 +622,6 @@ config :ash_phoenix_translations,
   # Audit Configuration (optional)
   audit_enabled: true,
   audit_retention_days: 90
-
-# Redis Backend Configuration (if using Redis)
-config :ash_phoenix_translations,
-  redis_url: System.get_env("REDIS_URL") || "redis://localhost:6379",
-  redis_pool_size: 10,
-  redis_connection_opts: [
-    socket_opts: [:inet6],
-    ssl: true,
-    timeout: 5000
-  ]
 
 # Cache Settings (fine-tuning)
 config :ash_phoenix_translations, AshPhoenixTranslations.Cache,
@@ -857,9 +667,7 @@ import Config
 
 if config_env() == :prod do
   config :ash_phoenix_translations,
-    default_backend: :redis,         # Redis for distributed deployments
-    redis_url: System.fetch_env!("REDIS_URL"),
-    redis_pool_size: String.to_integer(System.get_env("REDIS_POOL_SIZE", "20")),
+    default_backend: :database,
     cache_ttl: 7200,                 # Longer cache in production (2 hours)
     cache_enabled: true,
     audit_enabled: true,
@@ -889,28 +697,7 @@ translations do
 end
 ```
 
-#### Scenario 2: Multi-Server Deployment
-
-**Use Case**: Phoenix app deployed across multiple servers, needs shared translation state.
-
-```elixir
-# config/runtime.exs
-config :ash_phoenix_translations,
-  default_backend: :redis,           # Shared state across servers
-  redis_url: System.fetch_env!("REDIS_URL"),
-  redis_pool_size: 20,
-  cache_ttl: 7200,                   # 2-hour cache
-  pubsub_server: MyApp.PubSub        # Coordinate LiveView updates
-
-# In your resource
-translations do
-  translatable_attribute :name, :string, locales: [:en, :es, :fr, :de]
-  backend :redis
-  cache_ttl 7200
-end
-```
-
-#### Scenario 3: Content Management System
+#### Scenario 2: Content Management System
 
 **Use Case**: CMS with frequent translation updates, need audit trail.
 
@@ -952,40 +739,6 @@ translations do
   backend :gettext
   gettext_module MyAppWeb.Gettext   # Required for Gettext backend
   gettext_domain "resources"        # Optional, defaults to "resources"
-end
-```
-
-#### Scenario 5: High-Performance E-commerce
-
-**Use Case**: E-commerce platform with high traffic, need maximum performance.
-
-```elixir
-# config/runtime.exs
-config :ash_phoenix_translations,
-  default_backend: :redis,
-  redis_url: System.fetch_env!("REDIS_URL"),
-  redis_pool_size: 50,               # Large pool for high concurrency
-  cache_ttl: 14400,                  # 4-hour cache for stable content
-  cache_enabled: true
-
-# Additional cache tuning
-config :ash_phoenix_translations, AshPhoenixTranslations.Cache,
-  ttl: 14400,
-  max_size: 100_000,                 # Large cache for product catalog
-  cleanup_interval: 600,
-  enable_stats: true
-
-# In your Product resource
-translations do
-  translatable_attribute :name, :string,
-    locales: [:en, :es, :fr, :de, :it, :pt, :ja, :zh],
-    required: [:en]
-
-  translatable_attribute :description, :text,
-    locales: [:en, :es, :fr, :de, :it, :pt, :ja, :zh]
-
-  backend :redis
-  cache_ttl 14400                    # Match global cache
 end
 ```
 
@@ -1070,37 +823,6 @@ priv/gettext/
         └── resources.po
 ```
 
-#### Redis Backend Configuration
-
-```elixir
-# config/runtime.exs
-config :ash_phoenix_translations,
-  default_backend: :redis,
-  redis_url: System.get_env("REDIS_URL", "redis://localhost:6379"),
-  redis_pool_size: 10
-
-# Ensure Redix dependency is added to mix.exs
-# {:redix, "~> 1.5"}
-
-# In your resource
-translations do
-  translatable_attribute :name, :string, locales: [:en, :es, :fr]
-
-  backend :redis
-  cache_ttl 7200  # Local cache reduces Redis calls
-end
-
-# Sync existing database translations to Redis
-# mix ash_phoenix_translations.sync.redis --from database --to redis --resource MyApp.Product
-```
-
-**Redis Key Structure:**
-```
-translations:Product:123e4567:name:en → "Product Name"
-translations:Product:123e4567:name:es → "Nombre del Producto"
-translations:Product:123e4567:description:en → "Product Description"
-```
-
 ### Security Configuration
 
 ```elixir
@@ -1128,8 +850,7 @@ config :ash_phoenix_translations,
 # config/runtime.exs
 if config_env() == :prod do
   config :ash_phoenix_translations,
-    cache_secret: System.fetch_env!("CACHE_SECRET"),  # 32+ bytes
-    redis_url: System.fetch_env!("REDIS_URL")
+    cache_secret: System.fetch_env!("CACHE_SECRET")  # 32+ bytes
 end
 ```
 
@@ -1149,15 +870,6 @@ config :ash_phoenix_translations, AshPhoenixTranslations.Cache,
   cleanup_interval: 300,             # Cleanup every 5 minutes
   enable_stats: true,                # Monitor cache performance
   eviction_policy: :lru              # Least Recently Used eviction
-
-# Redis connection tuning
-config :ash_phoenix_translations,
-  redis_pool_size: 20,               # Match your load
-  redis_connection_opts: [
-    timeout: 5000,
-    socket_opts: [:inet6],
-    keepalive: true
-  ]
 
 # Database query optimization
 config :my_app, MyApp.Repo,
@@ -1752,7 +1464,7 @@ defmodule MySaaS.Core.Company do
       locales [:en, :es, :fr, :de, :pt]
     end
 
-    backend :redis  # Use Redis for multi-tenant scalability
+    backend :database  # Database backend for multi-tenant deployments
     cache_ttl 7200
   end
 

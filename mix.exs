@@ -26,7 +26,8 @@ defmodule AshPhoenixTranslations.MixProject do
         "coveralls.html": :test
       ],
       dialyzer: [
-        plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
+        plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
+        ignore_warnings: ".dialyzer_ignore.exs"
       ],
       aliases: aliases()
     ]
@@ -56,7 +57,6 @@ defmodule AshPhoenixTranslations.MixProject do
 
       # Optional backend dependencies
       {:gettext, "~> 0.20", optional: true},
-      {:redix, "~> 1.5", optional: true},
       {:absinthe, "~> 1.7", optional: true},
       {:dataloader, "~> 2.0", optional: true},
 

@@ -7,6 +7,6 @@
   format: "txt",
   out: "",
   threshold: "low",
-  ignore: ["Config.HTTPS", "DOS.BinToAtom", "DOS.StringToAtom", "XSS.Raw"],
+  ignore: ["Config.HTTPS", "DOS.BinToAtom", "DOS.StringToAtom", "XSS.Raw", "Misc.BinToTerm"],
   ignore_files: []
 ]

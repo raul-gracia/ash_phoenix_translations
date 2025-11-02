@@ -29,16 +29,6 @@
           ~r"/test/support/data_case.ex",
           ~r"/test/support/conn_case.ex",
 
-          # Redis backend (deferred to future release)
-          ~r"/lib/ash_phoenix_translations/redis_",
-          ~r"/lib/mix/tasks/ash_phoenix_translations\.(import|export|sync|clear|info)\.redis\.ex",
-          ~r"/lib/ash_phoenix_translations/calculations/redis_translation\.ex",
-
-          # Redis tests
-          ~r"/test/redis_",
-          ~r"/test/calculations/redis_translation_test\.exs",
-          ~r"/test/mix/redis_mix_tasks_test\.exs",
-
           # CSRF protection - uses nested modules within optional dependency check
           ~r"/lib/ash_phoenix_translations/csrf_protection\.ex"
         ]
