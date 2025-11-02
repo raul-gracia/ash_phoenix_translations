@@ -5,7 +5,7 @@
   <features>
     <feature>**Attribute-level translations**: Define translatable attributes directly in Ash resources with automatic validation and type casting for different locales</feature>
     <feature>**Policy-aware translations**: Leverage Ash policies to control which translations users can view/edit based on roles, permissions, or custom logic</feature>
-    <feature>**Multi-backend support**: Pluggable architecture supporting Gettext, database storage (via Ash.DataLayer), Redis, or custom backends</feature>
+    <feature>**Multi-backend support**: Pluggable architecture supporting Gettext, database storage (via Ash.DataLayer), or custom backends</feature>
     <feature>**Lazy-loading translations**: Optimize performance by loading translations only when needed, with configurable caching strategies</feature>
     <feature>**Nested translations**: Support for translating embedded schemas and relationships within Ash resources</feature>
     <feature>**Bulk operations**: Import/export translations via CSV, JSON, or XLIFF formats with validation</feature>
@@ -45,7 +45,7 @@ defmodule MyApp.Product do
 
   translations do
     # Configure translation behavior
-    backend :database  # or :gettext, :redis, etc.
+    backend :database  # or :gettext
     
     # Define who can edit translations
     policy :update_translations do
@@ -150,8 +150,7 @@ def deps do
   [
     {:ash_phoenix_translations, "~> 1.0"},
     # Optional backends
-    {:gettext, "~> 0.20"},  # If using Gettext backend
-    {:redix, "~> 1.1"}      # If using Redis backend
+    {:gettext, "~> 0.20"}   # If using Gettext backend
   ]
 end
 ```
@@ -189,11 +188,6 @@ config :ash_phoenix_translations,
     gettext: [
       backend: MyApp.Gettext,
       priv: "priv/gettext"
-    ],
-    redis: [
-      host: "localhost",
-      port: 6379,
-      pool_size: 10
     ]
   ]
 ```
@@ -278,8 +272,7 @@ def deps do
   [
     {:ash_phoenix_translations, "~> 1.0"},
     # Optional backends
-    {:gettext, "~> 0.20"},  # If using Gettext backend
-    {:redix, "~> 1.1"}      # If using Redis backend
+    {:gettext, "~> 0.20"}   # If using Gettext backend
   ]
 end
 ```
@@ -317,11 +310,6 @@ config :ash_phoenix_translations,
     gettext: [
       backend: MyApp.Gettext,
       priv: "priv/gettext"
-    ],
-    redis: [
-      host: "localhost",
-      port: 6379,
-      pool_size: 10
     ]
   ]
 ```

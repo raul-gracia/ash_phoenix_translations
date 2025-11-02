@@ -86,9 +86,6 @@ defmodule AshPhoenixTranslations.Phase2SecurityTest do
     end
   end
 
-  # NOTE: VULN-003 (Redis Command Injection Prevention) tests removed
-  # Redis backend was removed as it was not implemented and deferred to future release
-
   describe "VULN-004: Authorization Bypass Prevention" do
     alias AshPhoenixTranslations.Phase2SecurityTest.TestProduct
 

@@ -1492,10 +1492,11 @@ defmodule AshPhoenixTranslations.Helpers do
       items =
         Enum.map_join(locales, "", fn locale ->
           locale_str = to_string(locale)
+          locale_label = locale_name(locale) |> to_string()
           active = locale_str == current
           class = if active, do: "active", else: ""
 
-          "<li class=\"#{class}\"><a href=\"#{locale_url(conn, locale_str)}\" data-locale=\"#{locale_str}\">#{HTML.html_escape(locale_name(locale))}</a></li>"
+          "<li class=\"#{class}\"><a href=\"#{locale_url(conn, locale_str)}\" data-locale=\"#{locale_str}\">#{HTML.html_escape(locale_label)}</a></li>"
         end)
 
       HTML.raw("<ul class=\"#{opts[:class] || "language-switcher"}\">#{items}</ul>")

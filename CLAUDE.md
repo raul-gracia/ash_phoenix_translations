@@ -41,19 +41,11 @@ MIX_NO_DEPS_CHECK=true mix compile --no-deps-check  # Compile without dependency
 ### Mix Tasks (This Package Provides)
 ```bash
 # Installation
-mix ash_phoenix_translations.install [--backend database|gettext|redis]
+mix ash_phoenix_translations.install [--backend database|gettext]
 
 # Import/Export
 mix ash_phoenix_translations.export products.csv --resource MyApp.Product
 mix ash_phoenix_translations.import translations.csv --resource MyApp.Product --dry-run
-
-# Redis-specific tasks (when using Redis backend)
-mix ash_phoenix_translations.export.redis output.csv --resource MyApp.Product
-mix ash_phoenix_translations.import.redis translations.csv
-mix ash_phoenix_translations.sync.redis --from database --to redis
-mix ash_phoenix_translations.clear.redis --resource MyApp.Product --confirm
-mix ash_phoenix_translations.info.redis
-mix ash_phoenix_translations.validate.redis --resource MyApp.Product
 
 # Validation
 mix ash_phoenix_translations.validate --resource MyApp.Product --locale es --strict
@@ -85,17 +77,15 @@ The library follows Ash's extension pattern using Spark DSL transformers that mo
    - `SetupTranslationPolicies`: Configures policy-based access control
 
 ### Backend Architecture
-Three storage backends with different strategies:
+Two storage backends with different strategies:
 - **Database Backend**: Uses JSONB columns (PostgreSQL) - stores translations in `{field}_translations` columns as maps
 - **Gettext Backend**: Integrates with Phoenix's Gettext - no storage needed, uses .po files
-- **Redis Backend**: Uses Redis for distributed storage - requires optional Redix dependency, fully implemented but tests skipped by default
 
 ### Key Module Interactions
 - `AshPhoenixTranslations.Info`: Introspection module to retrieve translation metadata from resources
 - `AshPhoenixTranslations.TranslatableAttribute`: DSL entity struct for defining translatable fields
 - `AshPhoenixTranslations.Calculations.DatabaseTranslation`: Calculation that fetches from JSONB storage
 - `AshPhoenixTranslations.Calculations.GettextTranslation`: Calculation that fetches from Gettext
-- `AshPhoenixTranslations.Calculations.RedisTranslation`: Calculation that fetches from Redis with local caching
 - `AshPhoenixTranslations.Cache`: ETS-based caching layer with TTL support
 - `AshPhoenixTranslations.Fallback`: Handles fallback chain for missing translations
 
@@ -107,7 +97,7 @@ translations do
     locales: [:en, :es, :fr],
     required: [:en]
   
-  backend :database  # or :gettext or :redis
+  backend :database  # or :gettext
   cache_ttl 3600
   audit_changes true
 end
@@ -158,7 +148,6 @@ attrs = Transformer.get_entities(dsl_state, [:translations])
 - Use `Ash.Resource.Builder` functions to modify resources programmatically
 - Follow Ash framework conventions from existing extensions
 - Ensure compatibility with Ash's authorization, API extensions, and LiveView
-- Redis backend was removed (deferred to future release) - only Database and Gettext are supported
 
 ## Common Patterns
 
@@ -180,10 +169,10 @@ end
 ```
 
 ## Current Status
-- Version 1.0.0 ready for release
-- All three backends fully implemented (Database, Gettext, Redis)
-- Redis backend requires optional Redix dependency
-- Redis tests skipped by default (require running Redis instance)
+- Version 1.0.0+ in active development
+- **Database backend**: Fully implemented and tested ✅
+- **Gettext backend**: Fully implemented and tested ✅
 - All compilation warnings fixed
-- Comprehensive test suite: 262 tests passing, 0 failures
+- Dialyzer and Sobelow passing cleanly
+- Comprehensive test suite: 248 tests passing, 0 failures
 - All security vulnerabilities (VULN-001 to VULN-017) fixed and validated

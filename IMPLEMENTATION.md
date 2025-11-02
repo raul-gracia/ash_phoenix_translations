@@ -153,20 +153,6 @@ defp add_storage_for_attribute(dsl_state, \_attr, :gettext) do # Gettext doesn't
 {:ok, dsl_state}
 end
 
-defp add_storage_for_attribute(dsl_state, attr, :redis) do # For Redis, we might want to track keys
-storage_name = :"#{attr.name}\_redis_key"
-
-    {:ok, dsl_state} =
-      Ash.Resource.Builder.add_new_attribute(
-        dsl_state,
-        storage_name,
-        :string,
-        public?: false
-      )
-
-    {:ok, dsl_state}
-
-end
 end
 
 # lib/ash_phoenix_translations/transformers/add_translation_relationships.ex
