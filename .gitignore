@@ -53,3 +53,6 @@ Thumbs.db
 # Mix lock for applications (not libraries)
 # Uncomment if this is an application
 # mix.lock
+
+# Claude Code guidance file (local configuration)
+CLAUDE.md
