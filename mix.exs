@@ -19,17 +19,23 @@ defmodule AshPhoenixTranslations.MixProject do
       source_url: "https://github.com/raul-gracia/ash_phoenix_translations",
       homepage_url: "https://github.com/raul-gracia/ash_phoenix_translations",
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
       dialyzer: [
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
         ignore_warnings: ".dialyzer_ignore.exs"
       ],
-      aliases: aliases()
+      aliases: aliases(),
+      cli: cli()
+    ]
+  end
+
+  def cli do
+    [
+      preferred_envs: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 
