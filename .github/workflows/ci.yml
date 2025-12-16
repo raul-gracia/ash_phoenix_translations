@@ -82,7 +82,7 @@ jobs:
           # Extract coverage percentage and ensure it's above 32%
           # Note: Coverage threshold set to 32% to match current test coverage.
           # Target is 80% for production code only.
-          coverage=$(mix test.coverage | grep "TOTAL" | awk '{print $2}' | sed 's/%//')
+          coverage=$(mix test.coverage | grep "| Total" | awk -F'|' '{print $2}' | tr -d ' %')
           if [ -z "$coverage" ]; then
             echo "Could not extract coverage percentage"
             exit 1
