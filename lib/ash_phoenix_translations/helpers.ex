@@ -302,6 +302,11 @@ defmodule AshPhoenixTranslations.Helpers do
   # Check if Phoenix.HTML is available
   @phoenix_html_available Code.ensure_loaded?(Phoenix.HTML)
 
+  # Helper to safely convert {:safe, binary} tuples from html_escape to strings for interpolation
+  defp safe_to_string({:safe, binary}) when is_binary(binary), do: binary
+  defp safe_to_string({:safe, iolist}), do: IO.iodata_to_binary(iolist)
+  defp safe_to_string(other), do: to_string(other)
+
   @doc """
   Translates a field from a resource with automatic HTML escaping.
 
@@ -1363,7 +1368,7 @@ defmodule AshPhoenixTranslations.Helpers do
         Enum.map_join(options, "", fn {label, value} ->
           selected_attr = if value == selected, do: " selected=\"selected\"", else: ""
 
-          "<option value=\"#{HTML.html_escape(value)}\"#{selected_attr}>#{HTML.html_escape(label)}</option>"
+          "<option value=\"#{safe_to_string(HTML.html_escape(value))}\"#{selected_attr}>#{safe_to_string(HTML.html_escape(label))}</option>"
         end)
 
       HTML.raw("""
@@ -1425,10 +1430,10 @@ defmodule AshPhoenixTranslations.Helpers do
 
       HTML.raw("""
       <div class="field">
-        <label for="#{field_id}">#{HTML.html_escape(label_text)}</label>
-        <input type="text" id="#{field_id}" name="#{field_html_name}" 
-               class="#{opts[:class]}" placeholder="#{HTML.html_escape(opts[:placeholder] || "")}"
-               value="#{HTML.html_escape(value || "")}">
+        <label for="#{field_id}">#{safe_to_string(HTML.html_escape(label_text))}</label>
+        <input type="text" id="#{field_id}" name="#{field_html_name}"
+               class="#{opts[:class]}" placeholder="#{safe_to_string(HTML.html_escape(opts[:placeholder] || ""))}"
+               value="#{safe_to_string(HTML.html_escape(value || ""))}">
       </div>
       """)
     else
@@ -1496,7 +1501,7 @@ defmodule AshPhoenixTranslations.Helpers do
           active = locale_str == current
           class = if active, do: "active", else: ""
 
-          "<li class=\"#{class}\"><a href=\"#{locale_url(conn, locale_str)}\" data-locale=\"#{locale_str}\">#{HTML.html_escape(locale_label)}</a></li>"
+          "<li class=\"#{class}\"><a href=\"#{locale_url(conn, locale_str)}\" data-locale=\"#{locale_str}\">#{safe_to_string(HTML.html_escape(locale_label))}</a></li>"
         end)
 
       HTML.raw("<ul class=\"#{opts[:class] || "language-switcher"}\">#{items}</ul>")
