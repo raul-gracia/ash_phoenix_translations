@@ -33,7 +33,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       - name: Setup Elixir
         uses: erlef/setup-beam@v1
@@ -42,7 +42,7 @@ jobs:
           otp-version: ${{ matrix.otp }}
       
       - name: Restore dependencies cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             deps
@@ -99,7 +99,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       - name: Setup Elixir
         uses: erlef/setup-beam@v1
@@ -108,7 +108,7 @@ jobs:
           otp-version: ${{ env.OTP_VERSION }}
       
       - name: Restore dependencies cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             deps
@@ -143,7 +143,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       - name: Setup Elixir
         uses: erlef/setup-beam@v1
@@ -152,7 +152,7 @@ jobs:
           otp-version: ${{ env.OTP_VERSION }}
       
       - name: Restore dependencies cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             deps
@@ -163,7 +163,7 @@ jobs:
             ${{ runner.os }}-mix-
       
       - name: Restore PLT cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: priv/plts
           key: ${{ runner.os }}-plt-${{ env.ELIXIR_VERSION }}-${{ env.OTP_VERSION }}-${{ hashFiles('**/mix.lock') }}
@@ -190,7 +190,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       - name: Setup Elixir
         uses: erlef/setup-beam@v1
