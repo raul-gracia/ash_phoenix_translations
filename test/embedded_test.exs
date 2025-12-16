@@ -279,7 +279,7 @@ defmodule AshPhoenixTranslations.EmbeddedTest do
       {:error, errors} = Embedded.validate_embedded_translations(user, [:en, :es, :fr])
 
       assert is_list(errors)
-      assert length(errors) > 0
+      assert not Enum.empty?(errors)
     end
   end
 

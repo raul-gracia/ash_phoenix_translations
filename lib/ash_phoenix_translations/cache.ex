@@ -438,39 +438,12 @@ defmodule AshPhoenixTranslations.Cache do
   """
   def get(key) do
     # SECURITY: Validate key structure (VULN-009)
-    with {:ok, validated_key} <- validate_cache_key(key) do
-      result =
-        case :ets.lookup(@table_name, validated_key) do
-          [{^validated_key, signed_value, expiry}] ->
-            if DateTime.compare(DateTime.utc_now(), expiry) == :lt do
-              # SECURITY: Verify signature (VULN-012)
-              case verify_signed_value(signed_value) do
-                {:ok, value} ->
-                  {:ok, value}
+    case validate_cache_key(key) do
+      {:ok, validated_key} ->
+        result = lookup_validated_key(validated_key)
+        track_result_statistics(result)
+        result
 
-                {:error, :invalid_signature} ->
-                  Logger.warning("Cache signature verification failed, invalidating entry")
-                  :ets.delete(@table_name, validated_key)
-                  :miss
-              end
-            else
-              # Expired, delete it
-              :ets.delete(@table_name, validated_key)
-              :miss
-            end
-
-          [] ->
-            :miss
-        end
-
-      # Track statistics
-      case result do
-        {:ok, _} -> GenServer.cast(__MODULE__, :track_hit)
-        :miss -> GenServer.cast(__MODULE__, :track_miss)
-      end
-
-      result
-    else
       {:error, reason} ->
         Logger.warning("Invalid cache key rejected", reason: reason, key: inspect(key))
         GenServer.cast(__MODULE__, :track_miss)
@@ -481,6 +454,46 @@ defmodule AshPhoenixTranslations.Cache do
       # Table doesn't exist
       GenServer.cast(__MODULE__, :track_miss)
       :miss
+  end
+
+  defp lookup_validated_key(validated_key) do
+    case :ets.lookup(@table_name, validated_key) do
+      [{^validated_key, signed_value, expiry}] ->
+        process_cache_entry(validated_key, signed_value, expiry)
+
+      [] ->
+        :miss
+    end
+  end
+
+  defp process_cache_entry(validated_key, signed_value, expiry) do
+    if DateTime.compare(DateTime.utc_now(), expiry) == :lt do
+      # SECURITY: Verify signature (VULN-012)
+      verify_and_return_value(validated_key, signed_value)
+    else
+      # Expired, delete it
+      :ets.delete(@table_name, validated_key)
+      :miss
+    end
+  end
+
+  defp verify_and_return_value(validated_key, signed_value) do
+    case verify_signed_value(signed_value) do
+      {:ok, value} ->
+        {:ok, value}
+
+      {:error, :invalid_signature} ->
+        Logger.warning("Cache signature verification failed, invalidating entry")
+        :ets.delete(@table_name, validated_key)
+        :miss
+    end
+  end
+
+  defp track_result_statistics(result) do
+    case result do
+      {:ok, _} -> GenServer.cast(__MODULE__, :track_hit)
+      :miss -> GenServer.cast(__MODULE__, :track_miss)
+    end
   end
 
   @doc """

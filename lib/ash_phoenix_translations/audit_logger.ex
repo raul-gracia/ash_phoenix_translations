@@ -35,7 +35,7 @@ defmodule AshPhoenixTranslations.AuditLogger do
 
     details =
       if reason do
-        details ++ ["reason: #{reason}"]
+        ["reason: #{reason}" | Enum.reverse(details)] |> Enum.reverse()
       else
         details
       end
