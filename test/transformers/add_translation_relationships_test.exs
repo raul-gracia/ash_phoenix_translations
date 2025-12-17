@@ -1,5 +1,5 @@
 defmodule AshPhoenixTranslations.Transformers.AddTranslationRelationshipsTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   describe "With Audit Enabled" do
     defmodule AuditProduct do

@@ -1,5 +1,5 @@
 defmodule AshPhoenixTranslations.Transformers.AddTranslationCalculationsTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   describe "Database Backend Calculations" do
     defmodule DatabaseProduct do

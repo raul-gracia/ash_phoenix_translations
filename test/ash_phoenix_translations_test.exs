@@ -108,7 +108,8 @@ defmodule AshPhoenixTranslationsTest do
   - `security/` - Atom exhaustion prevention
   - `graphql_test.exs` - GraphQL integration
   """
-  use ExUnit.Case
+  # async: false because tests share ETS table :test_products
+  use ExUnit.Case, async: false
   doctest AshPhoenixTranslations
 
   # Test resource with translations

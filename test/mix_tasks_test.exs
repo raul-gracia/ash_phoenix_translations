@@ -1,5 +1,5 @@
 defmodule AshPhoenixTranslations.MixTasksTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   import ExUnit.CaptureIO
 
   alias Mix.Tasks.AshPhoenixTranslations

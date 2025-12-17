@@ -1,5 +1,18 @@
 defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
+
+  # Test domain - defined first for proper resource registration
+  defmodule Domain do
+    use Ash.Domain,
+      validate_config_inclusion?: false
+
+    resources do
+      resource AshPhoenixTranslations.Transformers.AddTranslationChangesTest.ValidatedProduct
+      resource AshPhoenixTranslations.Transformers.AddTranslationChangesTest.NoAutoValidateProduct
+      resource AshPhoenixTranslations.Transformers.AddTranslationChangesTest.UpdateActionProduct
+      resource AshPhoenixTranslations.Transformers.AddTranslationChangesTest.ImportActionProduct
+    end
+  end
 
   describe "Validation Changes" do
     defmodule ValidatedProduct do
@@ -31,10 +44,16 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
       end
 
       actions do
-        create :create
-        read :read
-        update :update
-        destroy :destroy
+        defaults [:read, :destroy]
+
+        create :create do
+          primary? true
+        end
+
+        update :update do
+          primary? true
+          require_atomic? false
+        end
       end
 
       attributes do
@@ -147,8 +166,12 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
         read :read
         update :update
         destroy :destroy
+
         # This action would be added by AddTranslationActions transformer
-        update :update_translation, accept: [:name_translations]
+        update :update_translation do
+          accept [:name_translations]
+          require_atomic? false
+        end
       end
 
       attributes do
@@ -198,8 +221,12 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
         read :read
         update :update
         destroy :destroy
+
         # This action would be added by AddTranslationActions transformer
-        update :import_translations, accept: []
+        update :import_translations do
+          accept []
+          require_atomic? false
+        end
       end
 
       attributes do
@@ -222,19 +249,6 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationChangesTest do
                  change
                )
              end)
-    end
-  end
-
-  # Test domain
-  defmodule Domain do
-    use Ash.Domain,
-      validate_config_inclusion?: false
-
-    resources do
-      resource AshPhoenixTranslations.Transformers.AddTranslationChangesTest.ValidatedProduct
-      resource AshPhoenixTranslations.Transformers.AddTranslationChangesTest.NoAutoValidateProduct
-      resource AshPhoenixTranslations.Transformers.AddTranslationChangesTest.UpdateActionProduct
-      resource AshPhoenixTranslations.Transformers.AddTranslationChangesTest.ImportActionProduct
     end
   end
 end

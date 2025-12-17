@@ -130,7 +130,7 @@ defmodule AshPhoenixTranslations.Transformers.AddTranslationStorageTest do
   - `add_translation_calculations_test.exs` - Verifies calculation field access
   - `ash_phoenix_translations_test.exs` - Integration tests with storage
   """
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   describe "Database Backend" do
     defmodule DatabaseProduct do

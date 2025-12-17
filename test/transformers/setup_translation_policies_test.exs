@@ -1,5 +1,7 @@
 defmodule AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
+
+  import ExUnit.CaptureLog
 
   describe "Public View Policy" do
     defmodule PublicViewProduct do
@@ -287,117 +289,125 @@ defmodule AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest do
 
   describe "Policy Check Module" do
     test "authenticated check works correctly" do
-      # Test with nil actor
-      refute AshPhoenixTranslations.PolicyCheck.match?(
-               nil,
-               %{
-                 action: %{
-                   name: :read,
-                   resource:
-                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AuthenticatedViewProduct
-                 }
-               },
-               []
-             )
+      capture_log(fn ->
+        # Test with nil actor
+        refute AshPhoenixTranslations.PolicyCheck.match?(
+                 nil,
+                 %{
+                   action: %{
+                     name: :read,
+                     resource:
+                       AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AuthenticatedViewProduct
+                   }
+                 },
+                 []
+               )
 
-      # Test with authenticated actor
-      assert AshPhoenixTranslations.PolicyCheck.match?(
-               %{id: "user-123"},
-               %{
-                 action: %{
-                   name: :read,
-                   resource:
-                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AuthenticatedViewProduct
-                 }
-               },
-               []
-             )
+        # Test with authenticated actor
+        assert AshPhoenixTranslations.PolicyCheck.match?(
+                 %{id: "user-123"},
+                 %{
+                   action: %{
+                     name: :read,
+                     resource:
+                       AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AuthenticatedViewProduct
+                   }
+                 },
+                 []
+               )
+      end)
     end
 
     test "admin edit check works correctly" do
-      # Test with non-admin actor
-      refute AshPhoenixTranslations.PolicyCheck.match?(
-               %{role: :translator},
-               %{
-                 action: %{
-                   name: :update_translation,
-                   resource:
-                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AdminEditProduct
-                 }
-               },
-               []
-             )
+      capture_log(fn ->
+        # Test with non-admin actor
+        refute AshPhoenixTranslations.PolicyCheck.match?(
+                 %{role: :translator},
+                 %{
+                   action: %{
+                     name: :update_translation,
+                     resource:
+                       AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AdminEditProduct
+                   }
+                 },
+                 []
+               )
 
-      # Test with admin actor
-      assert AshPhoenixTranslations.PolicyCheck.match?(
-               %{role: :admin},
-               %{
-                 action: %{
-                   name: :update_translation,
-                   resource:
-                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AdminEditProduct
-                 }
-               },
-               []
-             )
+        # Test with admin actor
+        assert AshPhoenixTranslations.PolicyCheck.match?(
+                 %{role: :admin},
+                 %{
+                   action: %{
+                     name: :update_translation,
+                     resource:
+                       AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.AdminEditProduct
+                   }
+                 },
+                 []
+               )
+      end)
     end
 
     test "translator edit check works correctly" do
-      # Test translator with assigned locale
-      assert AshPhoenixTranslations.PolicyCheck.match?(
-               %{role: :translator, assigned_locales: [:en, :es]},
-               %{
-                 action: %{
-                   name: :update_translation,
-                   arguments: %{locale: :en},
-                   resource:
-                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.TranslatorEditProduct
-                 }
-               },
-               []
-             )
+      capture_log(fn ->
+        # Test translator with assigned locale
+        assert AshPhoenixTranslations.PolicyCheck.match?(
+                 %{role: :translator, assigned_locales: [:en, :es]},
+                 %{
+                   action: %{
+                     name: :update_translation,
+                     arguments: %{locale: :en},
+                     resource:
+                       AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.TranslatorEditProduct
+                   }
+                 },
+                 []
+               )
 
-      # Test translator without assigned locale
-      refute AshPhoenixTranslations.PolicyCheck.match?(
-               %{role: :translator, assigned_locales: [:es]},
-               %{
-                 action: %{
-                   name: :update_translation,
-                   arguments: %{locale: :en},
-                   resource:
-                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.TranslatorEditProduct
-                 }
-               },
-               []
-             )
+        # Test translator without assigned locale
+        refute AshPhoenixTranslations.PolicyCheck.match?(
+                 %{role: :translator, assigned_locales: [:es]},
+                 %{
+                   action: %{
+                     name: :update_translation,
+                     arguments: %{locale: :en},
+                     resource:
+                       AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.TranslatorEditProduct
+                   }
+                 },
+                 []
+               )
+      end)
     end
 
     test "role-based check works correctly" do
-      # Test with allowed role
-      assert AshPhoenixTranslations.PolicyCheck.match?(
-               %{role: :editor},
-               %{
-                 action: %{
-                   name: :update_translation,
-                   resource:
-                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.RoleBasedProduct
-                 }
-               },
-               []
-             )
+      capture_log(fn ->
+        # Test with allowed role
+        assert AshPhoenixTranslations.PolicyCheck.match?(
+                 %{role: :editor},
+                 %{
+                   action: %{
+                     name: :update_translation,
+                     resource:
+                       AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.RoleBasedProduct
+                   }
+                 },
+                 []
+               )
 
-      # Test with disallowed role
-      refute AshPhoenixTranslations.PolicyCheck.match?(
-               %{role: :viewer},
-               %{
-                 action: %{
-                   name: :update_translation,
-                   resource:
-                     AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.RoleBasedProduct
-                 }
-               },
-               []
-             )
+        # Test with disallowed role
+        refute AshPhoenixTranslations.PolicyCheck.match?(
+                 %{role: :viewer},
+                 %{
+                   action: %{
+                     name: :update_translation,
+                     resource:
+                       AshPhoenixTranslations.Transformers.SetupTranslationPoliciesTest.RoleBasedProduct
+                   }
+                 },
+                 []
+               )
+      end)
     end
   end
 
