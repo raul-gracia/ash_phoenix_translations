@@ -746,7 +746,7 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Extract do
         acc = Map.put(acc, name_msgid, name_entry)
 
         # Generate msgid for attribute description if present
-        if attr[:description] do
+        if Map.get(attr, :description) do
           desc_msgid = "#{resource_name}.#{attr.name}.description"
 
           desc_entry = %{

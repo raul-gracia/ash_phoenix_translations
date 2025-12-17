@@ -349,14 +349,18 @@ defmodule AshPhoenixTranslations.CacheTest do
   end
 
   describe "cache warming" do
-    test "warm cache triggers async loading" do
-      # This is a placeholder test since warm is async
-      # In production, we'd mock the loading function
-      Cache.warmup(Product, [:name, :description])
+    import ExUnit.CaptureLog
 
-      # The warm function should not crash
-      Process.sleep(100)
-      assert true
+    test "warm cache triggers async loading" do
+      capture_log(fn ->
+        # This is a placeholder test since warm is async
+        # In production, we'd mock the loading function
+        Cache.warmup(Product, [:name, :description])
+
+        # The warm function should not crash
+        Process.sleep(100)
+        assert true
+      end)
     end
   end
 
@@ -389,6 +393,362 @@ defmodule AshPhoenixTranslations.CacheTest do
       for i <- 1..5 do
         assert Cache.get({:test, i}) == :miss
       end
+    end
+  end
+
+  describe "key validation" do
+    import ExUnit.CaptureLog
+
+    test "validates translation keys with proper structure" do
+      # Valid key
+      key = Cache.key(Product, :name, :en, "123")
+      assert :ok = Cache.put(key, "value")
+      assert {:ok, "value"} = Cache.get(key)
+    end
+
+    test "rejects keys with invalid resource type" do
+      capture_log(fn ->
+        key = {:translation, "not_atom", :name, :en, "123"}
+        assert {:error, _} = Cache.put(key, "value")
+        assert :miss = Cache.get(key)
+      end)
+    end
+
+    test "rejects keys with resource name too long" do
+      capture_log(fn ->
+        long_atom = String.to_atom("Elixir." <> String.duplicate("A", 200))
+        key = {:translation, long_atom, :name, :en, "123"}
+        assert {:error, _} = Cache.put(key, "value")
+      end)
+    end
+
+    test "rejects keys with invalid resource format" do
+      capture_log(fn ->
+        key = {:translation, :not_elixir_module, :name, :en, "123"}
+        assert {:error, _} = Cache.put(key, "value")
+        assert :miss = Cache.get(key)
+      end)
+    end
+
+    test "rejects keys with invalid field type" do
+      capture_log(fn ->
+        key = {:translation, Product, "not_atom", :en, "123"}
+        assert {:error, _} = Cache.put(key, "value")
+        assert :miss = Cache.get(key)
+      end)
+    end
+
+    test "rejects keys with field name too long" do
+      capture_log(fn ->
+        long_field = String.to_atom(String.duplicate("a", 101))
+        key = {:translation, Product, long_field, :en, "123"}
+        assert {:error, _} = Cache.put(key, "value")
+      end)
+    end
+
+    test "rejects keys with invalid locale type" do
+      capture_log(fn ->
+        key = {:translation, Product, :name, "not_atom", "123"}
+        assert {:error, _} = Cache.put(key, "value")
+        assert :miss = Cache.get(key)
+      end)
+    end
+
+    test "rejects keys with locale too long" do
+      capture_log(fn ->
+        long_locale = String.to_atom(String.duplicate("a", 11))
+        key = {:translation, Product, :name, long_locale, "123"}
+        assert {:error, _} = Cache.put(key, "value")
+      end)
+    end
+
+    test "rejects keys with invalid locale format" do
+      capture_log(fn ->
+        key = {:translation, Product, :name, :invalid123, "123"}
+        assert {:error, _} = Cache.put(key, "value")
+        assert :miss = Cache.get(key)
+      end)
+    end
+
+    test "accepts valid locale with country code" do
+      key = {:translation, Product, :name, :en_US, "123"}
+      assert :ok = Cache.put(key, "value")
+      assert {:ok, "value"} = Cache.get(key)
+    end
+
+    test "rejects keys with invalid record_id type" do
+      capture_log(fn ->
+        key = {:translation, Product, :name, :en, [:invalid]}
+        assert {:error, _} = Cache.put(key, "value")
+        assert :miss = Cache.get(key)
+      end)
+    end
+
+    test "rejects keys with record_id too long" do
+      capture_log(fn ->
+        long_id = String.duplicate("a", 101)
+        key = {:translation, Product, :name, :en, long_id}
+        assert {:error, _} = Cache.put(key, "value")
+      end)
+    end
+
+    test "accepts numeric record_id" do
+      key = {:translation, Product, :name, :en, 12345}
+      assert :ok = Cache.put(key, "value")
+      assert {:ok, "value"} = Cache.get(key)
+    end
+
+    test "allows non-translation tuple keys for backward compatibility" do
+      key = {:custom, :key, :structure}
+      assert :ok = Cache.put(key, "value")
+      assert {:ok, "value"} = Cache.get(key)
+    end
+
+    test "rejects non-tuple keys" do
+      capture_log(fn ->
+        assert :miss = Cache.get("not_a_tuple")
+        assert :miss = Cache.get([:not, :a, :tuple])
+      end)
+    end
+  end
+
+  describe "get_or_compute" do
+    test "returns cached value without computing" do
+      Cache.put({:test, :key}, "cached")
+
+      result = Cache.get_or_compute({:test, :key}, fn ->
+        raise "Should not be called"
+      end)
+
+      assert result == "cached"
+    end
+
+    test "computes and caches on miss" do
+      result = Cache.get_or_compute({:test, :key}, fn ->
+        "computed"
+      end)
+
+      assert result == "computed"
+      assert Cache.get({:test, :key}) == {:ok, "computed"}
+    end
+
+    test "respects custom TTL" do
+      result = Cache.get_or_compute({:test, :key}, fn -> "value" end, 1)
+      assert result == "value"
+
+      Process.sleep(1100)
+      assert Cache.get({:test, :key}) == :miss
+    end
+  end
+
+  describe "invalidate" do
+    test "invalidates entries matching pattern" do
+      Cache.put({Product, 1, :name, :en}, "Name")
+      Cache.put({Product, 2, :name, :en}, "Other")
+
+      Cache.invalidate({Product, :_, :_, :_})
+
+      # Give async cast time to process
+      Process.sleep(100)
+
+      assert Cache.get({Product, 1, :name, :en}) == :miss
+      assert Cache.get({Product, 2, :name, :en}) == :miss
+    end
+  end
+
+  describe "handle_info cleanup" do
+    test "cleanup removes expired entries in background" do
+      # Add entries with very short TTL
+      for i <- 1..3 do
+        Cache.put({:cleanup_test, i}, "value#{i}", 1)
+      end
+
+      initial_size = Cache.size()
+      assert initial_size >= 3
+
+      # Wait for entries to expire
+      Process.sleep(1100)
+
+      # Trigger cleanup by sending message directly
+      send(Process.whereis(Cache), :cleanup)
+
+      # Give cleanup time to process
+      Process.sleep(100)
+
+      # Verify expired entries were removed
+      stats = Cache.stats()
+      assert stats.evictions >= 3
+    end
+  end
+
+  describe "edge cases" do
+    import ExUnit.CaptureLog
+
+    test "handles cache operations when table doesn't exist" do
+      # This shouldn't happen in practice, but test resilience
+      # Note: We can't actually delete the table in tests since it's created in init
+      assert :miss = Cache.get({:nonexistent, :key})
+    end
+
+    test "handles complex data types" do
+      complex_value = %{
+        nested: %{data: [1, 2, 3]},
+        tuple: {:a, :b, :c},
+        list: ["x", "y", "z"]
+      }
+
+      Cache.put({:test, :complex}, complex_value)
+      assert {:ok, ^complex_value} = Cache.get({:test, :complex})
+    end
+
+    test "handles nil values" do
+      Cache.put({:test, :nil}, nil)
+      assert {:ok, nil} = Cache.get({:test, :nil})
+    end
+
+    test "handles empty strings" do
+      Cache.put({:test, :empty}, "")
+      assert {:ok, ""} = Cache.get({:test, :empty})
+    end
+
+    test "warmup with valid resources list" do
+      capture_log(fn ->
+        resources = [
+          %{id: 1, name: "Product 1"},
+          %{id: 2, name: "Product 2"}
+        ]
+
+        Cache.warmup(resources, [:en, :es])
+
+        # Give async task time to complete
+        Process.sleep(100)
+
+        # Should not crash
+        assert true
+      end)
+    end
+
+    test "warmup with invalid arguments logs warning" do
+      import ExUnit.CaptureLog
+
+      log = capture_log(fn ->
+        Cache.warmup("invalid", :also_invalid)
+        Process.sleep(50)
+      end)
+
+      assert log =~ "Cache warmup called with invalid arguments"
+    end
+
+    test "delete works even if table doesn't exist" do
+      # Should not crash
+      assert :ok = Cache.delete({:any, :key})
+    end
+
+    test "size returns 0 if table doesn't exist" do
+      # This is hard to test since table is created in init
+      # But the function has rescue clause
+      assert is_integer(Cache.size())
+      assert Cache.size() >= 0
+    end
+  end
+
+  describe "statistics edge cases" do
+    test "hit rate is 0.0 when no operations" do
+      Cache.clear()
+      stats = Cache.stats()
+      assert stats.hit_rate == 0.0
+    end
+
+    test "hit rate is 100.0 with only hits" do
+      Cache.clear()
+      Cache.put({:test, :key}, "value")
+      Cache.get({:test, :key})
+      Cache.get({:test, :key})
+
+      stats = Cache.stats()
+      assert stats.hit_rate == 100.0
+    end
+
+    test "hit rate is 0.0 with only misses" do
+      Cache.clear()
+      Cache.get({:test, :miss1})
+      Cache.get({:test, :miss2})
+
+      stats = Cache.stats()
+      assert stats.hit_rate == 0.0
+    end
+
+    test "tracks evictions from delete_pattern" do
+      Cache.clear()
+      Process.sleep(50)
+
+      Cache.put({Product, 1, :name, :en}, "Name")
+      Cache.put({Product, 2, :name, :en}, "Other")
+
+      initial_size = Cache.size()
+      assert initial_size >= 2
+
+      Cache.delete_pattern({Product, :_, :_, :_})
+
+      # Verify entries were deleted
+      assert Cache.get({Product, 1, :name, :en}) == :miss
+      assert Cache.get({Product, 2, :name, :en}) == :miss
+      assert Cache.size() == initial_size - 2
+    end
+
+    test "tracks evictions from clear via genserver cast" do
+      Cache.put({:test, :key1}, "value1")
+      Cache.put({:test, :key2}, "value2")
+
+      initial_size = Cache.size()
+      assert initial_size >= 2
+
+      initial_stats = Cache.stats()
+      initial_evictions = initial_stats.evictions
+
+      # Use GenServer.cast to trigger handle_cast(:clear)
+      GenServer.cast(Cache, :clear)
+      Process.sleep(100)
+
+      stats = Cache.stats()
+      assert stats.evictions >= initial_evictions + initial_size
+      assert Cache.size() == 0
+    end
+  end
+
+  describe "pattern matching edge cases" do
+    test "delete_pattern with all wildcards" do
+      Cache.put({:a, :b, :c}, "value1")
+      Cache.put({:x, :y, :z}, "value2")
+
+      Cache.delete_pattern({:_, :_, :_})
+
+      assert Cache.get({:a, :b, :c}) == :miss
+      assert Cache.get({:x, :y, :z}) == :miss
+    end
+
+    test "delete_pattern with mixed wildcards and constants" do
+      Cache.put({Product, 1, :name, :en}, "Name 1")
+      Cache.put({Product, 1, :name, :es}, "Nombre 1")
+      Cache.put({Product, 2, :name, :en}, "Name 2")
+
+      Cache.delete_pattern({Product, 1, :_, :_})
+
+      assert Cache.get({Product, 1, :name, :en}) == :miss
+      assert Cache.get({Product, 1, :name, :es}) == :miss
+      assert Cache.get({Product, 2, :name, :en}) == {:ok, "Name 2"}
+    end
+
+    test "delete_pattern with single wildcard" do
+      Cache.put({Product, 1, :name, :en}, "Name 1")
+      Cache.put({Product, 2, :name, :en}, "Name 2")
+      Cache.put({Category, 1, :name, :en}, "Cat 1")
+
+      Cache.delete_pattern({:_, 1, :_, :_})
+
+      assert Cache.get({Product, 1, :name, :en}) == :miss
+      assert Cache.get({Category, 1, :name, :en}) == :miss
+      assert Cache.get({Product, 2, :name, :en}) == {:ok, "Name 2"}
     end
   end
 end

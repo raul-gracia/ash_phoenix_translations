@@ -1,6 +1,8 @@
 defmodule AshPhoenixTranslations.Phase2SecurityTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureLog
+
   alias AshPhoenixTranslations.Helpers
   alias AshPhoenixTranslations.LocaleResolver
   alias AshPhoenixTranslations.LocaleValidator
@@ -101,75 +103,93 @@ defmodule AshPhoenixTranslations.Phase2SecurityTest do
     end
 
     test "denies access with nil view policy", %{actor: actor, action: action} do
-      action = %{action | name: :read}
-      result = PolicyCheck.match?(actor, %{action: action}, [])
+      capture_log(fn ->
+        action = %{action | name: :read}
+        result = PolicyCheck.match?(actor, %{action: action}, [])
 
-      refute result, "Should deny access with nil view policy (fail-closed)"
+        refute result, "Should deny access with nil view policy (fail-closed)"
+      end)
     end
 
     test "denies access with nil edit policy", %{actor: actor, action: action} do
-      result = PolicyCheck.match?(actor, %{action: action}, [])
+      capture_log(fn ->
+        result = PolicyCheck.match?(actor, %{action: action}, [])
 
-      refute result, "Should deny access with nil edit policy (fail-closed)"
+        refute result, "Should deny access with nil edit policy (fail-closed)"
+      end)
     end
 
     test "validates translator locale assignment strictly", %{actor: actor, action: action} do
-      # Try to access unassigned locale
-      action = %{action | arguments: %{locale: :fr}}
-      result = PolicyCheck.match?(actor, %{action: action}, [])
+      capture_log(fn ->
+        # Try to access unassigned locale
+        action = %{action | arguments: %{locale: :fr}}
+        result = PolicyCheck.match?(actor, %{action: action}, [])
 
-      refute result, "Should deny access to unassigned locale"
+        refute result, "Should deny access to unassigned locale"
+      end)
     end
 
     test "rejects non-list assigned_locales", %{action: action} do
-      actor = %{id: 1, role: :translator, assigned_locales: "en"}
-      result = PolicyCheck.match?(actor, %{action: action}, [])
+      capture_log(fn ->
+        actor = %{id: 1, role: :translator, assigned_locales: "en"}
+        result = PolicyCheck.match?(actor, %{action: action}, [])
 
-      refute result, "Should reject non-list assigned_locales"
+        refute result, "Should reject non-list assigned_locales"
+      end)
     end
 
     test "rejects nil locale in action arguments", %{action: action} do
-      actor = %{id: 1, role: :translator, assigned_locales: [:en]}
-      action = %{action | arguments: %{locale: nil}}
-      result = PolicyCheck.match?(actor, %{action: action}, [])
+      capture_log(fn ->
+        actor = %{id: 1, role: :translator, assigned_locales: [:en]}
+        action = %{action | arguments: %{locale: nil}}
+        result = PolicyCheck.match?(actor, %{action: action}, [])
 
-      refute result, "Should reject nil locale"
+        refute result, "Should reject nil locale"
+      end)
     end
 
     test "denies access with untrusted custom policy module", %{actor: actor, action: action} do
-      # This test verifies that custom policy modules are validated against a whitelist
-      # Since we haven't configured allowed_policy_modules, any custom policy should be rejected
+      capture_log(fn ->
+        # This test verifies that custom policy modules are validated against a whitelist
+        # Since we haven't configured allowed_policy_modules, any custom policy should be rejected
 
-      # Simulate a resource with a custom policy (this would normally fail during policy evaluation)
-      # The policy system will reject untrusted modules in check_view_policy/check_edit_policy
+        # Simulate a resource with a custom policy (this would normally fail during policy evaluation)
+        # The policy system will reject untrusted modules in check_view_policy/check_edit_policy
 
-      # We verify the core functionality exists by checking the module can be called
-      # Other tests verify the actual policy logic (nil policies, locale checks, etc.)
-      result = PolicyCheck.match?(actor, %{action: action}, [])
+        # We verify the core functionality exists by checking the module can be called
+        # Other tests verify the actual policy logic (nil policies, locale checks, etc.)
+        result = PolicyCheck.match?(actor, %{action: action}, [])
 
-      # Should deny access (fail-closed) when policies are nil
-      refute result, "Should deny access with nil policies (fail-closed behavior)"
+        # Should deny access (fail-closed) when policies are nil
+        refute result, "Should deny access with nil policies (fail-closed behavior)"
+      end)
     end
   end
 
   describe "VULN-005: File Path Traversal Prevention" do
     test "rejects path traversal attempts" do
-      result = PathValidator.validate_import_path("../../../etc/passwd")
+      capture_log(fn ->
+        result = PathValidator.validate_import_path("../../../etc/passwd")
 
-      assert {:error, :path_traversal_detected} = result
+        assert {:error, :path_traversal_detected} = result
+      end)
     end
 
     test "rejects absolute paths outside allowed directory" do
-      result = PathValidator.validate_import_path("/etc/passwd")
+      capture_log(fn ->
+        result = PathValidator.validate_import_path("/etc/passwd")
 
-      assert {:error, :path_traversal_detected} = result
+        assert {:error, :path_traversal_detected} = result
+      end)
     end
 
     test "rejects paths with encoded traversal" do
-      result = PathValidator.validate_import_path("..%2F..%2Fetc%2Fpasswd")
+      capture_log(fn ->
+        result = PathValidator.validate_import_path("..%2F..%2Fetc%2Fpasswd")
 
-      # Should fail either at path_traversal or file_not_found
-      assert match?({:error, _}, result)
+        # Should fail either at path_traversal or file_not_found
+        assert match?({:error, _}, result)
+      end)
     end
 
     test "rejects invalid file extensions" do
@@ -222,48 +242,54 @@ defmodule AshPhoenixTranslations.Phase2SecurityTest do
 
   describe "VULN-006: Locale Injection Prevention" do
     test "rejects locale injection via parameters" do
-      conn = %Plug.Conn{
-        params: %{"locale" => "../../admin"},
-        query_params: %{},
-        host: "example.com",
-        path_info: [],
-        cookies: %{},
-        assigns: %{}
-      }
+      capture_log(fn ->
+        conn = %Plug.Conn{
+          params: %{"locale" => "../../admin"},
+          query_params: %{},
+          host: "example.com",
+          path_info: [],
+          cookies: %{},
+          assigns: %{}
+        }
 
-      result = LocaleResolver.resolve(conn, :param)
+        result = LocaleResolver.resolve(conn, :param)
 
-      assert is_nil(result), "Should reject path traversal in locale parameter"
+        assert is_nil(result), "Should reject path traversal in locale parameter"
+      end)
     end
 
     test "rejects locale with special characters in subdomain" do
-      conn = %Plug.Conn{
-        params: %{},
-        query_params: %{},
-        host: "evil;cmd.example.com",
-        path_info: [],
-        cookies: %{},
-        assigns: %{}
-      }
+      capture_log(fn ->
+        conn = %Plug.Conn{
+          params: %{},
+          query_params: %{},
+          host: "evil;cmd.example.com",
+          path_info: [],
+          cookies: %{},
+          assigns: %{}
+        }
 
-      result = LocaleResolver.resolve(conn, :subdomain)
+        result = LocaleResolver.resolve(conn, :subdomain)
 
-      assert is_nil(result), "Should reject locale with special characters"
+        assert is_nil(result), "Should reject locale with special characters"
+      end)
     end
 
     test "rejects locale injection in path" do
-      conn = %Plug.Conn{
-        params: %{},
-        query_params: %{},
-        host: "example.com",
-        path_info: ["<script>", "products"],
-        cookies: %{},
-        assigns: %{}
-      }
+      capture_log(fn ->
+        conn = %Plug.Conn{
+          params: %{},
+          query_params: %{},
+          host: "example.com",
+          path_info: ["<script>", "products"],
+          cookies: %{},
+          assigns: %{}
+        }
 
-      result = LocaleResolver.resolve(conn, :path)
+        result = LocaleResolver.resolve(conn, :path)
 
-      assert is_nil(result), "Should reject script tags in path locale"
+        assert is_nil(result), "Should reject script tags in path locale"
+      end)
     end
 
     test "sanitizes Accept-Language header" do
@@ -333,25 +359,27 @@ defmodule AshPhoenixTranslations.Phase2SecurityTest do
 
   describe "Integration: Combined Security Validation" do
     test "multiple security validations work together" do
-      # Simulate a malicious request with multiple attack vectors
+      capture_log(fn ->
+        # Simulate a malicious request with multiple attack vectors
 
-      # 1. Try XSS in translation content
-      product = %{
-        __struct__: TestProduct,
-        name_translations: %{en: "<script>alert('xss')</script>"}
-      }
+        # 1. Try XSS in translation content
+        product = %{
+          __struct__: TestProduct,
+          name_translations: %{en: "<script>alert('xss')</script>"}
+        }
 
-      result = Helpers.raw_t(product, :name)
-      result_string = extract_safe_string(result)
-      refute result_string =~ "<script>"
+        result = Helpers.raw_t(product, :name)
+        result_string = extract_safe_string(result)
+        refute result_string =~ "<script>"
 
-      # 2. Try path traversal
-      path_result = PathValidator.validate_import_path("../../etc/passwd")
-      assert {:error, :path_traversal_detected} = path_result
+        # 2. Try path traversal
+        path_result = PathValidator.validate_import_path("../../etc/passwd")
+        assert {:error, :path_traversal_detected} = path_result
 
-      # 3. Try locale injection
-      locale_result = LocaleValidator.validate_locale("en;rm -rf")
-      assert {:error, :invalid_locale} = locale_result
+        # 3. Try locale injection
+        locale_result = LocaleValidator.validate_locale("en;rm -rf")
+        assert {:error, :invalid_locale} = locale_result
+      end)
     end
   end
 

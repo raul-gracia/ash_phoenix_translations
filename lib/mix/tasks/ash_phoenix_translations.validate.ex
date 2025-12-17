@@ -443,7 +443,7 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
       |> Enum.sum()
 
     if strict && total_issues > 0 do
-      System.halt(1)
+      Mix.raise("Validation failed: #{total_issues} issue(s) found")
     end
   end
 
@@ -773,7 +773,9 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
   end
 
   defp output_results(results, "json", path) do
-    json = Jason.encode!(results, pretty: true)
+    # Convert results to JSON-serializable format
+    json_results = Enum.map(results, &result_to_json_map/1)
+    json = Jason.encode!(json_results, pretty: true)
 
     if path do
       File.write!(path, json)
@@ -785,6 +787,81 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Validate do
 
   defp output_results(_results, format, _path) do
     Mix.raise("Unsupported format: #{format}")
+  end
+
+  defp result_to_json_map(result) do
+    %{
+      resource: inspect(result.resource),
+      issues: Enum.map(result.issues, &issue_to_map/1),
+      issue_count: result.issue_count,
+      stats: %{
+        total_translations: result.stats.total_translations,
+        missing_translations: result.stats.missing_translations,
+        completeness: result.stats.completeness
+      }
+    }
+  end
+
+  defp issue_to_map({:missing, resource_id, field, locale}) do
+    %{
+      type: "missing",
+      resource_id: to_string(resource_id),
+      field: to_string(field),
+      locale: to_string(locale)
+    }
+  end
+
+  defp issue_to_map({:too_short, resource_id, field, locale, actual, expected}) do
+    %{
+      type: "too_short",
+      resource_id: to_string(resource_id),
+      field: to_string(field),
+      locale: to_string(locale),
+      actual: actual,
+      expected: expected
+    }
+  end
+
+  defp issue_to_map({:too_long, resource_id, field, locale, actual, expected}) do
+    %{
+      type: "too_long",
+      resource_id: to_string(resource_id),
+      field: to_string(field),
+      locale: to_string(locale),
+      actual: actual,
+      expected: expected
+    }
+  end
+
+  defp issue_to_map({:contains_html, resource_id, field, locale}) do
+    %{
+      type: "contains_html",
+      resource_id: to_string(resource_id),
+      field: to_string(field),
+      locale: to_string(locale)
+    }
+  end
+
+  defp issue_to_map({:invalid_encoding, resource_id, field, locale}) do
+    %{
+      type: "invalid_encoding",
+      resource_id: to_string(resource_id),
+      field: to_string(field),
+      locale: to_string(locale)
+    }
+  end
+
+  defp issue_to_map({:suspicious_content, resource_id, field, locale}) do
+    %{
+      type: "suspicious_content",
+      resource_id: to_string(resource_id),
+      field: to_string(field),
+      locale: to_string(locale)
+    }
+  end
+
+  defp issue_to_map(issue) do
+    %{type: "unknown", details: inspect(issue)}
   end
 
   defp output_text_result(result) do

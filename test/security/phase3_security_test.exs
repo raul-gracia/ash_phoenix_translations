@@ -1,6 +1,8 @@
 defmodule AshPhoenixTranslations.Phase3SecurityTest do
   use ExUnit.Case, async: false
 
+  import ExUnit.CaptureLog
+
   alias AshPhoenixTranslations.{
     Cache,
     CsrfProtection,
@@ -30,67 +32,77 @@ defmodule AshPhoenixTranslations.Phase3SecurityTest do
 
   describe "VULN-007: Error Sanitization" do
     test "sanitizes validation errors" do
-      # Create a generic error with validation-related module name
-      error_struct = %{
-        __struct__: :"Elixir.ValidationError",
-        errors: [
-          %{field: :name, message: "is invalid at /home/user/app/lib/resource.ex:42"}
-        ]
-      }
+      capture_log(fn ->
+        # Create a generic error with validation-related module name
+        error_struct = %{
+          __struct__: :"Elixir.ValidationError",
+          errors: [
+            %{field: :name, message: "is invalid at /home/user/app/lib/resource.ex:42"}
+          ]
+        }
 
-      sanitized = ErrorSanitizer.sanitize_error(error_struct)
+        sanitized = ErrorSanitizer.sanitize_error(error_struct)
 
-      assert sanitized.type == :validation_error
-      assert sanitized.message =~ "Validation failed"
+        assert sanitized.type == :validation_error
+        assert sanitized.message =~ "Validation failed"
+      end)
     end
 
     test "sanitizes authorization errors" do
-      # Create a generic error with forbidden-related module name
-      error_struct = %{
-        __struct__: :"Elixir.ForbiddenError",
-        message: "User lacks permission in PolicyCheck module"
-      }
+      capture_log(fn ->
+        # Create a generic error with forbidden-related module name
+        error_struct = %{
+          __struct__: :"Elixir.ForbiddenError",
+          message: "User lacks permission in PolicyCheck module"
+        }
 
-      sanitized = ErrorSanitizer.sanitize_error(error_struct)
+        sanitized = ErrorSanitizer.sanitize_error(error_struct)
 
-      assert sanitized.type == :authorization_error
-      assert sanitized.message == "You do not have permission to perform this action."
-      refute sanitized.message =~ "PolicyCheck"
+        assert sanitized.type == :authorization_error
+        assert sanitized.message == "You do not have permission to perform this action."
+        refute sanitized.message =~ "PolicyCheck"
+      end)
     end
 
     test "sanitizes database constraint errors" do
-      sanitized =
-        ErrorSanitizer.sanitize_error(
-          {:error, "unique constraint violated: translations_pkey"},
-          %{}
-        )
+      capture_log(fn ->
+        sanitized =
+          ErrorSanitizer.sanitize_error(
+            {:error, "unique constraint violated: translations_pkey"},
+            %{}
+          )
 
-      assert sanitized.message =~ "constraint"
-      refute sanitized.message =~ "translations_pkey"
+        assert sanitized.message =~ "constraint"
+        refute sanitized.message =~ "translations_pkey"
+      end)
     end
 
     test "sanitizes file system errors" do
-      sanitized =
-        ErrorSanitizer.sanitize_error(
-          {:error, "ENOENT: /etc/secret/config.yml not found"},
-          %{}
-        )
+      capture_log(fn ->
+        sanitized =
+          ErrorSanitizer.sanitize_error(
+            {:error, "ENOENT: /etc/secret/config.yml not found"},
+            %{}
+          )
 
-      assert sanitized.type == :file_error
-      refute sanitized.message =~ "/etc/secret"
-      refute sanitized.message =~ ".yml"
+        assert sanitized.type == :file_error
+        refute sanitized.message =~ "/etc/secret"
+        refute sanitized.message =~ ".yml"
+      end)
     end
 
     test "removes stack traces from errors" do
-      error = %{
-        message: "Error in function #Function<Elixir.Module.function/2> at /app/lib/module.ex:123"
-      }
+      capture_log(fn ->
+        error = %{
+          message: "Error in function #Function<Elixir.Module.function/2> at /app/lib/module.ex:123"
+        }
 
-      sanitized = ErrorSanitizer.sanitize_error({:error, error}, %{})
+        sanitized = ErrorSanitizer.sanitize_error({:error, error}, %{})
 
-      refute sanitized.message =~ "#Function"
-      refute sanitized.message =~ "/app/lib"
-      refute sanitized.message =~ ":123"
+        refute sanitized.message =~ "#Function"
+        refute sanitized.message =~ "/app/lib"
+        refute sanitized.message =~ ":123"
+      end)
     end
   end
 
@@ -115,48 +127,54 @@ defmodule AshPhoenixTranslations.Phase3SecurityTest do
     end
 
     test "blocks requests exceeding limit" do
-      identifier = "user:test_#{:rand.uniform(10000)}"
+      capture_log(fn ->
+        identifier = "user:test_#{:rand.uniform(10000)}"
 
-      # Exhaust the limit (20 operations)
-      Enum.each(1..20, fn _ ->
-        RateLimiter.check_rate(identifier, :translation_write)
+        # Exhaust the limit (20 operations)
+        Enum.each(1..20, fn _ ->
+          RateLimiter.check_rate(identifier, :translation_write)
+        end)
+
+        # Next request should be rate limited
+        result = RateLimiter.check_rate(identifier, :translation_write)
+
+        assert {:error, :rate_limited, _retry_after} = result
       end)
-
-      # Next request should be rate limited
-      result = RateLimiter.check_rate(identifier, :translation_write)
-
-      assert {:error, :rate_limited, _retry_after} = result
     end
 
     test "different operation types have separate limits" do
-      identifier = "user:test_#{:rand.uniform(10000)}"
+      capture_log(fn ->
+        identifier = "user:test_#{:rand.uniform(10000)}"
 
-      # Exhaust write limit
-      Enum.each(1..20, fn _ ->
-        RateLimiter.check_rate(identifier, :translation_write)
+        # Exhaust write limit
+        Enum.each(1..20, fn _ ->
+          RateLimiter.check_rate(identifier, :translation_write)
+        end)
+
+        # Read operations should still be allowed (different limit)
+        result = RateLimiter.check_rate(identifier, :translation_read)
+
+        assert {:ok, _remaining} = result
       end)
-
-      # Read operations should still be allowed (different limit)
-      result = RateLimiter.check_rate(identifier, :translation_read)
-
-      assert {:ok, _remaining} = result
     end
 
     test "returns correct retry_after time" do
-      identifier = "user:test_#{:rand.uniform(10000)}"
+      capture_log(fn ->
+        identifier = "user:test_#{:rand.uniform(10000)}"
 
-      # Exhaust limit
-      Enum.each(1..20, fn _ ->
-        RateLimiter.check_rate(identifier, :translation_write)
+        # Exhaust limit
+        Enum.each(1..20, fn _ ->
+          RateLimiter.check_rate(identifier, :translation_write)
+        end)
+
+        {:error, :rate_limited, retry_after} =
+          RateLimiter.check_rate(identifier, :translation_write)
+
+        assert is_integer(retry_after)
+        assert retry_after > 0
+        # Should be within window (1 minute)
+        assert retry_after <= 60_000
       end)
-
-      {:error, :rate_limited, retry_after} =
-        RateLimiter.check_rate(identifier, :translation_write)
-
-      assert is_integer(retry_after)
-      assert retry_after > 0
-      # Should be within window (1 minute)
-      assert retry_after <= 60_000
     end
 
     test "resets rate limit after window expires" do
@@ -177,61 +195,71 @@ defmodule AshPhoenixTranslations.Phase3SecurityTest do
 
   describe "VULN-009: Cache Key Validation" do
     test "rejects cache keys with invalid structure" do
-      # Invalid key structure (not a tuple)
-      result = Cache.put("invalid_key", "value")
+      capture_log(fn ->
+        # Invalid key structure (not a tuple)
+        result = Cache.put("invalid_key", "value")
 
-      # Should return error for invalid key structure
-      assert {:error, :invalid_key_structure} == result
+        # Should return error for invalid key structure
+        assert {:error, :invalid_key_structure} == result
 
-      # Try to get it back - should also reject
-      assert :miss == Cache.get("invalid_key")
+        # Try to get it back - should also reject
+        assert :miss == Cache.get("invalid_key")
+      end)
     end
 
     test "rejects keys with excessively long components" do
-      long_field = String.duplicate("a", 200)
-      key = {:translation, MyApp.Product, String.to_atom(long_field), :en, "123"}
+      capture_log(fn ->
+        long_field = String.duplicate("a", 200)
+        key = {:translation, MyApp.Product, String.to_atom(long_field), :en, "123"}
 
-      result = Cache.put(key, "value")
+        result = Cache.put(key, "value")
 
-      # Should reject due to excessive field length
-      assert {:error, :field_name_too_long} == result
+        # Should reject due to excessive field length
+        assert {:error, :field_name_too_long} == result
 
-      # Get should also reject
-      assert :miss == Cache.get(key)
+        # Get should also reject
+        assert :miss == Cache.get(key)
+      end)
     end
 
     test "rejects keys with invalid resource format" do
-      # Resource must be a module name starting with Elixir.
-      key = {:translation, :not_a_module, :name, :en, "123"}
+      capture_log(fn ->
+        # Resource must be a module name starting with Elixir.
+        key = {:translation, :not_a_module, :name, :en, "123"}
 
-      result = Cache.put(key, "value")
+        result = Cache.put(key, "value")
 
-      # Should reject due to invalid resource format
-      assert {:error, :invalid_resource_format} == result
+        # Should reject due to invalid resource format
+        assert {:error, :invalid_resource_format} == result
 
-      # Get should also reject
-      assert :miss == Cache.get(key)
+        # Get should also reject
+        assert :miss == Cache.get(key)
+      end)
     end
 
     test "rejects keys with invalid locale format" do
-      # Locale must match pattern (en or en_US)
-      # Use short invalid locale to test format validation (not length)
-      key = {:translation, MyApp.Product, :name, :xyz123, "123"}
+      capture_log(fn ->
+        # Locale must match pattern (en or en_US)
+        # Use short invalid locale to test format validation (not length)
+        key = {:translation, MyApp.Product, :name, :xyz123, "123"}
 
-      result = Cache.put(key, "value")
+        result = Cache.put(key, "value")
 
-      # Should reject due to invalid locale format
-      assert {:error, :invalid_locale_format} == result
+        # Should reject due to invalid locale format
+        assert {:error, :invalid_locale_format} == result
 
-      # Get should also reject
-      assert :miss == Cache.get(key)
+        # Get should also reject
+        assert :miss == Cache.get(key)
+      end)
     end
 
     test "accepts valid cache keys" do
-      key = Cache.key(MyApp.Product, :name, :en, "123")
+      capture_log(fn ->
+        key = Cache.key(MyApp.Product, :name, :en, "123")
 
-      assert :ok == Cache.put(key, "Valid translation")
-      assert {:ok, "Valid translation"} == Cache.get(key)
+        assert :ok == Cache.put(key, "Valid translation")
+        assert {:ok, "Valid translation"} == Cache.get(key)
+      end)
     end
   end
 
@@ -272,20 +300,24 @@ defmodule AshPhoenixTranslations.Phase3SecurityTest do
     end
 
     test "rejects mismatched CSRF tokens" do
-      conn = setup_test_conn()
-      conn = CsrfProtection.generate_token(conn)
+      capture_log(fn ->
+        conn = setup_test_conn()
+        conn = CsrfProtection.generate_token(conn)
 
-      result = CsrfProtection.validate_token(conn, "wrong_token")
+        result = CsrfProtection.validate_token(conn, "wrong_token")
 
-      assert {:error, _reason} = result
+        assert {:error, _reason} = result
+      end)
     end
 
     test "rejects requests without CSRF token" do
-      conn = setup_test_conn()
+      capture_log(fn ->
+        conn = setup_test_conn()
 
-      result = CsrfProtection.validate_token(conn, nil)
+        result = CsrfProtection.validate_token(conn, nil)
 
-      assert {:error, _reason} = result
+        assert {:error, _reason} = result
+      end)
     end
 
     test "allows safe HTTP methods without token" do
@@ -298,13 +330,15 @@ defmodule AshPhoenixTranslations.Phase3SecurityTest do
     end
 
     test "blocks unsafe HTTP methods without token" do
-      conn = setup_test_conn(:post)
+      capture_log(fn ->
+        conn = setup_test_conn(:post)
 
-      # Should halt the connection
-      conn = CsrfProtection.call(conn, [])
+        # Should halt the connection
+        conn = CsrfProtection.call(conn, [])
 
-      assert conn.halted
-      assert conn.status == 403
+        assert conn.halted
+        assert conn.status == 403
+      end)
     end
   end
 
@@ -368,14 +402,16 @@ defmodule AshPhoenixTranslations.Phase3SecurityTest do
     end
 
     test "rejects batch with invalid translations" do
-      translations = [
-        %{field: :name, locale: :en, value: String.duplicate("a", 10_001)}
-      ]
+      capture_log(fn ->
+        translations = [
+          %{field: :name, locale: :en, value: String.duplicate("a", 10_001)}
+        ]
 
-      result = InputValidator.validate_translation_batch(translations)
+        result = InputValidator.validate_translation_batch(translations)
 
-      assert {:error, invalid_count, _errors} = result
-      assert invalid_count == 1
+        assert {:error, invalid_count, _errors} = result
+        assert invalid_count == 1
+      end)
     end
   end
 
@@ -385,38 +421,44 @@ defmodule AshPhoenixTranslations.Phase3SecurityTest do
 
   describe "VULN-012: Cache Value Signing" do
     test "signs and verifies cache values correctly" do
-      key = Cache.key(MyApp.Product, :name, :en, "123")
+      capture_log(fn ->
+        key = Cache.key(MyApp.Product, :name, :en, "123")
 
-      assert :ok == Cache.put(key, "Signed value")
-      assert {:ok, "Signed value"} == Cache.get(key)
+        assert :ok == Cache.put(key, "Signed value")
+        assert {:ok, "Signed value"} == Cache.get(key)
+      end)
     end
 
     test "detects tampered cache values" do
-      # This test assumes we can access ETS directly to tamper with values
-      # In real implementation, signatures prevent tampering
+      capture_log(fn ->
+        # This test assumes we can access ETS directly to tamper with values
+        # In real implementation, signatures prevent tampering
 
-      key = Cache.key(MyApp.Product, :name, :en, "123")
-      Cache.put(key, "Original value")
+        key = Cache.key(MyApp.Product, :name, :en, "123")
+        Cache.put(key, "Original value")
 
-      # Normal retrieval should work
-      assert {:ok, "Original value"} == Cache.get(key)
+        # Normal retrieval should work
+        assert {:ok, "Original value"} == Cache.get(key)
+      end)
     end
 
     test "handles various data types safely" do
-      key = Cache.key(MyApp.Product, :data, :en, "123")
+      capture_log(fn ->
+        key = Cache.key(MyApp.Product, :data, :en, "123")
 
-      # Test different value types
-      values = [
-        "string",
-        123,
-        %{map: "value"},
-        [:list, :of, :atoms],
-        {:tuple, "data"}
-      ]
+        # Test different value types
+        values = [
+          "string",
+          123,
+          %{map: "value"},
+          [:list, :of, :atoms],
+          {:tuple, "data"}
+        ]
 
-      Enum.each(values, fn value ->
-        assert :ok == Cache.put(key, value)
-        assert {:ok, ^value} = Cache.get(key)
+        Enum.each(values, fn value ->
+          assert :ok == Cache.put(key, value)
+          assert {:ok, ^value} = Cache.get(key)
+        end)
       end)
     end
   end

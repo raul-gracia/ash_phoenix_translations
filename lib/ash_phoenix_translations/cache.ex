@@ -796,23 +796,27 @@ defmodule AshPhoenixTranslations.Cache do
   defp cleanup_expired do
     now = DateTime.utc_now()
 
-    expired =
-      :ets.select(@table_name, [
-        {
-          {:"$1", :"$2", :"$3"},
-          [{:<, :"$3", now}],
-          [:"$1"]
-        }
-      ])
+    # Can't use DateTime in ETS match spec guards, so we need to iterate
+    all_entries = :ets.tab2list(@table_name)
 
-    Enum.each(expired, &:ets.delete(@table_name, &1))
+    expired =
+      Enum.filter(all_entries, fn {_key, _value, expiry} ->
+        DateTime.compare(expiry, now) == :lt
+      end)
+
+    Enum.each(expired, fn {key, _value, _expiry} ->
+      :ets.delete(@table_name, key)
+    end)
+
     length(expired)
   end
 
   defp invalidate_pattern(pattern) when is_tuple(pattern) do
     # Convert pattern to match spec
     match_spec = build_match_spec(pattern)
-    keys = :ets.select(@table_name, match_spec)
+    entries = :ets.select(@table_name, match_spec)
+    # Extract keys from entries (first element of tuple)
+    keys = Enum.map(entries, fn {key, _value, _expiry} -> key end)
     Enum.each(keys, &:ets.delete(@table_name, &1))
     length(keys)
   end

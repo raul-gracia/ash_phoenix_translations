@@ -110,7 +110,7 @@ defmodule AshPhoenixTranslations.Plugs.LoadTranslations do
 
   defp resource_exists?(module) when is_atom(module) do
     Code.ensure_loaded?(module) &&
-      function_exported?(module, :__ash_resource__, 0)
+      function_exported?(module, :spark_dsl_config, 0)
   end
 
   # Load translations for resources
