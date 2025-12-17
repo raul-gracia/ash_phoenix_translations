@@ -29,6 +29,13 @@ ash_phoenix_translations-*.tar
 /priv/plts/*.plt
 /priv/plts/*.plt.hash
 
+# Generated gettext files from tests
+/priv/gettext/
+
+# Test artifacts
+/test_version_tmp/
+output.csv
+
 # IDE files
 .vscode/
 .idea/
