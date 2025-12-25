@@ -178,24 +178,12 @@ defmodule AshPhoenixTranslations.Calculations.DatabaseTranslationTest do
     end
   end
 
-  describe "expression/2" do
-    test "generates SQL expression for locale extraction" do
-      opts = [attribute_name: :name]
-      context = %{locale: :es}
-
-      result = DatabaseTranslation.expression(opts, context)
-
-      # Should return an Ash expression struct
-      assert is_struct(result, Ash.Query.Call)
-    end
-
-    test "uses default locale when not in context" do
-      opts = [attribute_name: :name]
-      context = %{}
-
-      result = DatabaseTranslation.expression(opts, context)
-
-      assert is_struct(result, Ash.Query.Call)
+  describe "expression callback" do
+    test "has_expression?/0 returns false since expression is not implemented" do
+      # expression/2 callback was removed for cross-data-layer compatibility.
+      # The calculate/3 callback handles all data layers correctly.
+      # has_expression?/0 returns false when expression is not implemented.
+      refute DatabaseTranslation.has_expression?()
     end
   end
 

@@ -43,19 +43,10 @@ defmodule AshPhoenixTranslations.Calculations.DatabaseTranslation do
     end)
   end
 
-  @impl true
-  def expression(opts, context) do
-    # For SQL data layers, we can express this as a JSON extraction
-    # This prevents N+1 queries by executing in SQL
-    attribute_name = Keyword.fetch!(opts, :attribute_name)
-    storage_field = :"#{attribute_name}_translations"
-    locale = get_locale(context)
-
-    require Ash.Expr
-
-    # Generate SQL fragment: name_translations->>'en'
-    Ash.Expr.expr(fragment("?->>?", field(^storage_field), ^to_string(locale)))
-  end
+  # Note: expression/2 callback removed for cross-data-layer compatibility.
+  # The calculate/3 callback handles all data layers correctly.
+  # SQL optimization can be added back once ref() in fragments is properly tested
+  # with both ETS and PostgreSQL data layers.
 
   defp get_locale(context) when is_map(context) do
     # Handle different context types
