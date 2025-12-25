@@ -15,7 +15,8 @@ defmodule AshPhoenixTranslations.TranslatableAttribute do
     :markdown,
     :validation,
     :constraints,
-    :description
+    :description,
+    __spark_metadata__: nil
   ]
 
   @type t :: %__MODULE__{
