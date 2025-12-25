@@ -87,13 +87,15 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
 
       history =
         TranslationHistory
-        |> Ash.Changeset.for_create(:record_change, %{
-          resource_id: resource_id,
-          resource_type: "Product",
-          attribute_name: :name,
-          locale: :en,
-          new_value: "New Product Name"
-        }, domain: TestDomain)
+        |> Ash.Changeset.for_create(
+          :record_change,
+          %{
+            resource_id: resource_id,
+            resource_type: "Product",
+            attribute_name: :name,
+            locale: :en,
+            new_value: "New Product Name"
+          }, domain: TestDomain)
         |> Ash.create!(domain: TestDomain)
 
       assert history.resource_id == resource_id
@@ -110,17 +112,19 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
 
       history =
         TranslationHistory
-        |> Ash.Changeset.for_create(:record_change, %{
-          resource_id: resource_id,
-          resource_type: "Product",
-          attribute_name: :description,
-          locale: :es,
-          old_value: "Old",
-          new_value: "New",
-          translator_id: translator_id,
-          translator_email: "translator@example.com",
-          change_reason: "Update"
-        }, domain: TestDomain)
+        |> Ash.Changeset.for_create(
+          :record_change,
+          %{
+            resource_id: resource_id,
+            resource_type: "Product",
+            attribute_name: :description,
+            locale: :es,
+            old_value: "Old",
+            new_value: "New",
+            translator_id: translator_id,
+            translator_email: "translator@example.com",
+            change_reason: "Update"
+          }, domain: TestDomain)
         |> Ash.create!(domain: TestDomain)
 
       assert history.translator_id == translator_id
@@ -150,13 +154,15 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
 
       history1 =
         TranslationHistory
-        |> Ash.Changeset.for_create(:record_change, %{
-          resource_id: resource_id,
-          resource_type: "Product",
-          attribute_name: :name,
-          locale: :en,
-          new_value: "First"
-        }, domain: TestDomain)
+        |> Ash.Changeset.for_create(
+          :record_change,
+          %{
+            resource_id: resource_id,
+            resource_type: "Product",
+            attribute_name: :name,
+            locale: :en,
+            new_value: "First"
+          }, domain: TestDomain)
         |> Ash.create!(domain: TestDomain)
 
       Process.sleep(20)
@@ -165,14 +171,16 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
 
       history2 =
         TranslationHistory
-        |> Ash.Changeset.for_create(:record_change, %{
-          resource_id: resource_id,
-          resource_type: "Product",
-          attribute_name: :name,
-          locale: :en,
-          old_value: "First",
-          new_value: "Second"
-        }, domain: TestDomain)
+        |> Ash.Changeset.for_create(
+          :record_change,
+          %{
+            resource_id: resource_id,
+            resource_type: "Product",
+            attribute_name: :name,
+            locale: :en,
+            old_value: "First",
+            new_value: "Second"
+          }, domain: TestDomain)
         |> Ash.create!(domain: TestDomain)
 
       # Use history2's timestamp to find previous
@@ -180,12 +188,14 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
 
       previous =
         TranslationHistory
-        |> Ash.Query.for_read(:find_previous, %{
-          resource_id: resource_id,
-          attribute_name: :name,
-          locale: :en,
-          before_date: before_second
-        }, domain: TestDomain)
+        |> Ash.Query.for_read(
+          :find_previous,
+          %{
+            resource_id: resource_id,
+            attribute_name: :name,
+            locale: :en,
+            before_date: before_second
+          }, domain: TestDomain)
         |> Ash.read!(domain: TestDomain)
 
       assert length(previous) == 1
@@ -199,13 +209,15 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
 
       history =
         TranslationHistory
-        |> Ash.Changeset.for_create(:record_change, %{
-          resource_id: resource_id,
-          resource_type: "Product",
-          attribute_name: :name,
-          locale: :en,
-          new_value: "Test"
-        }, domain: TestDomain)
+        |> Ash.Changeset.for_create(
+          :record_change,
+          %{
+            resource_id: resource_id,
+            resource_type: "Product",
+            attribute_name: :name,
+            locale: :en,
+            new_value: "Test"
+          }, domain: TestDomain)
         |> Ash.create!(domain: TestDomain)
 
       history_with_age =
@@ -222,13 +234,15 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
 
       _ =
         TranslationHistory
-        |> Ash.Changeset.for_create(:record_change, %{
-          resource_id: resource_id,
-          resource_type: "Product",
-          attribute_name: :name,
-          locale: :en,
-          new_value: "Test"
-        }, domain: TestDomain)
+        |> Ash.Changeset.for_create(
+          :record_change,
+          %{
+            resource_id: resource_id,
+            resource_type: "Product",
+            attribute_name: :name,
+            locale: :en,
+            new_value: "Test"
+          }, domain: TestDomain)
         |> Ash.create!(domain: TestDomain)
 
       all_history = TranslationHistory |> Ash.read!(domain: TestDomain)
@@ -241,24 +255,28 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
 
       _ =
         TranslationHistory
-        |> Ash.Changeset.for_create(:record_change, %{
-          resource_id: resource_id1,
-          resource_type: "Product",
-          attribute_name: :name,
-          locale: :en,
-          new_value: "Product 1"
-        }, domain: TestDomain)
+        |> Ash.Changeset.for_create(
+          :record_change,
+          %{
+            resource_id: resource_id1,
+            resource_type: "Product",
+            attribute_name: :name,
+            locale: :en,
+            new_value: "Product 1"
+          }, domain: TestDomain)
         |> Ash.create!(domain: TestDomain)
 
       _ =
         TranslationHistory
-        |> Ash.Changeset.for_create(:record_change, %{
-          resource_id: resource_id2,
-          resource_type: "Product",
-          attribute_name: :name,
-          locale: :en,
-          new_value: "Product 2"
-        }, domain: TestDomain)
+        |> Ash.Changeset.for_create(
+          :record_change,
+          %{
+            resource_id: resource_id2,
+            resource_type: "Product",
+            attribute_name: :name,
+            locale: :en,
+            new_value: "Product 2"
+          }, domain: TestDomain)
         |> Ash.create!(domain: TestDomain)
 
       # Filter using simple read and enum filtering

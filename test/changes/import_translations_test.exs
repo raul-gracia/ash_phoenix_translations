@@ -509,9 +509,10 @@ defmodule AshPhoenixTranslations.Changes.ImportTranslationsTest do
       result = ImportTranslations.change(changeset, opts, context)
 
       assert Enum.any?(result.errors)
+
       assert Enum.any?(result.errors, fn error ->
-        error.field == :translations
-      end)
+               error.field == :translations
+             end)
     end
 
     test "adds error when translations argument is nil" do

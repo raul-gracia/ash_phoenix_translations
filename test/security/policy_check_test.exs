@@ -1172,7 +1172,7 @@ defmodule AshPhoenixTranslations.PolicyCheckTest do
       assert step1 and step2 and step3
       refute step4
       # Overall result should be false
-      refute (step1 and step2 and step3 and step4)
+      refute step1 and step2 and step3 and step4
     end
   end
 

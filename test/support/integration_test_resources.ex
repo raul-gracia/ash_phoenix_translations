@@ -60,8 +60,7 @@ defmodule AshPhoenixTranslations.IntegrationTest.UserWithEmbedded do
     uuid_primary_key :id
     attribute :email, :string, public?: true
 
-    attribute :address, AshPhoenixTranslations.IntegrationTest.EmbeddedAddress,
-      public?: true
+    attribute :address, AshPhoenixTranslations.IntegrationTest.EmbeddedAddress, public?: true
   end
 
   translations do

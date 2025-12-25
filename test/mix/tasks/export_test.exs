@@ -265,7 +265,8 @@ defmodule Mix.Tasks.AshPhoenixTranslations.ExportTest do
       # Find a translation for product1
       product1_trans =
         Enum.find(translations, fn t ->
-          t["resource_id"] == to_string(product1.id) && t["field"] == "name" && t["locale"] == "en"
+          t["resource_id"] == to_string(product1.id) && t["field"] == "name" &&
+            t["locale"] == "en"
         end)
 
       assert product1_trans != nil

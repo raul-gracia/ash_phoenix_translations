@@ -23,22 +23,23 @@ defmodule AshPhoenixTranslations.LocaleResolverTest do
   defp build_conn(opts \\ []) do
     {secret_key_base, session_opts} = setup_session()
 
-    conn = %Plug.Conn{
-      assigns: Keyword.get(opts, :assigns, %{}),
-      params: Keyword.get(opts, :params, %{}),
-      query_params: Keyword.get(opts, :query_params, %{}),
-      req_cookies: Keyword.get(opts, :cookies, %{}),
-      cookies: Keyword.get(opts, :cookies, %{}),
-      host: Keyword.get(opts, :host, "example.com"),
-      path_info: Keyword.get(opts, :path_info, []),
-      request_path: Keyword.get(opts, :request_path, "/"),
-      private: Keyword.get(opts, :private, %{}),
-      remote_ip: Keyword.get(opts, :remote_ip, {127, 0, 0, 1})
-    }
-    |> Map.put(:secret_key_base, secret_key_base)
-    |> Plug.Session.call(session_opts)
-    |> Plug.Conn.fetch_session()
-    |> put_req_headers(Keyword.get(opts, :req_headers, []))
+    conn =
+      %Plug.Conn{
+        assigns: Keyword.get(opts, :assigns, %{}),
+        params: Keyword.get(opts, :params, %{}),
+        query_params: Keyword.get(opts, :query_params, %{}),
+        req_cookies: Keyword.get(opts, :cookies, %{}),
+        cookies: Keyword.get(opts, :cookies, %{}),
+        host: Keyword.get(opts, :host, "example.com"),
+        path_info: Keyword.get(opts, :path_info, []),
+        request_path: Keyword.get(opts, :request_path, "/"),
+        private: Keyword.get(opts, :private, %{}),
+        remote_ip: Keyword.get(opts, :remote_ip, {127, 0, 0, 1})
+      }
+      |> Map.put(:secret_key_base, secret_key_base)
+      |> Plug.Session.call(session_opts)
+      |> Plug.Conn.fetch_session()
+      |> put_req_headers(Keyword.get(opts, :req_headers, []))
 
     conn
   end
@@ -394,7 +395,8 @@ defmodule AshPhoenixTranslations.LocaleResolverTest do
     end
 
     test "respects supported locales" do
-      config = LocaleResolver.configure(strategies: [:param], fallback: "en", supported: [:en, :es])
+      config =
+        LocaleResolver.configure(strategies: [:param], fallback: "en", supported: [:en, :es])
 
       # fr is not in supported list
       conn = build_conn(params: %{"locale" => "fr"})
@@ -405,7 +407,15 @@ defmodule AshPhoenixTranslations.LocaleResolverTest do
 
     test "uses custom resolver when strategy is :custom" do
       custom_fn = fn _conn -> :es end
-      config = LocaleResolver.configure(strategies: [:custom], custom: custom_fn, fallback: "en", supported: [:en, :es])
+
+      config =
+        LocaleResolver.configure(
+          strategies: [:custom],
+          custom: custom_fn,
+          fallback: "en",
+          supported: [:en, :es]
+        )
+
       conn = build_conn()
 
       result = LocaleResolver.resolve_with_config(conn, config)

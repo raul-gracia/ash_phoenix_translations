@@ -88,7 +88,6 @@ defmodule Mix.Tasks.AshPhoenixTranslations.VersionTest do
     {:ok, test_dir: test_dir}
   end
 
-
   describe "help output" do
     test "shows help when no arguments provided" do
       output =

@@ -635,8 +635,8 @@ defmodule AshPhoenixTranslations.GraphqlTest do
 
       # Verify all are properly formatted
       assert Enum.all?(translations, fn t ->
-        is_binary(t.locale) && is_binary(t.value)
-      end)
+               is_binary(t.locale) && is_binary(t.value)
+             end)
     end
 
     test "handles translations with special characters in values" do
@@ -1509,8 +1509,15 @@ defmodule AshPhoenixTranslations.GraphqlTest do
     test "type mapping function handles all standard Ash types" do
       # These are the types that should be mapped in graphql_type_for_ash_type
       ash_types = [
-        :string, :text, :integer, :boolean,
-        :decimal, :float, :date, :datetime, :unknown_type
+        :string,
+        :text,
+        :integer,
+        :boolean,
+        :decimal,
+        :float,
+        :date,
+        :datetime,
+        :unknown_type
       ]
 
       # We can't directly test the private function, but we can verify
@@ -1609,6 +1616,7 @@ defmodule AshPhoenixTranslations.GraphqlTest do
     test "validates exact regex patterns for locale codes" do
       # Two-letter codes (should pass regex)
       two_letter_valid = ["en", "es", "fr", "de", "it", "pt", "nl", "pl", "ru", "ja", "zh", "ar"]
+
       for code <- two_letter_valid do
         input = %{value: code}
         result = Graphql.parse_locale(input)
@@ -1618,6 +1626,7 @@ defmodule AshPhoenixTranslations.GraphqlTest do
 
       # Locale with country code - correct format (lowercase-HYPHEN-UPPERCASE)
       country_codes = ["en-US", "en-GB", "pt-BR", "zh-CN", "es-MX"]
+
       for code <- country_codes do
         input = %{value: code}
         result = Graphql.parse_locale(input)
@@ -1627,29 +1636,52 @@ defmodule AshPhoenixTranslations.GraphqlTest do
 
       # Invalid formats that should fail regex
       invalid_formats = [
-        "e",           # too short
-        "eng",         # too long
-        "EN",          # uppercase base
-        "En",          # mixed case base
-        "en-us",       # lowercase country code
-        "en-Us",       # mixed case country code
-        "EN-US",       # all uppercase
-        "en-U",        # country code too short
-        "en-USA",      # country code too long
-        "en_us",       # underscore with lowercase (hyphen normalizes, this stays as-is but lowercased)
-        "en US",       # space
-        "en.US",       # dot
-        "en/US",       # slash
-        "1en",         # starts with number
-        "en1",         # ends with number
-        "e1",          # number in base
-        "en-U1",       # number in country code
-        "en-",         # trailing separator
-        "-US",         # leading separator
-        "--",          # only separators
-        "",            # empty string
-        "en<US>",      # special characters
-        "en&US"        # special characters
+        # too short
+        "e",
+        # too long
+        "eng",
+        # uppercase base
+        "EN",
+        # mixed case base
+        "En",
+        # lowercase country code
+        "en-us",
+        # mixed case country code
+        "en-Us",
+        # all uppercase
+        "EN-US",
+        # country code too short
+        "en-U",
+        # country code too long
+        "en-USA",
+        # underscore with lowercase (hyphen normalizes, this stays as-is but lowercased)
+        "en_us",
+        # space
+        "en US",
+        # dot
+        "en.US",
+        # slash
+        "en/US",
+        # starts with number
+        "1en",
+        # ends with number
+        "en1",
+        # number in base
+        "e1",
+        # number in country code
+        "en-U1",
+        # trailing separator
+        "en-",
+        # leading separator
+        "-US",
+        # only separators
+        "--",
+        # empty string
+        "",
+        # special characters
+        "en<US>",
+        # special characters
+        "en&US"
       ]
 
       for code <- invalid_formats do
@@ -1661,19 +1693,28 @@ defmodule AshPhoenixTranslations.GraphqlTest do
     test "validates normalization process (hyphen to underscore, lowercase)" do
       # Test that hyphens are converted to underscores and everything lowercased
       test_cases = [
-        {"en-US", :error},  # Normalized to en_us, not in default supported list
-        {"pt-BR", :error},  # Normalized to pt_br, not in default supported list
-        {"en_US", :error},  # Normalized to en_us, not in default supported list
-        {"EN-US", :error},  # Fails regex (uppercase base)
-        {"en", {:ok, :en}}, # Simple code, should work
-        {"es", {:ok, :es}}, # Simple code, should work
-        {"fr", {:ok, :fr}}  # Simple code, should work
+        # Normalized to en_us, not in default supported list
+        {"en-US", :error},
+        # Normalized to pt_br, not in default supported list
+        {"pt-BR", :error},
+        # Normalized to en_us, not in default supported list
+        {"en_US", :error},
+        # Fails regex (uppercase base)
+        {"EN-US", :error},
+        # Simple code, should work
+        {"en", {:ok, :en}},
+        # Simple code, should work
+        {"es", {:ok, :es}},
+        # Simple code, should work
+        {"fr", {:ok, :fr}}
       ]
 
       for {input_str, expected} <- test_cases do
         input = %{value: input_str}
         result = Graphql.parse_locale(input)
-        assert result == expected, "Expected #{input_str} to return #{inspect(expected)}, got #{inspect(result)}"
+
+        assert result == expected,
+               "Expected #{input_str} to return #{inspect(expected)}, got #{inspect(result)}"
       end
     end
   end
@@ -1745,6 +1786,7 @@ defmodule AshPhoenixTranslations.GraphqlTest do
           fr: "Produit"
         }
       }
+
       resolution = %{source: resource, state: :name}
 
       {:ok, result} = Graphql.resolve_all_translations(resource, %{}, resolution)
@@ -1813,6 +1855,7 @@ defmodule AshPhoenixTranslations.GraphqlTest do
       resolution = %{
         context: %{locale: :it, user_id: 123, tenant: "test"}
       }
+
       result = Graphql.LocaleMiddleware.call(resolution, [])
       assert result.context.locale == :it
       assert result.context.user_id == 123

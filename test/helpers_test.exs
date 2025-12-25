@@ -279,9 +279,7 @@ defmodule AshPhoenixTranslations.HelpersTest do
 
     test "calculates percentage for specific fields" do
       product =
-        build_product(
-          name_translations: %{en: "Name", es: "Nombre", fr: "Nom"}
-        )
+        build_product(name_translations: %{en: "Name", es: "Nombre", fr: "Nom"})
 
       completeness = Helpers.translation_completeness(product, fields: [:name])
 
@@ -316,9 +314,7 @@ defmodule AshPhoenixTranslations.HelpersTest do
   describe "translation_status/3" do
     test "returns HTML badges for translation status" do
       product =
-        build_product(
-          name_translations: %{en: "Name", es: "Nombre"}
-        )
+        build_product(name_translations: %{en: "Name", es: "Nombre"})
 
       result = Helpers.translation_status(product, :name)
 
@@ -330,9 +326,7 @@ defmodule AshPhoenixTranslations.HelpersTest do
 
     test "shows complete status for present translations" do
       product =
-        build_product(
-          name_translations: %{en: "Name", es: "Nombre"}
-        )
+        build_product(name_translations: %{en: "Name", es: "Nombre"})
 
       result = Helpers.translation_status(product, :name, locales: [:en, :es])
 
@@ -343,9 +337,7 @@ defmodule AshPhoenixTranslations.HelpersTest do
 
     test "shows missing status for absent translations" do
       product =
-        build_product(
-          name_translations: %{en: "Name"}
-        )
+        build_product(name_translations: %{en: "Name"})
 
       result = Helpers.translation_status(product, :name, locales: [:en, :fr])
 
@@ -577,9 +569,7 @@ defmodule AshPhoenixTranslations.HelpersTest do
   describe "security - HTML escaping" do
     test "t/3 escapes HTML in translations" do
       product =
-        build_product(
-          name_translations: %{en: "<script>alert('xss')</script>"}
-        )
+        build_product(name_translations: %{en: "<script>alert('xss')</script>"})
 
       result = Helpers.t(product, :name, locale: :en)
 
@@ -590,9 +580,7 @@ defmodule AshPhoenixTranslations.HelpersTest do
 
     test "translate_field returns raw string without escaping" do
       product =
-        build_product(
-          name_translations: %{en: "<b>Bold</b>"}
-        )
+        build_product(name_translations: %{en: "<b>Bold</b>"})
 
       result = Helpers.translate_field(product, :name, :en)
 

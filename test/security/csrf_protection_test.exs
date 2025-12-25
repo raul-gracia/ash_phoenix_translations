@@ -432,7 +432,11 @@ defmodule AshPhoenixTranslations.CsrfProtectionTest do
         conn = setup_test_conn(:post)
         conn = CsrfProtection.generate_token(conn)
 
-        conn = %{conn | params: Map.put(conn.params, "_csrf_token", "<script>alert('xss')</script>")}
+        conn = %{
+          conn
+          | params: Map.put(conn.params, "_csrf_token", "<script>alert('xss')</script>")
+        }
+
         conn = CsrfProtection.call(conn, [])
 
         assert conn.halted

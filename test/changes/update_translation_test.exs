@@ -172,9 +172,10 @@ defmodule AshPhoenixTranslations.Changes.UpdateTranslationTest do
       result = UpdateTranslation.change(changeset, opts, context)
 
       assert Enum.any?(result.errors)
+
       assert Enum.any?(result.errors, fn error ->
-        error.message =~ "attribute and locale arguments are required"
-      end)
+               error.message =~ "attribute and locale arguments are required"
+             end)
     end
 
     test "adds error when locale argument is missing" do
@@ -192,9 +193,10 @@ defmodule AshPhoenixTranslations.Changes.UpdateTranslationTest do
       result = UpdateTranslation.change(changeset, opts, context)
 
       assert Enum.any?(result.errors)
+
       assert Enum.any?(result.errors, fn error ->
-        error.message =~ "attribute and locale arguments are required"
-      end)
+               error.message =~ "attribute and locale arguments are required"
+             end)
     end
 
     test "adds error when both attribute and locale are missing" do
@@ -212,9 +214,10 @@ defmodule AshPhoenixTranslations.Changes.UpdateTranslationTest do
       result = UpdateTranslation.change(changeset, opts, context)
 
       assert Enum.any?(result.errors)
+
       assert Enum.any?(result.errors, fn error ->
-        error.message =~ "attribute and locale arguments are required"
-      end)
+               error.message =~ "attribute and locale arguments are required"
+             end)
     end
 
     test "adds error with correct field" do
@@ -232,8 +235,8 @@ defmodule AshPhoenixTranslations.Changes.UpdateTranslationTest do
       result = UpdateTranslation.change(changeset, opts, context)
 
       assert Enum.any?(result.errors, fn error ->
-        error.field == :base
-      end)
+               error.field == :base
+             end)
     end
   end
 

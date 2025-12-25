@@ -716,13 +716,15 @@ defmodule AshPhoenixTranslations.LiveViewTest do
 
     test "reload_translations with non-struct values in assigns" do
       socket =
-        build_socket(assigns: %{
-          locale: :en,
-          string_value: "test",
-          number_value: 42,
-          list_value: [1, 2, 3],
-          map_value: %{key: "value"}
-        })
+        build_socket(
+          assigns: %{
+            locale: :en,
+            string_value: "test",
+            number_value: 42,
+            list_value: [1, 2, 3],
+            map_value: %{key: "value"}
+          }
+        )
 
       result = LiveView.reload_translations(socket)
 

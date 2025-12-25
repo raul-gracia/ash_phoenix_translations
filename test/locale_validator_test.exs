@@ -283,7 +283,9 @@ defmodule AshPhoenixTranslations.LocaleValidatorTest do
     end
 
     test "returns {:error, :invalid_field} for maps" do
-      assert {:error, :invalid_field} = LocaleValidator.validate_field(%{field: :name}, TestProduct)
+      assert {:error, :invalid_field} =
+               LocaleValidator.validate_field(%{field: :name}, TestProduct)
+
       assert {:error, :invalid_field} = LocaleValidator.validate_field(%{}, TestProduct)
     end
 

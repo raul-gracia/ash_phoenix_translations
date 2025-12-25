@@ -164,7 +164,8 @@ defmodule AshPhoenixTranslations.EmbeddedIntegrationTest do
       case result do
         {:error, errors} ->
           assert is_list(errors)
-          # Should have errors for missing :es and :fr translations
+
+        # Should have errors for missing :es and :fr translations
 
         :ok ->
           # Some implementations may not enforce validation

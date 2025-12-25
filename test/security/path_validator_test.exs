@@ -84,7 +84,8 @@ defmodule AshPhoenixTranslations.PathValidatorTest do
 
       case result do
         {:ok, _} -> assert true
-        {:error, _} -> assert true  # May fail depending on directory structure
+        # May fail depending on directory structure
+        {:error, _} -> assert true
       end
     end
   end
@@ -455,11 +456,16 @@ defmodule AshPhoenixTranslations.PathValidatorTest do
     test "handles special file names" do
       capture_log(fn ->
         special_names = [
-          "CON.csv",     # Windows reserved name
-          "PRN.csv",     # Windows reserved name
-          "NUL.csv",     # Windows reserved name
-          ".csv",        # Hidden file / no name
-          "...csv"       # Multiple dots
+          # Windows reserved name
+          "CON.csv",
+          # Windows reserved name
+          "PRN.csv",
+          # Windows reserved name
+          "NUL.csv",
+          # Hidden file / no name
+          ".csv",
+          # Multiple dots
+          "...csv"
         ]
 
         for name <- special_names do
@@ -471,6 +477,7 @@ defmodule AshPhoenixTranslations.PathValidatorTest do
               File.rm(path)
               # Should handle gracefully
               assert is_tuple(result)
+
             {:error, _} ->
               # File system doesn't allow this name, which is fine
               :ok

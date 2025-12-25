@@ -55,7 +55,10 @@ defmodule AshPhoenixTranslations.InputValidatorTest do
   describe "validate_translation/1 - invalid inputs" do
     test "rejects translations exceeding maximum length" do
       long_value = String.duplicate("a", 10_001)
-      assert {:error, :translation_too_long, msg} = InputValidator.validate_translation(long_value)
+
+      assert {:error, :translation_too_long, msg} =
+               InputValidator.validate_translation(long_value)
+
       assert msg =~ "10000"
     end
 
@@ -86,13 +89,17 @@ defmodule AshPhoenixTranslations.InputValidatorTest do
     test "accepts valid atom field names" do
       assert {:ok, :name} = InputValidator.validate_field_name(:name)
       assert {:ok, :description} = InputValidator.validate_field_name(:description)
-      assert {:ok, :long_field_name_here} = InputValidator.validate_field_name(:long_field_name_here)
+
+      assert {:ok, :long_field_name_here} =
+               InputValidator.validate_field_name(:long_field_name_here)
     end
 
     test "accepts valid string field names" do
       assert {:ok, "name"} = InputValidator.validate_field_name("name")
       assert {:ok, "description"} = InputValidator.validate_field_name("description")
-      assert {:ok, "field_with_underscore"} = InputValidator.validate_field_name("field_with_underscore")
+
+      assert {:ok, "field_with_underscore"} =
+               InputValidator.validate_field_name("field_with_underscore")
     end
 
     test "accepts field names with numbers" do
@@ -149,11 +156,14 @@ defmodule AshPhoenixTranslations.InputValidatorTest do
   describe "validate_resource_name/1 - valid inputs" do
     test "accepts valid module atoms" do
       assert {:ok, MyApp.Product} = InputValidator.validate_resource_name(MyApp.Product)
-      assert {:ok, MyApp.Context.Resource} = InputValidator.validate_resource_name(MyApp.Context.Resource)
+
+      assert {:ok, MyApp.Context.Resource} =
+               InputValidator.validate_resource_name(MyApp.Context.Resource)
     end
 
     test "accepts Elixir prefixed atom" do
-      assert {:ok, Elixir.MyApp.Product} = InputValidator.validate_resource_name(Elixir.MyApp.Product)
+      assert {:ok, Elixir.MyApp.Product} =
+               InputValidator.validate_resource_name(Elixir.MyApp.Product)
     end
 
     test "accepts valid string resource names" do
@@ -170,15 +180,18 @@ defmodule AshPhoenixTranslations.InputValidatorTest do
     test "rejects atom resource names exceeding max length" do
       # Create a very long module name
       long_name =
-        "Elixir." <> String.duplicate("A", 200)
+        ("Elixir." <> String.duplicate("A", 200))
         |> String.to_atom()
 
-      assert {:error, :resource_name_too_long, _} = InputValidator.validate_resource_name(long_name)
+      assert {:error, :resource_name_too_long, _} =
+               InputValidator.validate_resource_name(long_name)
     end
 
     test "rejects string resource names exceeding max length" do
       long_name = String.duplicate("A", 201)
-      assert {:error, :resource_name_too_long, _} = InputValidator.validate_resource_name(long_name)
+
+      assert {:error, :resource_name_too_long, _} =
+               InputValidator.validate_resource_name(long_name)
     end
 
     test "rejects atoms not starting with Elixir prefix" do
@@ -282,7 +295,9 @@ defmodule AshPhoenixTranslations.InputValidatorTest do
   describe "validate_key_component/1 - invalid inputs" do
     test "rejects components exceeding max length" do
       long_component = String.duplicate("a", 501)
-      assert {:error, :key_component_too_long, _} = InputValidator.validate_key_component(long_component)
+
+      assert {:error, :key_component_too_long, _} =
+               InputValidator.validate_key_component(long_component)
     end
 
     test "rejects invalid types" do
@@ -411,7 +426,8 @@ defmodule AshPhoenixTranslations.InputValidatorTest do
 
     test "rejects batch with missing required fields" do
       translations = [
-        %{field: :name, value: "Hello"}  # missing locale
+        # missing locale
+        %{field: :name, value: "Hello"}
       ]
 
       capture_log(fn ->
@@ -435,7 +451,9 @@ defmodule AshPhoenixTranslations.InputValidatorTest do
 
     test "rejects non-list input" do
       capture_log(fn ->
-        assert {:error, :invalid_type, _} = InputValidator.validate_translation_batch("not a list")
+        assert {:error, :invalid_type, _} =
+                 InputValidator.validate_translation_batch("not a list")
+
         assert {:error, :invalid_type, _} = InputValidator.validate_translation_batch(%{})
         assert {:error, :invalid_type, _} = InputValidator.validate_translation_batch(123)
       end)
@@ -475,7 +493,8 @@ defmodule AshPhoenixTranslations.InputValidatorTest do
       # Different unicode representations of the same character
       # These should be handled consistently
       result1 = InputValidator.validate_translation("cafe")
-      result2 = InputValidator.validate_translation("cafe")  # normalized form
+      # normalized form
+      result2 = InputValidator.validate_translation("cafe")
 
       assert {:ok, _} = result1
       assert {:ok, _} = result2

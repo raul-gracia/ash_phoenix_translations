@@ -516,17 +516,19 @@ defmodule AshPhoenixTranslations.CacheTest do
     test "returns cached value without computing" do
       Cache.put({:test, :key}, "cached")
 
-      result = Cache.get_or_compute({:test, :key}, fn ->
-        raise "Should not be called"
-      end)
+      result =
+        Cache.get_or_compute({:test, :key}, fn ->
+          raise "Should not be called"
+        end)
 
       assert result == "cached"
     end
 
     test "computes and caches on miss" do
-      result = Cache.get_or_compute({:test, :key}, fn ->
-        "computed"
-      end)
+      result =
+        Cache.get_or_compute({:test, :key}, fn ->
+          "computed"
+        end)
 
       assert result == "computed"
       assert Cache.get({:test, :key}) == {:ok, "computed"}
@@ -602,8 +604,8 @@ defmodule AshPhoenixTranslations.CacheTest do
     end
 
     test "handles nil values" do
-      Cache.put({:test, :nil}, nil)
-      assert {:ok, nil} = Cache.get({:test, :nil})
+      Cache.put({:test, nil}, nil)
+      assert {:ok, nil} = Cache.get({:test, nil})
     end
 
     test "handles empty strings" do
@@ -631,10 +633,11 @@ defmodule AshPhoenixTranslations.CacheTest do
     test "warmup with invalid arguments logs warning" do
       import ExUnit.CaptureLog
 
-      log = capture_log(fn ->
-        Cache.warmup("invalid", :also_invalid)
-        Process.sleep(50)
-      end)
+      log =
+        capture_log(fn ->
+          Cache.warmup("invalid", :also_invalid)
+          Process.sleep(50)
+        end)
 
       assert log =~ "Cache warmup called with invalid arguments"
     end

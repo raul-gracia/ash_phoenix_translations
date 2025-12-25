@@ -94,7 +94,8 @@ defmodule AshPhoenixTranslations.Phase3SecurityTest do
     test "removes stack traces from errors" do
       capture_log(fn ->
         error = %{
-          message: "Error in function #Function<Elixir.Module.function/2> at /app/lib/module.ex:123"
+          message:
+            "Error in function #Function<Elixir.Module.function/2> at /app/lib/module.ex:123"
         }
 
         sanitized = ErrorSanitizer.sanitize_error({:error, error}, %{})
