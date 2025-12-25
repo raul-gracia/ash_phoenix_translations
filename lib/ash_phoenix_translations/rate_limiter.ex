@@ -80,11 +80,27 @@ defmodule AshPhoenixTranslations.RateLimiter do
     GenServer.call(__MODULE__, {:status, key})
   end
 
+  @doc """
+  Resets all rate limits. Useful for testing.
+  """
+  def reset_all do
+    GenServer.call(__MODULE__, :reset_all)
+  end
+
   # Server callbacks
 
   @impl true
   def init(_opts) do
-    :ets.new(@table_name, [:set, :public, :named_table, read_concurrency: true])
+    # Create or reuse existing ETS table
+    case :ets.whereis(@table_name) do
+      :undefined ->
+        :ets.new(@table_name, [:set, :public, :named_table, read_concurrency: true])
+
+      _table_ref ->
+        # Table exists, clear it for fresh state
+        :ets.delete_all_objects(@table_name)
+    end
+
     schedule_cleanup()
     {:ok, %{}}
   end
@@ -98,6 +114,12 @@ defmodule AshPhoenixTranslations.RateLimiter do
   @impl true
   def handle_call({:reset, key}, _from, state) do
     :ets.delete(@table_name, key)
+    {:reply, :ok, state}
+  end
+
+  @impl true
+  def handle_call(:reset_all, _from, state) do
+    :ets.delete_all_objects(@table_name)
     {:reply, :ok, state}
   end
 

@@ -95,7 +95,9 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
             attribute_name: :name,
             locale: :en,
             new_value: "New Product Name"
-          }, domain: TestDomain)
+          },
+          domain: TestDomain
+        )
         |> Ash.create!(domain: TestDomain)
 
       assert history.resource_id == resource_id
@@ -124,7 +126,9 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
             translator_id: translator_id,
             translator_email: "translator@example.com",
             change_reason: "Update"
-          }, domain: TestDomain)
+          },
+          domain: TestDomain
+        )
         |> Ash.create!(domain: TestDomain)
 
       assert history.translator_id == translator_id
@@ -162,7 +166,9 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
             attribute_name: :name,
             locale: :en,
             new_value: "First"
-          }, domain: TestDomain)
+          },
+          domain: TestDomain
+        )
         |> Ash.create!(domain: TestDomain)
 
       Process.sleep(20)
@@ -180,7 +186,9 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
             locale: :en,
             old_value: "First",
             new_value: "Second"
-          }, domain: TestDomain)
+          },
+          domain: TestDomain
+        )
         |> Ash.create!(domain: TestDomain)
 
       # Use history2's timestamp to find previous
@@ -195,7 +203,9 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
             attribute_name: :name,
             locale: :en,
             before_date: before_second
-          }, domain: TestDomain)
+          },
+          domain: TestDomain
+        )
         |> Ash.read!(domain: TestDomain)
 
       assert length(previous) == 1
@@ -217,7 +227,9 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
             attribute_name: :name,
             locale: :en,
             new_value: "Test"
-          }, domain: TestDomain)
+          },
+          domain: TestDomain
+        )
         |> Ash.create!(domain: TestDomain)
 
       history_with_age =
@@ -242,7 +254,9 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
             attribute_name: :name,
             locale: :en,
             new_value: "Test"
-          }, domain: TestDomain)
+          },
+          domain: TestDomain
+        )
         |> Ash.create!(domain: TestDomain)
 
       all_history = TranslationHistory |> Ash.read!(domain: TestDomain)
@@ -263,7 +277,9 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
             attribute_name: :name,
             locale: :en,
             new_value: "Product 1"
-          }, domain: TestDomain)
+          },
+          domain: TestDomain
+        )
         |> Ash.create!(domain: TestDomain)
 
       _ =
@@ -276,7 +292,9 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
             attribute_name: :name,
             locale: :en,
             new_value: "Product 2"
-          }, domain: TestDomain)
+          },
+          domain: TestDomain
+        )
         |> Ash.create!(domain: TestDomain)
 
       # Filter using simple read and enum filtering
