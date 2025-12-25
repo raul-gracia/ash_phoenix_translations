@@ -14,8 +14,8 @@ defmodule AshPhoenixTranslations.PolicyCheckTest do
 
   import ExUnit.CaptureLog
 
-  alias AshPhoenixTranslations.PolicyCheck
   alias AshPhoenixTranslations.Cache
+  alias AshPhoenixTranslations.PolicyCheck
 
   # Test resources defined at the module level for proper compilation
   defmodule TestDomain do

@@ -60,3 +60,6 @@ Thumbs.db
 # Mix lock for applications (not libraries)
 # Uncomment if this is an application
 # mix.lock
+# Test artifacts
+test_output.csv
+*.csv

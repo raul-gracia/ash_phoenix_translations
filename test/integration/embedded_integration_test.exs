@@ -9,10 +9,10 @@ defmodule AshPhoenixTranslations.EmbeddedIntegrationTest do
 
   alias AshPhoenixTranslations.Embedded
   alias AshPhoenixTranslations.Fallback
-  alias AshPhoenixTranslations.IntegrationTest.UserWithEmbedded
-  alias AshPhoenixTranslations.IntegrationTest.ProductWithFeatures
   alias AshPhoenixTranslations.IntegrationTest.EmbeddedAddress
   alias AshPhoenixTranslations.IntegrationTest.EmbeddedFeature
+  alias AshPhoenixTranslations.IntegrationTest.ProductWithFeatures
+  alias AshPhoenixTranslations.IntegrationTest.UserWithEmbedded
 
   @moduletag :integration
 
@@ -183,7 +183,7 @@ defmodule AshPhoenixTranslations.EmbeddedIntegrationTest do
 
       # Check that at least some paths are extracted
       # The exact format depends on implementation
-      if length(paths) > 0 do
+      if paths != [] do
         assert Enum.all?(paths, &is_list/1) or Enum.all?(paths, &is_atom/1)
       end
     end

@@ -425,7 +425,8 @@ defmodule Mix.Tasks.AshPhoenixTranslations.ExtractTest do
           rescue
             _ -> :ok
           catch
-            :exit, _ -> IO.puts("Exited")
+            # Exited
+            :exit, _ -> :ok
           end
         end)
 
@@ -444,7 +445,8 @@ defmodule Mix.Tasks.AshPhoenixTranslations.ExtractTest do
           rescue
             _ -> :ok
           catch
-            :exit, _ -> IO.puts("Exited")
+            # Exited
+            :exit, _ -> :ok
           end
         end)
 

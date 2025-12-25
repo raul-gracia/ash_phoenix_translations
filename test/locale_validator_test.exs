@@ -60,7 +60,8 @@ defmodule AshPhoenixTranslations.LocaleValidatorTest do
   use ExUnit.Case, async: false
 
   alias AshPhoenixTranslations.LocaleValidator
-  alias AshPhoenixTranslations.MixTaskTest.{TestProduct, TestCategory}
+  alias AshPhoenixTranslations.MixTaskTest.TestCategory
+  alias AshPhoenixTranslations.MixTaskTest.TestProduct
 
   setup do
     # Store original config
@@ -322,7 +323,7 @@ defmodule AshPhoenixTranslations.LocaleValidatorTest do
       assert is_list(default_locales)
       assert :en in default_locales
       assert :es in default_locales
-      assert length(default_locales) > 0
+      assert default_locales != []
     end
 
     test "handles empty supported locales list" do
@@ -421,7 +422,7 @@ defmodule AshPhoenixTranslations.LocaleValidatorTest do
 
   describe "edge cases and boundary conditions" do
     test "handles very long locale strings" do
-      long_locale = String.duplicate("x", 10000)
+      long_locale = String.duplicate("x", 10_000)
       assert {:error, :invalid_locale} = LocaleValidator.validate_locale(long_locale)
     end
 

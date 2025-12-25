@@ -493,10 +493,11 @@ defmodule AshPhoenixTranslations.AuditLoggerTest do
     test "handles non-binary identifier" do
       log =
         capture_log([level: :debug], fn ->
-          AuditLogger.log_rate_limit({:ok, :allowed}, 12345, :test)
+          AuditLogger.log_rate_limit({:ok, :allowed}, 12_345, :test)
         end)
 
       assert log =~ "Rate limit check"
+      # Integer is logged without underscore formatting
       assert log =~ "identifier: 12345"
     end
   end
@@ -566,10 +567,11 @@ defmodule AshPhoenixTranslations.AuditLoggerTest do
     test "handles non-binary value" do
       log =
         capture_log(fn ->
-          AuditLogger.log_input_validation({:error, :invalid}, :number, 12345)
+          AuditLogger.log_input_validation({:error, :invalid}, :number, 12_345)
         end)
 
       assert log =~ "Input validation failed"
+      # Integer is logged without underscore formatting
       assert log =~ "value: 12345"
     end
   end

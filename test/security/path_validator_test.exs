@@ -424,7 +424,7 @@ defmodule AshPhoenixTranslations.PathValidatorTest do
   describe "security scenarios" do
     test "handles path with many ../ segments" do
       capture_log(fn ->
-        many_ups = Enum.map(1..100, fn _ -> ".." end) |> Enum.join("/")
+        many_ups = Enum.map_join(1..100, "/", fn _ -> ".." end)
         path = Path.join(@test_dir, many_ups <> "/etc/passwd")
         result = PathValidator.validate_import_path(path)
         assert {:error, :path_traversal_detected} = result

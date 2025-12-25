@@ -1120,7 +1120,7 @@ defmodule AshPhoenixTranslations.EmbeddedTest do
       # Missing es, fr, de
       assert {:error, errors} = result
       assert is_list(errors)
-      assert length(errors) > 0
+      assert errors != []
     end
 
     test "handles nil translations gracefully" do
@@ -1686,7 +1686,7 @@ defmodule AshPhoenixTranslations.EmbeddedTest do
       # Should detect missing es and fr
       assert {:error, errors} = result
       assert is_list(errors)
-      assert length(errors) > 0
+      assert errors != []
 
       # Verify error structure
       error = List.first(errors)

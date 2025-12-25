@@ -493,7 +493,7 @@ defmodule AshPhoenixTranslations.CacheTest do
     end
 
     test "accepts numeric record_id" do
-      key = {:translation, Product, :name, :en, 12345}
+      key = {:translation, Product, :name, :en, 12_345}
       assert :ok = Cache.put(key, "value")
       assert {:ok, "value"} = Cache.get(key)
     end

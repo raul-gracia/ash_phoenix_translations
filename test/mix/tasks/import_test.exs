@@ -3,8 +3,8 @@ defmodule Mix.Tasks.AshPhoenixTranslations.ImportTest do
   import ExUnit.CaptureIO
   import ExUnit.CaptureLog
 
-  alias Mix.Tasks.AshPhoenixTranslations.Import
   alias AshPhoenixTranslations.MixTaskTest.TestProduct
+  alias Mix.Tasks.AshPhoenixTranslations.Import
 
   setup do
     # Ensure cache is started
@@ -579,9 +579,7 @@ defmodule Mix.Tasks.AshPhoenixTranslations.ImportTest do
 
       # Generate many invalid locales
       invalid_rows =
-        1..100
-        |> Enum.map(fn i -> "some-id,name,invalid_locale_#{i},Value #{i}" end)
-        |> Enum.join("\n")
+        Enum.map_join(1..100, "\n", fn i -> "some-id,name,invalid_locale_#{i},Value #{i}" end)
 
       csv_content = "resource_id,field,locale,value\n" <> invalid_rows
 

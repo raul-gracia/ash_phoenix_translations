@@ -392,8 +392,10 @@ defmodule AshPhoenixTranslations.CsrfProtectionTest do
         token = CsrfProtection.get_token(conn)
 
         # Both should take approximately same time regardless of position of mismatch
-        wrong_first_char = "X" <> String.slice(token, 1..-1//1)
-        wrong_last_char = String.slice(token, 0..-2//1) <> "X"
+        # Use String.slice/3 for better Elixir version compatibility
+        token_len = String.length(token)
+        wrong_first_char = "X" <> String.slice(token, 1, token_len - 1)
+        wrong_last_char = String.slice(token, 0, token_len - 1) <> "X"
 
         result1 = CsrfProtection.validate_token(conn, wrong_first_char)
         result2 = CsrfProtection.validate_token(conn, wrong_last_char)

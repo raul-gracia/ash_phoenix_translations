@@ -1,8 +1,8 @@
 defmodule AshPhoenixTranslations.TranslationsTest do
   use ExUnit.Case, async: true
 
-  alias AshPhoenixTranslations.Translations
   alias AshPhoenixTranslations.TranslatableAttribute
+  alias AshPhoenixTranslations.Translations
 
   describe "struct/0" do
     test "defines Translations struct with expected fields" do
@@ -102,10 +102,10 @@ defmodule AshPhoenixTranslations.TranslationsTest do
 
     test "accepts different TTL values" do
       translations_short = %Translations{cache_ttl: 300}
-      translations_long = %Translations{cache_ttl: 86400}
+      translations_long = %Translations{cache_ttl: 86_400}
 
       assert translations_short.cache_ttl == 300
-      assert translations_long.cache_ttl == 86400
+      assert translations_long.cache_ttl == 86_400
     end
 
     test "accepts nil cache_ttl" do
@@ -569,7 +569,6 @@ defmodule AshPhoenixTranslations.TranslationsTest do
       }
 
       assert Enum.empty?(translations.translatable_attributes)
-      assert length(translations.translatable_attributes) == 0
     end
 
     test "handles large list of translatable_attributes" do

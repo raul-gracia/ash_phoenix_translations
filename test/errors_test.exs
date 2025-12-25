@@ -8,9 +8,9 @@ defmodule AshPhoenixTranslations.ErrorsTest do
 
   use ExUnit.Case, async: true
 
-  alias AshPhoenixTranslations.MissingTranslationError
-  alias AshPhoenixTranslations.InvalidLocaleError
   alias AshPhoenixTranslations.BackendError
+  alias AshPhoenixTranslations.InvalidLocaleError
+  alias AshPhoenixTranslations.MissingTranslationError
 
   describe "MissingTranslationError" do
     test "can be created with locale and available locales" do

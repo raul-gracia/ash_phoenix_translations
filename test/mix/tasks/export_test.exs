@@ -2,8 +2,8 @@ defmodule Mix.Tasks.AshPhoenixTranslations.ExportTest do
   use ExUnit.Case, async: false
   import ExUnit.CaptureIO
 
-  alias Mix.Tasks.AshPhoenixTranslations.Export
   alias AshPhoenixTranslations.MixTaskTest.TestProduct
+  alias Mix.Tasks.AshPhoenixTranslations.Export
 
   setup do
     # Ensure cache is started
@@ -260,7 +260,7 @@ defmodule Mix.Tasks.AshPhoenixTranslations.ExportTest do
       # Check translations structure
       translations = data["translations"]
       assert is_list(translations)
-      assert length(translations) > 0
+      assert translations != []
 
       # Find a translation for product1
       product1_trans =

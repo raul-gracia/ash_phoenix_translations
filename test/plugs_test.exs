@@ -9,8 +9,8 @@ defmodule AshPhoenixTranslations.PlugsTest do
 
   import ExUnit.CaptureLog
 
-  alias AshPhoenixTranslations.Plugs.SetLocale
   alias AshPhoenixTranslations.Plugs.LoadTranslations
+  alias AshPhoenixTranslations.Plugs.SetLocale
 
   # Test resource for LoadTranslations tests
   defmodule TestProduct do

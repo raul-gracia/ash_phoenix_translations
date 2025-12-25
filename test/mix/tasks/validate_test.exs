@@ -2,8 +2,8 @@ defmodule Mix.Tasks.AshPhoenixTranslations.ValidateTest do
   use ExUnit.Case, async: false
   import ExUnit.CaptureIO
 
-  alias Mix.Tasks.AshPhoenixTranslations.Validate
   alias AshPhoenixTranslations.MixTaskTest.TestProduct
+  alias Mix.Tasks.AshPhoenixTranslations.Validate
 
   setup do
     # Ensure cache is started
@@ -592,13 +592,14 @@ defmodule Mix.Tasks.AshPhoenixTranslations.ValidateTest do
             Validate.run(["-a"])
           rescue
             # Example.Product module doesn't exist in test env
-            _ -> IO.puts("Rescue triggered")
+            _ -> :ok
           end
         end)
 
       # If the alias wasn't recognized, we'd get an error about missing --resource or --all
-      # Since we get here (no Mix.raise about missing options), the alias worked
-      assert output =~ "Validating" || output =~ "Rescue triggered"
+      # The test passes if we reach here without Mix.raise about missing options
+      # Output may be empty if rescue triggers or may contain "Validating"
+      assert output == "" || output =~ "Validating"
     end
 
     test "supports -l alias for --locale" do
@@ -660,7 +661,8 @@ defmodule Mix.Tasks.AshPhoenixTranslations.ValidateTest do
               "-s"
             ])
           rescue
-            Mix.Error -> IO.puts("Raised Mix.Error")
+            # Raised Mix.Error
+            Mix.Error -> :ok
           end
         end)
 
@@ -736,7 +738,8 @@ defmodule Mix.Tasks.AshPhoenixTranslations.ValidateTest do
               "AshPhoenixTranslations.MixTaskTest.TestProduct"
             ])
           catch
-            :exit, _ -> IO.puts("Exited")
+            # Exited
+            :exit, _ -> :ok
           end
         end)
 

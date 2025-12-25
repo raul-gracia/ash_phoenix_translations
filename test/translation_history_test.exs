@@ -6,7 +6,9 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
 
   require Ash.Query
 
+  alias Ash.Resource.Info
   alias AshPhoenixTranslations.TranslationHistory
+  alias AshPhoenixTranslations.TranslationHistoryTest.TestDomain
 
   defmodule TestDomain do
     @moduledoc false
@@ -19,7 +21,7 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
 
   describe "resource structure" do
     test "has expected attributes" do
-      attributes = Ash.Resource.Info.attributes(TranslationHistory)
+      attributes = Info.attributes(TranslationHistory)
       attribute_names = Enum.map(attributes, & &1.name)
 
       assert :id in attribute_names
@@ -39,14 +41,14 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
     end
 
     test "uses ETS data layer" do
-      data_layer = Ash.Resource.Info.data_layer(TranslationHistory)
+      data_layer = Info.data_layer(TranslationHistory)
       assert data_layer == Ash.DataLayer.Ets
     end
   end
 
   describe "actions" do
     test "has default create and read actions" do
-      actions = Ash.Resource.Info.actions(TranslationHistory)
+      actions = Info.actions(TranslationHistory)
       action_names = Enum.map(actions, & &1.name)
 
       assert :create in action_names
@@ -54,19 +56,19 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
     end
 
     test "has record_change action" do
-      record_change_action = Ash.Resource.Info.action(TranslationHistory, :record_change)
+      record_change_action = Info.action(TranslationHistory, :record_change)
       assert record_change_action != nil
       assert record_change_action.type == :create
     end
 
     test "has approve action" do
-      approve_action = Ash.Resource.Info.action(TranslationHistory, :approve)
+      approve_action = Info.action(TranslationHistory, :approve)
       assert approve_action != nil
       assert approve_action.type == :update
     end
 
     test "has find_previous action" do
-      find_previous_action = Ash.Resource.Info.action(TranslationHistory, :find_previous)
+      find_previous_action = Info.action(TranslationHistory, :find_previous)
       assert find_previous_action != nil
       assert find_previous_action.type == :read
     end
@@ -74,7 +76,7 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
 
   describe "calculations" do
     test "has age_in_days calculation" do
-      calculations = Ash.Resource.Info.calculations(TranslationHistory)
+      calculations = Info.calculations(TranslationHistory)
       calculation_names = Enum.map(calculations, & &1.name)
 
       assert :age_in_days in calculation_names
@@ -145,7 +147,7 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
     # be configured with a specific domain.
 
     test "has approve action defined" do
-      approve_action = Ash.Resource.Info.action(TranslationHistory, :approve)
+      approve_action = Info.action(TranslationHistory, :approve)
       assert approve_action != nil
       assert approve_action.type == :update
       assert :approved_by in approve_action.accept
@@ -260,7 +262,7 @@ defmodule AshPhoenixTranslations.TranslationHistoryTest do
         |> Ash.create!(domain: TestDomain)
 
       all_history = TranslationHistory |> Ash.read!(domain: TestDomain)
-      assert length(all_history) >= 1
+      assert all_history != []
     end
 
     test "can filter by resource_id" do
