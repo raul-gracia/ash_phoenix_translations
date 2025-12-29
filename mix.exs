@@ -65,7 +65,7 @@ defmodule AshPhoenixTranslations.MixProject do
       {:phoenix_html, "~> 3.0 or ~> 4.0"},
 
       # Optional backend dependencies
-      {:gettext, "~> 0.20", optional: true},
+      {:gettext, "~> 1.0", optional: true},
       {:absinthe, "~> 1.7", optional: true},
       {:dataloader, "~> 2.0", optional: true},
 
