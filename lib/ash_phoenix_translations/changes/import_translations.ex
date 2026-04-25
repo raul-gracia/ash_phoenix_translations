@@ -70,6 +70,14 @@ defmodule AshPhoenixTranslations.Changes.ImportTranslations do
     end)
   end
 
+  defp parse_translations(translations, :xliff) when is_binary(translations) do
+    # XLIFF parsing would be more complex in production
+    # This is a simplified placeholder
+    %{}
+  end
+
+  defp parse_translations(translations, _format), do: translations
+
   defp parse_csv_field(acc, attribute, locale, value) do
     trimmed_attribute = String.trim(attribute)
     trimmed_locale = String.trim(locale)
@@ -87,14 +95,6 @@ defmodule AshPhoenixTranslations.Changes.ImportTranslations do
       {:error, :invalid_locale} -> acc
     end
   end
-
-  defp parse_translations(translations, :xliff) when is_binary(translations) do
-    # XLIFF parsing would be more complex in production
-    # This is a simplified placeholder
-    %{}
-  end
-
-  defp parse_translations(translations, _format), do: translations
 
   # Helper to validate field atoms safely
   defp validate_field_atom(field_name) when is_binary(field_name) do
