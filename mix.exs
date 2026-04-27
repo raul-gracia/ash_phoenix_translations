@@ -53,7 +53,7 @@ defmodule AshPhoenixTranslations.MixProject do
 
   defp deps do
     [
-      {:usage_rules, "~> 0.1", only: [:dev]},
+      {:usage_rules, "~> 1.2", only: [:dev]},
       {:igniter, "~> 0.6", only: [:dev, :test]},
       # Core dependencies
       {:ash, "~> 3.0"},
