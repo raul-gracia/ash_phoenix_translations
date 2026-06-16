@@ -17,17 +17,44 @@ defmodule AshPhoenixTranslations.RateLimiterTest do
   alias AshPhoenixTranslations.RateLimiter
 
   setup do
-    # Stop any existing rate limiter to ensure clean state
+    # Stop any existing rate limiter to ensure clean state.
+    # Monitor the pid and wait for the :DOWN message so the registered name
+    # is fully cleared before we start a fresh one — without this, the next
+    # `start_link/1` can race with the dying process and intermittently
+    # return `{:error, {:already_started, _}}` (which the helper swallows
+    # but leaves the previous test's state in the ETS table).
     case Process.whereis(RateLimiter) do
-      nil -> :ok
-      pid -> GenServer.stop(pid, :normal, 5000)
+      nil ->
+        :ok
+
+      pid ->
+        ref = Process.monitor(pid)
+
+        # Best-effort stop — the process can die between whereis/2 returning
+        # the pid and stop/3 being called (race observed on Elixir 1.17.0).
+        # Swallow the resulting :noproc/:normal exit; the :DOWN message below
+        # is what we actually wait on to know the name is free.
+        try do
+          GenServer.stop(pid, :normal, 5000)
+        catch
+          :exit, _ -> :ok
+        end
+
+        receive do
+          {:DOWN, ^ref, :process, ^pid, _reason} -> :ok
+        after
+          5000 -> :ok
+        end
     end
 
     # Start fresh rate limiter for each test
     {:ok, _pid} = RateLimiter.start_link()
 
-    # Create unique identifiers for each test to avoid interference
-    identifier = "test_user_#{:rand.uniform(1_000_000)}"
+    # Create unique identifiers for each test to avoid interference.
+    # Combine :erlang.unique_integer (monotonic, collision-free per node)
+    # with :rand.uniform so concurrent runs in different shells still differ.
+    identifier =
+      "test_user_#{System.unique_integer([:positive, :monotonic])}_#{:rand.uniform(1_000_000)}"
 
     {:ok, identifier: identifier}
   end
