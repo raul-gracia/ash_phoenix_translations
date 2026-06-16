@@ -529,16 +529,41 @@ defmodule AshPhoenixTranslations.Embedded do
   end
 
   defp calculate_path_completeness(resource, path) do
-    value = get_in_embedded(resource, path)
+    # Translatable paths point at the *attribute* (e.g. [:name]), but the data
+    # lives in the storage map (e.g. :name_translations). Resolve to the
+    # storage map before computing completeness.
+    value = resolve_translation_storage(resource, path)
 
-    if is_map(value) do
-      # Would get from config
-      expected_locales = [:en, :es, :fr]
-      present_locales = Map.keys(value)
+    expected_locales = [:en, :es, :fr]
 
-      length(present_locales) / length(expected_locales) * 100
-    else
-      0
+    cond do
+      # Plain translation map: %{en: "...", es: "..."}
+      is_map(value) and not is_struct(value) ->
+        present_locales =
+          value
+          |> Map.keys()
+          |> Enum.filter(&(&1 in expected_locales))
+
+        pct = length(present_locales) / length(expected_locales) * 100
+        # Cap at 100.0 in case future expansions add unexpected locale keys.
+        min(pct, 100.0)
+
+      true ->
+        0
+    end
+  end
+
+  # Look up the *_translations storage map for a translatable-attribute path.
+  # For nested paths like [:address, :street] we walk the embedded structure
+  # and then read `:street_translations` on the leaf.
+  defp resolve_translation_storage(resource, path) do
+    {parents, [leaf]} = Enum.split(path, length(path) - 1)
+    storage_field = :"#{leaf}_translations"
+    container = get_in_embedded(resource, parents)
+
+    case container do
+      %{^storage_field => value} -> value
+      _ -> get_in_embedded(resource, path)
     end
   end
 
