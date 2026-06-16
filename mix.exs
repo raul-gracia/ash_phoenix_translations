@@ -54,10 +54,10 @@ defmodule AshPhoenixTranslations.MixProject do
   defp deps do
     [
       {:usage_rules, "~> 0.1", only: [:dev]},
-      {:igniter, "~> 0.6", only: [:dev, :test]},
+      {:igniter, "~> 0.8", only: [:dev, :test]},
       # Core dependencies
-      {:ash, "~> 3.0"},
-      {:spark, "~> 2.0"},
+      {:ash, "~> 3.29"},
+      {:spark, "~> 2.7"},
       {:phoenix, "~> 1.7"},
       {:phoenix_live_view, "~> 0.20 or ~> 1.0"},
       {:plug, "~> 1.15"},
@@ -83,7 +83,7 @@ defmodule AshPhoenixTranslations.MixProject do
       {:excoveralls, "~> 0.16", only: :test},
       {:mix_test_watch, "~> 1.1", only: :dev, runtime: false},
       {:ex_machina, "~> 2.7", only: :test},
-      {:ash_postgres, "~> 2.0", only: :test}
+      {:ash_postgres, "~> 2.10", only: :test}
     ]
   end
 
