@@ -29,7 +29,16 @@ defmodule AshPhoenixTranslations.RateLimiterTest do
 
       pid ->
         ref = Process.monitor(pid)
-        :ok = GenServer.stop(pid, :normal, 5000)
+
+        # Best-effort stop — the process can die between whereis/2 returning
+        # the pid and stop/3 being called (race observed on Elixir 1.17.0).
+        # Swallow the resulting :noproc/:normal exit; the :DOWN message below
+        # is what we actually wait on to know the name is free.
+        try do
+          GenServer.stop(pid, :normal, 5000)
+        catch
+          :exit, _ -> :ok
+        end
 
         receive do
           {:DOWN, ^ref, :process, ^pid, _reason} -> :ok
