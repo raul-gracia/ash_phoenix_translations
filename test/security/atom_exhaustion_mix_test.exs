@@ -278,8 +278,11 @@ defmodule AshPhoenixTranslations.AtomExhaustionMixTest do
     test "validate task rejects invalid fields without creating atoms", %{
       atom_count_before: before_count
     } do
-      # Create 100 invalid field strings
-      invalid_fields = for _i <- 1..100, do: "field_#{:rand.uniform(1_000_000)}"
+      # Create 100 invalid field strings.
+      # Use the loop index (not :rand.uniform) so the fields are guaranteed
+      # unique — otherwise the random pool occasionally collides and the
+      # task reports < 100 invalid fields, flaking the assertion below.
+      invalid_fields = for i <- 1..100, do: "invalid_field_#{i}"
       field_string = Enum.join(invalid_fields, ",")
 
       output =
