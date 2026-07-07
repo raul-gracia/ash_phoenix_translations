@@ -95,14 +95,12 @@ defmodule AshPhoenixTranslations.CacheTest do
   Each test includes:
 
       setup do
-        # Start cache GenServer
+        # Get the globally started cache (see test_helper.exs)
         {:ok, _pid} = Cache.start_link()
 
-        # Wait for initialization
-        Process.sleep(10)
-
-        # Clear cache for isolation
+        # Clear entries and statistics for isolation
         Cache.clear()
+        Cache.reset_stats()
 
         :ok
       end
@@ -164,14 +162,14 @@ defmodule AshPhoenixTranslations.CacheTest do
   alias AshPhoenixTranslations.Cache
 
   setup do
-    # Start cache for each test
+    # The cache is started globally in test_helper.exs; this returns the
+    # already-running instance without linking to the test process.
     {:ok, _pid} = Cache.start_link()
 
-    # Wait a bit for GenServer to fully initialize
-    Process.sleep(10)
-
-    # Clear cache before each test
+    # Clear entries and zero the hit/miss/eviction counters so statistics
+    # assertions are isolated from tests that ran before this one.
     Cache.clear()
+    Cache.reset_stats()
 
     :ok
   end

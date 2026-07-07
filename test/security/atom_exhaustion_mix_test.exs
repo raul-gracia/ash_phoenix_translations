@@ -368,24 +368,24 @@ defmodule AshPhoenixTranslations.AtomExhaustionMixTest do
       # Note: The task will exit(1) if no resources are found, which is expected behavior
 
       # Test 'pot' format - should not raise on format validation
-      catch_exit do
+      catch_exit(
         ExUnit.CaptureIO.capture_io(fn ->
           Extract.run([
             "--format",
             "pot"
           ])
         end)
-      end
+      )
 
       # Test 'po' format - should not raise on format validation
-      catch_exit do
+      catch_exit(
         ExUnit.CaptureIO.capture_io(fn ->
           Extract.run([
             "--format",
             "po"
           ])
         end)
-      end
+      )
 
       # If we get here without Mix.Error, format validation passed
       assert true
