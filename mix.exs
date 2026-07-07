@@ -1,7 +1,7 @@
 defmodule AshPhoenixTranslations.MixProject do
   use Mix.Project
 
-  @version "1.0.0"
+  @version "1.0.1"
   @description "A powerful Ash Framework extension for handling translations in Phoenix applications with policy-aware, multi-backend support"
 
   def project do
@@ -56,8 +56,8 @@ defmodule AshPhoenixTranslations.MixProject do
       {:usage_rules, "~> 0.1", only: [:dev]},
       {:igniter, "~> 0.8", only: [:dev, :test]},
       # Core dependencies
-      {:ash, "~> 3.29"},
-      {:spark, "~> 2.7"},
+      {:ash, "~> 3.0"},
+      {:spark, "~> 2.0"},
       {:phoenix, "~> 1.7"},
       {:phoenix_live_view, "~> 0.20 or ~> 1.0"},
       {:plug, "~> 1.15"},

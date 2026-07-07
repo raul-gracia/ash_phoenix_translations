@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-07-07
+
+### Fixed
+- Embedded completeness reports (`embedded_translation_report/1`) derived
+  expected locales from a hardcoded `[:en, :es, :fr]` list. They now use each
+  attribute's configured `translatable_attribute` locales, count string-keyed
+  translation maps, and can no longer exceed 100%.
+- `validate_embedded_translations/2` read the raw attribute path instead of
+  the `*_translations` storage map, reporting every required locale as
+  missing for fully translated resources.
+- Nested embedded translatable paths (e.g. `[:address, :street]`) were never
+  extracted because attribute discovery relied on `__ash_attributes__/0`,
+  which current Ash versions no longer export. Discovery now uses
+  `Ash.Resource.Info.attributes/1`.
+- Completeness reports and validation skip paths whose embedded container is
+  nil instead of scoring absent embeds as 0% complete.
+
+### Added
+- `AshPhoenixTranslations.Cache.reset_stats/0` to zero hit/miss/eviction
+  counters, for measuring cache effectiveness over a specific window.
+
+### Security
+- Updated locked dependencies to releases patching known advisories:
+  ash 3.29.3 (CVE-2026-55736), plug 1.20.2 (CVE-2026-54892),
+  mint 1.9.1 (CVE-2026-56810), hpax 1.0.4 (CVE-2026-58226),
+  phoenix 1.8.9 (CVE-2026-56811, CVE-2026-56812), and
+  html_sanitize_ex 1.5.2.
+
+### Changed
+- Restored the 1.0.0 dependency floors (`ash ~> 3.0`, `spark ~> 2.0`) that
+  had been tightened to `~> 3.29`/`~> 2.7` during development, so downstream
+  apps on older Ash 3.x releases can upgrade without a transitive bump.
+
+## [1.0.0] - 2025-11-19
+
+Published to Hex on 2025-11-19. The release includes the changes in this
+section plus the initial feature set under the 2024-09-01 heading below,
+which predates the Hex publish.
+
 ### Added
 - Comprehensive Gettext backend documentation (guides/gettext_backend.md)
   - Detailed message ID pattern explanation
@@ -54,7 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All Redis-related dependencies and code
 - Redis command injection security tests (no longer applicable)
 
-## [1.0.0] - 2024-09-01
+## [1.0.0 initial development] - 2024-09-01
 
 ### Added
 - Initial release of AshPhoenixTranslations

@@ -169,10 +169,9 @@ end
 ```
 
 ## Current Status
-- Version 1.0.0+ in active development
+- Version 1.0.1 (published to Hex)
 - **Database backend**: Fully implemented and tested ✅
 - **Gettext backend**: Fully implemented and tested ✅
-- All compilation warnings fixed
 - Dialyzer and Sobelow passing cleanly
-- Comprehensive test suite: 248 tests passing, 0 failures
+- Comprehensive test suite: 1646 tests passing, 0 failures
 - All security vulnerabilities (VULN-001 to VULN-017) fixed and validated
