@@ -60,7 +60,7 @@ jobs:
         id: version
         run: |
           # Get current version from mix.exs
-          CURRENT_VERSION=$(grep 'version:' mix.exs | head -1 | sed 's/.*version: "\(.*\)".*/\1/')
+          CURRENT_VERSION=$(grep '@version ' mix.exs | head -1 | sed 's/.*@version "\(.*\)".*/\1/')
           echo "Current version: $CURRENT_VERSION"
           
           # Remove any existing pre-release suffix

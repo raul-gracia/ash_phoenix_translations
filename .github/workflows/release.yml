@@ -16,6 +16,9 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: write
+
 env:
   ELIXIR_VERSION: "1.17.3"
   OTP_VERSION: "27.0"
@@ -58,7 +61,7 @@ jobs:
       
       - name: Verify version match
         run: |
-          MIX_VERSION=$(grep 'version:' mix.exs | head -1 | sed 's/.*version: "\(.*\)".*/\1/')
+          MIX_VERSION=$(grep '@version ' mix.exs | head -1 | sed 's/.*@version "\(.*\)".*/\1/')
           if [ "$MIX_VERSION" != "${{ steps.version.outputs.version }}" ]; then
             echo "Version mismatch!"
             echo "Tag/Input version: ${{ steps.version.outputs.version }}"
@@ -299,7 +302,7 @@ jobs:
           NEXT_VERSION="$major.$minor.$((patch + 1))-dev"
           
           # Update mix.exs with development version
-          sed -i "s/version: \"$CURRENT_VERSION\"/version: \"$NEXT_VERSION\"/" mix.exs
+          sed -i "s/@version \"$CURRENT_VERSION\"/@version \"$NEXT_VERSION\"/" mix.exs
           
           # Commit the change
           git add mix.exs

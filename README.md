@@ -36,7 +36,7 @@ Add `ash_phoenix_translations` to your dependencies:
 ```elixir
 def deps do
   [
-    {:ash_phoenix_translations, "~> 1.0.0"}
+    {:ash_phoenix_translations, "~> 1.0.1"}
   ]
 end
 ```
