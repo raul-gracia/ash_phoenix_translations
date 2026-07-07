@@ -180,7 +180,8 @@ jobs:
         id: changelog
         run: |
           # Extract the section for this version from CHANGELOG.md
-          awk "/## \[${{ needs.validate.outputs.version }}\]/,/## \[/" CHANGELOG.md | head -n -1 > release_notes.md
+          # (print lines after the version heading until the next heading)
+          awk "/^## \[${{ needs.validate.outputs.version }}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md > release_notes.md
           
           # If it's empty, use a default message
           if [ ! -s release_notes.md ]; then
