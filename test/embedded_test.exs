@@ -93,6 +93,91 @@ defmodule AshPhoenixTranslations.EmbeddedTest do
     end
   end
 
+  defmodule LocalizedSection do
+    use Ash.Resource,
+      data_layer: :embedded,
+      extensions: [AshPhoenixTranslations]
+
+    attributes do
+      uuid_primary_key :id
+    end
+
+    translations do
+      translatable_attribute :heading, :string, locales: [:en, :de]
+    end
+  end
+
+  defmodule RegressionDomain do
+    use Ash.Domain, validate_config_inclusion?: false
+
+    resources do
+      resource AshPhoenixTranslations.EmbeddedTest.Article
+      resource AshPhoenixTranslations.EmbeddedTest.Guide
+      resource AshPhoenixTranslations.EmbeddedTest.Booklet
+    end
+  end
+
+  defmodule Article do
+    use Ash.Resource,
+      domain: RegressionDomain,
+      data_layer: Ash.DataLayer.Ets,
+      extensions: [AshPhoenixTranslations],
+      validate_domain_inclusion?: false
+
+    attributes do
+      uuid_primary_key :id
+    end
+
+    translations do
+      translatable_attribute :title, :string, locales: [:en, :de]
+    end
+
+    actions do
+      defaults [:create, :read, :update, :destroy]
+    end
+  end
+
+  defmodule Guide do
+    use Ash.Resource,
+      domain: RegressionDomain,
+      data_layer: Ash.DataLayer.Ets,
+      extensions: [AshPhoenixTranslations],
+      validate_domain_inclusion?: false
+
+    attributes do
+      uuid_primary_key :id
+    end
+
+    translations do
+      translatable_attribute :body, :string, locales: [:de, :ja]
+    end
+
+    actions do
+      defaults [:create, :read, :update, :destroy]
+    end
+  end
+
+  defmodule Booklet do
+    use Ash.Resource,
+      domain: RegressionDomain,
+      data_layer: Ash.DataLayer.Ets,
+      extensions: [AshPhoenixTranslations],
+      validate_domain_inclusion?: false
+
+    attributes do
+      uuid_primary_key :id
+      attribute :section, LocalizedSection
+    end
+
+    translations do
+      translatable_attribute :label, :string, locales: [:en, :de]
+    end
+
+    actions do
+      defaults [:create, :read, :update, :destroy]
+    end
+  end
+
   describe "translate_embedded/2" do
     test "translates embedded schema attributes" do
       user =
@@ -1170,6 +1255,129 @@ defmodule AshPhoenixTranslations.EmbeddedTest do
 
       # Non-map should result in 0% completeness
       assert report.average_completeness == 0 || report.average_completeness >= 0
+    end
+  end
+
+  describe "calculate_path_completeness/2 - configured locales (regression)" do
+    test "reports 100% for fully translated non-default locale set" do
+      article =
+        struct(Article, %{
+          id: "art-1",
+          title_translations: %{en: "Title", de: "Titel"}
+        })
+
+      report = Embedded.embedded_translation_report(article)
+
+      assert report.total_paths == 1
+      assert report.complete_paths == 1
+      assert report.average_completeness == 100.0
+    end
+
+    test "reports 50% when half of the configured locales are translated" do
+      article =
+        struct(Article, %{
+          id: "art-1",
+          title_translations: %{en: "Title"}
+        })
+
+      report = Embedded.embedded_translation_report(article)
+
+      assert report.complete_paths == 0
+      assert report.average_completeness == 50.0
+    end
+
+    test "reports 100% for locale sets that share nothing with en/es/fr" do
+      guide =
+        struct(Guide, %{
+          id: "guide-1",
+          body_translations: %{de: "Inhalt", ja: "コンテンツ"}
+        })
+
+      report = Embedded.embedded_translation_report(guide)
+
+      assert report.complete_paths == 1
+      assert report.average_completeness == 100.0
+    end
+
+    test "counts string-keyed translation maps" do
+      article =
+        struct(Article, %{
+          id: "art-1",
+          title_translations: %{"en" => "Title", "de" => "Titel"}
+        })
+
+      report = Embedded.embedded_translation_report(article)
+
+      assert report.average_completeness == 100.0
+    end
+
+    test "never exceeds 100% when unexpected locale keys are present" do
+      article =
+        struct(Article, %{
+          id: "art-1",
+          title_translations: %{en: "T", de: "T", fr: "T", es: "T", pt: "T"}
+        })
+
+      report = Embedded.embedded_translation_report(article)
+
+      assert report.average_completeness == 100.0
+    end
+
+    test "uses the embedded attribute's configured locales for nested paths" do
+      booklet =
+        struct(Booklet, %{
+          id: "bk-1",
+          label_translations: %{en: "Label", de: "Etikett"},
+          section:
+            struct(LocalizedSection, %{
+              id: "sec-1",
+              heading_translations: %{en: "Heading", de: "Überschrift"}
+            })
+        })
+
+      report = Embedded.embedded_translation_report(booklet)
+
+      assert report.total_paths == 2
+      assert report.complete_paths == 2
+      assert report.average_completeness == 100.0
+    end
+  end
+
+  describe "resolve_translation_storage/2 - nil storage fallback (regression)" do
+    test "falls back to the attribute path when the storage field is nil" do
+      article =
+        struct(Article, %{
+          id: "art-1",
+          title_translations: nil
+        })
+        |> Map.put(:title, %{en: "Title", de: "Titel"})
+
+      report = Embedded.embedded_translation_report(article)
+
+      assert report.average_completeness == 100.0
+    end
+  end
+
+  describe "validate_path_translations/3 - storage map resolution (regression)" do
+    test "validates against the *_translations storage map" do
+      article =
+        struct(Article, %{
+          id: "art-1",
+          title_translations: %{en: "Title", de: "Titel"}
+        })
+
+      assert Embedded.validate_embedded_translations(article, [:en, :de]) == :ok
+    end
+
+    test "still reports genuinely missing locales" do
+      article =
+        struct(Article, %{
+          id: "art-1",
+          title_translations: %{en: "Title"}
+        })
+
+      assert {:error, [%{path: [:title], missing_locales: [:de]}]} =
+               Embedded.validate_embedded_translations(article, [:en, :de])
     end
   end
 

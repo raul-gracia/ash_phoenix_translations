@@ -232,7 +232,9 @@ defmodule AshPhoenixTranslations.Embedded do
     paths = extract_translatable_paths(resource)
 
     stats =
-      Enum.map(paths, fn path ->
+      paths
+      |> Enum.filter(&translation_container_present?(resource, &1))
+      |> Enum.map(fn path ->
         {path, calculate_path_completeness(resource, path)}
       end)
 
@@ -406,18 +408,22 @@ defmodule AshPhoenixTranslations.Embedded do
       # No translatable paths found, return no errors
       []
     else
-      Enum.flat_map(paths, fn path ->
+      paths
+      |> Enum.filter(&translation_container_present?(resource, &1))
+      |> Enum.flat_map(fn path ->
         validate_path_translations(resource, path, required_locales)
       end)
     end
   end
 
   defp validate_path_translations(resource, path, required_locales) do
-    value = get_in_embedded(resource, path)
+    value = resolve_translation_storage(resource, path)
+    translations = if is_map(value) and not is_struct(value), do: value, else: %{}
 
     missing_locales =
-      required_locales
-      |> Enum.reject(fn locale -> Map.has_key?(value || %{}, locale) end)
+      Enum.reject(required_locales, fn locale ->
+        Map.has_key?(translations, locale) or Map.has_key?(translations, to_string(locale))
+      end)
 
     if Enum.empty?(missing_locales) do
       []
@@ -475,8 +481,9 @@ defmodule AshPhoenixTranslations.Embedded do
 
   defp get_embedded_attributes(module) do
     # Get embedded attributes from Ash resource attributes
-    if function_exported?(module, :__ash_attributes__, 0) do
-      module.__ash_attributes__()
+    if function_exported?(module, :spark_dsl_config, 0) do
+      module
+      |> Ash.Resource.Info.attributes()
       |> Enum.filter(fn attr ->
         # Check if attribute is an embedded type
         case attr.type do
@@ -533,36 +540,73 @@ defmodule AshPhoenixTranslations.Embedded do
     # lives in the storage map (e.g. :name_translations). Resolve to the
     # storage map before computing completeness.
     value = resolve_translation_storage(resource, path)
+    expected_locales = expected_locales_for_path(resource, path)
 
-    expected_locales = [:en, :es, :fr]
+    if is_map(value) and not is_struct(value) and expected_locales != [] do
+      present =
+        Enum.count(expected_locales, fn locale ->
+          Map.has_key?(value, locale) or Map.has_key?(value, to_string(locale))
+        end)
 
-    cond do
-      # Plain translation map: %{en: "...", es: "..."}
-      is_map(value) and not is_struct(value) ->
-        present_locales =
-          value
-          |> Map.keys()
-          |> Enum.filter(&(&1 in expected_locales))
-
-        pct = length(present_locales) / length(expected_locales) * 100
-        # Cap at 100.0 in case future expansions add unexpected locale keys.
-        min(pct, 100.0)
-
-      true ->
-        0
+      present / length(expected_locales) * 100
+    else
+      0
     end
+  end
+
+  # The locales a path is expected to cover come from the translatable
+  # attribute configuration on the module that owns the leaf attribute.
+  defp expected_locales_for_path(resource, path) do
+    module =
+      case resource do
+        %{__struct__: mod} -> mod
+        mod when is_atom(mod) -> mod
+        _ -> nil
+      end
+
+    locales_for_module_path(module, path)
+  end
+
+  defp locales_for_module_path(nil, _path), do: []
+
+  defp locales_for_module_path(module, [leaf]) do
+    case AshPhoenixTranslations.Info.translatable_attribute(module, leaf) do
+      %{locales: locales} when is_list(locales) -> locales
+      _ -> []
+    end
+  rescue
+    _ -> []
+  end
+
+  defp locales_for_module_path(module, [head | rest]) do
+    module
+    |> get_embedded_attributes()
+    |> List.keyfind(head, 0)
+    |> case do
+      {^head, embedded_module} -> locales_for_module_path(embedded_module, rest)
+      nil -> []
+    end
+  end
+
+  # A path is only reportable/validatable when the map or struct holding the
+  # leaf attribute exists. Skips paths under a nil embedded value, and under
+  # array-embedded values (per-item aggregation is not supported).
+  defp translation_container_present?(resource, path) do
+    {parents, _leaf} = Enum.split(path, length(path) - 1)
+    is_map(get_in_embedded(resource, parents))
   end
 
   # Look up the *_translations storage map for a translatable-attribute path.
   # For nested paths like [:address, :street] we walk the embedded structure
-  # and then read `:street_translations` on the leaf.
+  # and then read `:street_translations` on the leaf. Falls back to the raw
+  # attribute path when the storage field is absent or nil.
   defp resolve_translation_storage(resource, path) do
     {parents, [leaf]} = Enum.split(path, length(path) - 1)
     storage_field = :"#{leaf}_translations"
     container = get_in_embedded(resource, parents)
 
     case container do
-      %{^storage_field => value} -> value
+      %{^storage_field => value} when not is_nil(value) -> value
       _ -> get_in_embedded(resource, path)
     end
   end
