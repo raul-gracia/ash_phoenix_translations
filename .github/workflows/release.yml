@@ -190,12 +190,16 @@ jobs:
       
       - name: Create release archive
         run: |
-          tar czf ash_phoenix_translations-${{ needs.validate.outputs.version }}.tar.gz \
+          # Write to RUNNER_TEMP first: creating the archive inside the
+          # directory being archived makes tar exit 1 (file changed as we
+          # read it).
+          tar czf "$RUNNER_TEMP/ash_phoenix_translations-${{ needs.validate.outputs.version }}.tar.gz" \
             --exclude=.git \
             --exclude=_build \
             --exclude=deps \
             --exclude=.github \
             .
+          mv "$RUNNER_TEMP/ash_phoenix_translations-${{ needs.validate.outputs.version }}.tar.gz" .
       
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
