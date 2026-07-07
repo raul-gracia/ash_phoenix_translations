@@ -705,6 +705,18 @@ defmodule AshPhoenixTranslations.Cache do
     GenServer.call(__MODULE__, :stats)
   end
 
+  @doc """
+  Resets hit, miss, and eviction counters to zero.
+
+  Useful for measuring cache effectiveness over a specific window,
+  and for isolating statistics between test runs.
+
+      AshPhoenixTranslations.Cache.reset_stats()
+  """
+  def reset_stats do
+    GenServer.call(__MODULE__, :reset_stats)
+  end
+
   # Server callbacks
 
   @impl true
@@ -761,6 +773,11 @@ defmodule AshPhoenixTranslations.Cache do
   def handle_cast({:warmup, resources, locales}, state) do
     Task.start(fn -> perform_warmup(resources, locales) end)
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_call(:reset_stats, _from, state) do
+    {:reply, :ok, %{state | hits: 0, misses: 0, evictions: 0}}
   end
 
   @impl true
