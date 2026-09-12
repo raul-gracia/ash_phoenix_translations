@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   which Ash 3.33+ requires before compiling resources. This only affects the
   library's own dev/test resources; applications set this in their own config.
 
+### Fixed
+- `mix ash_phoenix_translations.install` now rejects an unknown `--backend`
+  before writing anything; previously it appended its block to
+  `config/config.exs` and only then raised.
+
 ## [1.0.1] - 2026-07-07
 
 ### Fixed

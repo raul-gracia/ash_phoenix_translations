@@ -452,6 +452,10 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Install do
     skip_gettext = opts[:gettext] == false
     skip_migration = opts[:migration] == false
 
+    unless backend in ["database", "gettext"] do
+      Mix.raise("Unknown backend: #{backend}. Use database or gettext.")
+    end
+
     Mix.shell().info("Installing AshPhoenixTranslations...")
 
     unless skip_config do
@@ -468,9 +472,6 @@ defmodule Mix.Tasks.AshPhoenixTranslations.Install do
         unless skip_migration do
           generate_migration()
         end
-
-      _ ->
-        Mix.raise("Unknown backend: #{backend}. Use database or gettext.")
     end
 
     create_example_resource()
