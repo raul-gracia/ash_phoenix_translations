@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Bumped dependencies flagged by `mix hex.audit` (Hex 2.5 now checks OSV
+  advisories): `ash` 3.29.3 -> 3.33.3, `plug` 1.20.2 -> 1.20.3,
+  `phoenix_live_view` 1.2.6 -> 1.2.11, `html_sanitize_ex` 1.5.2 -> 1.5.5,
+  `ymlr` 5.1.5 -> 5.1.6, `ash_postgres` 2.10.0 -> 2.13.1 (test only),
+  `usage_rules` 0.1.26 -> 1.2.8 (dev only).
+
+### Changed
+- Added `config/config.exs` setting `config :ash, default_string_length_count: :codepoints`,
+  which Ash 3.33+ requires before compiling resources. This only affects the
+  library's own dev/test resources; applications set this in their own config.
+
 ## [1.0.1] - 2026-07-07
 
 ### Fixed
