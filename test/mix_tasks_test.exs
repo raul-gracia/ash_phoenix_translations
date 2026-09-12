@@ -84,10 +84,22 @@ defmodule AshPhoenixTranslations.MixTasksTest do
       end)
     end
 
-    test "raises on invalid backend" do
-      assert_raise Mix.Error, ~r/Unknown backend: invalid/, fn ->
-        AshPhoenixTranslations.Install.run(["--backend", "invalid"])
-      end
+    @tag :tmp_dir
+    test "raises on invalid backend without touching config", %{tmp_dir: tmp_dir} do
+      config_path = Path.join(tmp_dir, "config/config.exs")
+      File.mkdir_p!(Path.dirname(config_path))
+      original = "import Config\n"
+      File.write!(config_path, original)
+
+      in_tmp_dir(tmp_dir, fn ->
+        capture_io(fn ->
+          assert_raise Mix.Error, ~r/Unknown backend: invalid/, fn ->
+            AshPhoenixTranslations.Install.run(["--backend", "invalid"])
+          end
+        end)
+
+        assert File.read!(config_path) == original
+      end)
     end
   end
 
